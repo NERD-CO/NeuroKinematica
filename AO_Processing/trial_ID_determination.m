@@ -50,8 +50,8 @@ for sti = 1:length(stn_locs)
         % How many ttls?
         if ttlCHECK
             load(temp_dir,"CDIG_IN_1_Down")
-            ttl_num =  length(CDIG_IN_1_Down); % 60 frames per sec.
-            ttl_thresh = 60*30; % 30 sec
+            ttl_num =  length(CDIG_IN_1_Down) % 60 frames per sec.
+            ttl_thresh = 60*30 % 30 sec
            if ttl_num < ttl_thresh
               summaryCSV.trialNum(fileTblIndex) = NaN;
            else
@@ -60,7 +60,7 @@ for sti = 1:length(stn_locs)
                keepCount = keepCount +1;
            end
         else
-            summaryCSV.trialNum(fileTblIndex) = NaN;
+           summaryCSV.trialNum(fileTblIndex) = NaN; % why is this condition here?
         end
 
     end
