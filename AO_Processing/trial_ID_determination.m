@@ -6,10 +6,15 @@ cd(csvLoc)
 
 summaryCSV = readtable("Subject_AO.csv");
 
-% isolate a specific subject
-studyID = 1;
-studyDataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_09_2023\Raw Electrophysiology MATLAB';
+% Inputs: isolate a specific subject
+studyID = 2;
+studyDataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_23_2023\Raw Electrophysiology MATLAB'
 
+% Completed subjects:
+% 1: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_09_2023\Raw Electrophysiology MATLAB'
+% 2: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_23_2023\Raw Electrophysiology MATLAB'
+
+% Define data table and indexing variables:
 studyTable = summaryCSV(ismember(summaryCSV.StudyNum,studyID),:);
 studyTblIndex = ismember(summaryCSV.StudyNum,studyID); % logical index = loc of subject
 
@@ -45,9 +50,9 @@ for sti = 1:length(stn_locs)
         % How many ttls?
         if ttlCHECK
             load(temp_dir,"CDIG_IN_1_Down")
-            ttl_num =  length(CDIG_IN_1_Down) % 60 frames per sec.
+            ttl_num =  length(CDIG_IN_1_Down); % 60 frames per sec.
             ttl_thresh = 60*30; % 30 sec
-           if ttl_num < sec_thresh
+           if ttl_num < ttl_thresh
               summaryCSV.trialNum(fileTblIndex) = NaN;
            else
                % populate row with ID
@@ -62,8 +67,8 @@ for sti = 1:length(stn_locs)
 end
 
 % save new CSV with trial ID
-% cd to CSV save loc
-% writetable(summaryCSV,'Subject_AO.csv") % fill trial column
+cd(csvLoc) % % cd to csvloc
+writetable(summaryCSV,'Subject_AO.csv') % fill trial column
 
 % output: csv file with column ID of trial (relevant experimental iteration)
 
