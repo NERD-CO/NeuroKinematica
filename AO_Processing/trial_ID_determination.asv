@@ -4,15 +4,17 @@
 csvLoc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
 cd(csvLoc) 
 
-summaryCSV = readtable("Subject_AO.csv");
+summaryCSV = readtable("Subject_AO.xlsx");
 
 % Inputs: isolate a specific subject
-studyID = 2;
-studyDataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_23_2023\Raw Electrophysiology MATLAB'
+studyID = 3;
+studyDataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\04_05_2023\Raw Electrophysiology MATLAB'
 
 % Completed subjects:
 % 1: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_09_2023\Raw Electrophysiology MATLAB'
 % 2: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_23_2023\Raw Electrophysiology MATLAB'
+% 3: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\04_05_2023\Raw Electrophysiology MATLAB'
+% 4: 
 
 % Define data table and indexing variables:
 studyTable = summaryCSV(ismember(summaryCSV.StudyNum,studyID),:);
@@ -50,8 +52,8 @@ for sti = 1:length(stn_locs)
         % How many ttls?
         if ttlCHECK
             load(temp_dir,"CDIG_IN_1_Down")
-            ttl_num =  length(CDIG_IN_1_Down); % 60 frames per sec.
-            ttl_thresh = 60*30; % 30 sec
+            ttl_num =  length(CDIG_IN_1_Down) % 60 frames per sec.
+            ttl_thresh = 60*28; % 28 sec, 1680 ttls (30 sec, 1800 ttls)
            if ttl_num < ttl_thresh
               summaryCSV.trialNum(fileTblIndex) = NaN;
            else
@@ -60,16 +62,15 @@ for sti = 1:length(stn_locs)
                keepCount = keepCount +1;
            end
         else
-            summaryCSV.trialNum(fileTblIndex) = NaN;
+           summaryCSV.trialNum(fileTblIndex) = NaN; % why is this condition here?
         end
 
     end
 end
 
 % save new CSV with trial ID
-cd(csvLoc) % % cd to csvloc
-writetable(summaryCSV,'Subject_AO.csv') % fill trial column
+cd(csvLoc) 
+writetable(summaryCSV,'Subject_AO.xlsx') % fill trial column
 
-% output: csv file with column ID of trial (relevant experimental iteration)
+% output: csv file with trialNum column filled with relevant experimental iteration (per STN location)
 
-stopTest = 1;

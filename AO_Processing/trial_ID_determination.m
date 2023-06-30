@@ -1,22 +1,26 @@
 % read in csv file
 % loop through depths of interest per stn region
 
-csvLoc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
-cd(csvLoc) 
+xlsxLoc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
+cd(xlsxLoc) 
 
-summaryCSV = readtable("Subject_AO.csv");
+summaryXLSX = readtable("Subject_AO.xlsx");
 
 % Inputs: isolate a specific subject
-studyID = 2;
-studyDataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_23_2023\Raw Electrophysiology MATLAB'
+studyID = 6;
+studyDataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_11_2023\Raw Electrophysiology MATLAB'
 
 % Completed subjects:
 % 1: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_09_2023\Raw Electrophysiology MATLAB'
 % 2: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_23_2023\Raw Electrophysiology MATLAB'
+% 3: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\04_05_2023\Raw Electrophysiology MATLAB'
+% 4: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\04_13_2023\Raw Electrophysiology MATLAB\LH'
+% 5: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\04_13_2023\Raw Electrophysiology MATLAB\RH'
+% 6: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_11_2023\Raw Electrophysiology MATLAB'
 
 % Define data table and indexing variables:
-studyTable = summaryCSV(ismember(summaryCSV.StudyNum,studyID),:);
-studyTblIndex = ismember(summaryCSV.StudyNum,studyID); % logical index = loc of subject
+studyTable = summaryXLSX(ismember(summaryXLSX.StudyNum,studyID),:);
+studyTblIndex = ismember(summaryXLSX.StudyNum,studyID); % logical index = loc of subject
 
 % create and extract list of unique stn locations
 stn_locs = unique(studyTable.stn_loc);
@@ -38,7 +42,7 @@ for sti = 1:length(stn_locs)
     for stf = 1:height(stnlTable)
         temp_file = stnlTable.ao_MAT_file{stf};
         % find loc of temp file
-        fileTblIndex = matches(summaryCSV.ao_MAT_file,temp_file); % notes row to save relvant experimental rec. ID 
+        fileTblIndex = matches(summaryXLSX.ao_MAT_file,temp_file); % notes row to save relvant experimental rec. ID 
         temp_dir = [studyDataDir,filesep,temp_file];
         % load(temp_dir)
 
@@ -51,25 +55,24 @@ for sti = 1:length(stn_locs)
         if ttlCHECK
             load(temp_dir,"CDIG_IN_1_Down")
             ttl_num =  length(CDIG_IN_1_Down) % 60 frames per sec.
-            ttl_thresh = 60*30 % 30 sec
+            ttl_thresh = 60*28; % 28 sec, 1680 ttls (30 sec, 1800 ttls)
            if ttl_num < ttl_thresh
-              summaryCSV.trialNum(fileTblIndex) = NaN;
+              summaryXLSX.trialNum(fileTblIndex) = NaN;
            else
                % populate row with ID
-               summaryCSV.trialNum(fileTblIndex) = keepCount;
+               summaryXLSX.trialNum(fileTblIndex) = keepCount;
                keepCount = keepCount +1;
            end
         else
-           summaryCSV.trialNum(fileTblIndex) = NaN; % why is this condition here?
+           summaryXLSX.trialNum(fileTblIndex) = NaN; % why is this condition here?
         end
 
     end
 end
 
 % save new CSV with trial ID
-cd(csvLoc) % % cd to csvloc
-writetable(summaryCSV,'Subject_AO.csv') % fill trial column
+cd(xlsxLoc) 
+writetable(summaryXLSX,'Subject_AO.xlsx') % fill trial column
 
-% output: csv file with column ID of trial (relevant experimental iteration)
+% output: csv file with trialNum column filled with relevant experimental iteration (per STN location)
 
-stopTest = 1;
