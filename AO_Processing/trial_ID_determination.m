@@ -10,6 +10,7 @@ summaryXLSX = readtable("Subject_AO.xlsx");
 studyID = 6;
 studyDataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_11_2023\Raw Electrophysiology MATLAB'
 
+
 % Completed subjects:
 % 1: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_09_2023\Raw Electrophysiology MATLAB'
 % 2: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_23_2023\Raw Electrophysiology MATLAB'
@@ -33,6 +34,7 @@ for sti = 1:length(stn_locs)
     temp_loc = stn_locs{sti};
     % find relevant rows of table
     stnlTable = studyTable(matches(studyTable.stn_loc,temp_loc),:);
+
     % stnlTblIndex = matches(summaryCSV.stn_loc,temp_loc); % logical index of stn depth
     % sumSTNIndex = studyTblIndex & stnlTblIndex; % links subject with stn depth
     % nameParts = cellfun(@(x) split(x,'.'),stnlTable.ao_MAT_file,'UniformOutput', false);
@@ -50,21 +52,32 @@ for sti = 1:length(stn_locs)
         matftemp = whos(matfile(temp_dir)); % look at filenames without loading file content
         matVarList = {matftemp.name}; % extract columns of cell array (filenames)
         ttlCHECK = matches('CDIG_IN_1_KHz',matVarList); % logical - if 1, we care ..maybe.
-        
-        % How many ttls?
-        if ttlCHECK
-            load(temp_dir,"CDIG_IN_1_Down")
-            ttl_num =  length(CDIG_IN_1_Down) % 60 frames per sec.
-            ttl_thresh = 60*28; % 28 sec, 1680 ttls (30 sec, 1800 ttls)
-           if ttl_num < ttl_thresh
-              summaryXLSX.trialNum(fileTblIndex) = NaN;
-           else
-               % populate row with ID
-               summaryXLSX.trialNum(fileTblIndex) = keepCount;
-               keepCount = keepCount +1;
-           end
+        tfilenum = str2double(extractBefore(extractAfter(temp_file,'F'), '.'));
+        if height(stnlTable) == 4 && tfilenum == 1
+            firstfilecheck = 1;
         else
-           summaryXLSX.trialNum(fileTblIndex) = NaN; % why is this condition here?
+            firstfilecheck = 0;
+        end
+
+        % How many ttls?
+        if firstfilecheck
+            summaryXLSX.trialNum(fileTblIndex) = NaN;
+        else
+
+            if ttlCHECK
+                load(temp_dir,"CDIG_IN_1_Down")
+                ttl_num =  length(CDIG_IN_1_Down) % 60 frames per sec.
+                ttl_thresh = 60*28; % ((30 sec, 1800 ttls; 28 sec, 1680 ttls) 
+                if ttl_num < ttl_thresh
+                    summaryXLSX.trialNum(fileTblIndex) = NaN;
+                else
+                    % populate row with ID
+                    summaryXLSX.trialNum(fileTblIndex) = keepCount;
+                    keepCount = keepCount +1;
+                end
+            else
+                summaryXLSX.trialNum(fileTblIndex) = NaN; % why is this condition here?
+            end
         end
 
     end
