@@ -61,14 +61,20 @@ for i = 1:height(mat_files)
 
     % create new struct containing fields of interest
 
-    % save into one struct
+    % Save into one Struct
+    dlcDepths.Spike = outStructSPK;
+    dlcDepths.LFP = outStructLFP;
+    dlcDepths.MLFP = outStructMLFP;
+    dlcDepths.TTL = outStructTTL;
 
-    % save into new directory with new name
+    % Save into new directory with new name
+    sAVEname = ['DLCao_',tmpFname];
+    cd(dlcDATAdir)
+    save(sAVEname,'dlcDepths');
 
-    % save(filename, new struct var) % filename ~ ProcDataDir combined with mat fileame
 end
 
-% save it: 
+% save it: save(filename, new struct var) % filename ~ ProcDataDir combined with mat fileame
 
 %% functions
 
