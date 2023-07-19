@@ -7,9 +7,8 @@ cd(xlsxLoc)
 summaryXLSX = readtable("Subject_AO.xlsx");
 
 % Inputs: isolate a specific subject
-studyID = 6;
-studyDataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_11_2023\Raw Electrophysiology MATLAB'
-
+studyID = 9;
+studyDataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_18_2023_b\Raw Electrophysiology MATLAB\RH'
 
 % Completed subjects:
 % 1: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_09_2023\Raw Electrophysiology MATLAB'
@@ -18,6 +17,10 @@ studyDataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraop
 % 4: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\04_13_2023\Raw Electrophysiology MATLAB\LH'
 % 5: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\04_13_2023\Raw Electrophysiology MATLAB\RH'
 % 6: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_11_2023\Raw Electrophysiology MATLAB'
+% 7: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_18_2023_a\Raw Electrophysiology MATLAB'
+% 8: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_18_2023_b\Raw Electrophysiology MATLAB\LH'
+% 9: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_18_2023_b\Raw Electrophysiology MATLAB\RH'
+
 
 % Define data table and indexing variables:
 studyTable = summaryXLSX(ismember(summaryXLSX.StudyNum,studyID),:);
@@ -67,7 +70,7 @@ for sti = 1:length(stn_locs)
             if ttlCHECK
                 load(temp_dir,"CDIG_IN_1_Down")
                 ttl_num =  length(CDIG_IN_1_Down) % 60 frames per sec.
-                ttl_thresh = 60*28; % ((30 sec, 1800 ttls; 28 sec, 1680 ttls) 
+                ttl_thresh = 60*25; % ((30 sec, 1800 ttls; 28 sec, 1680 ttls; 25 sec, 1500 ttls) 
                 if ttl_num < ttl_thresh
                     summaryXLSX.trialNum(fileTblIndex) = NaN;
                 else

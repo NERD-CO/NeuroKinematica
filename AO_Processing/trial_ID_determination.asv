@@ -7,8 +7,8 @@ cd(xlsxLoc)
 summaryXLSX = readtable("Subject_AO.xlsx");
 
 % Inputs: isolate a specific subject
-studyID = 3;
-studyDataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\04_05_2023\Raw Electrophysiology MATLAB'
+studyID = 6;
+studyDataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_11_2023\Raw Electrophysiology MATLAB'
 
 % Completed subjects:
 % 1: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_09_2023\Raw Electrophysiology MATLAB'
@@ -17,6 +17,8 @@ studyDataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraop
 % 4: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\04_13_2023\Raw Electrophysiology MATLAB\LH'
 % 5: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\04_13_2023\Raw Electrophysiology MATLAB\RH'
 % 6: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_11_2023\Raw Electrophysiology MATLAB'
+% 7: 
+
 
 % Define data table and indexing variables:
 studyTable = summaryXLSX(ismember(summaryXLSX.StudyNum,studyID),:);
@@ -66,7 +68,7 @@ for sti = 1:length(stn_locs)
             if ttlCHECK
                 load(temp_dir,"CDIG_IN_1_Down")
                 ttl_num =  length(CDIG_IN_1_Down) % 60 frames per sec.
-                ttl_thresh = 60*30; % ((30 sec, 1800 ttls; 28 sec, 1680 ttls) 
+                ttl_thresh = 60*28; % ((30 sec, 1800 ttls; 28 sec, 1680 ttls) 
                 if ttl_num < ttl_thresh
                     summaryXLSX.trialNum(fileTblIndex) = NaN;
                 else
