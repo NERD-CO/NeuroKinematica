@@ -8,7 +8,7 @@ summaryXLSX = readtable("Subject_AO.xlsx");
 
 % Inputs: isolate a specific subject
 studyID = 1;
-studyDataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_09_2023\Raw Electrophysiology MATLAB'
+studyMatDataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_09_2023\Raw Electrophysiology MATLAB'
 
 % Completed subjects:
 % 1: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_09_2023\Raw Electrophysiology MATLAB'
@@ -48,7 +48,7 @@ for sti = 1:length(stn_locs)
         temp_file = stnlTable.ao_MAT_file{stf};
         % find loc of temp file
         fileTblIndex = matches(summaryXLSX.ao_MAT_file,temp_file); % notes row to save relvant experimental rec. ID 
-        temp_dir = [studyDataDir,filesep,temp_file];
+        temp_dir = [studyMatDataDir,filesep,temp_file];
         % load(temp_dir)
 
         % do we care about this depth?
