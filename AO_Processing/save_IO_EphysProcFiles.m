@@ -43,7 +43,7 @@ studyID = 1;
 
 mat_filelist = save_IO_mat_files(studyID)
 
-mat_ProcFiles = save_IO_mat_ProcFiles(mat_filelist, Case_DataDir)
+save_IO_mat_ProcFiles(mat_filelist, Case_DataDir)
 
 % combine RawDataDir with filename to creat load location
 % load() % matfile
