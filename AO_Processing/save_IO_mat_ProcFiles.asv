@@ -30,7 +30,7 @@ MATmatchedFiles = struct;
 % iterate over each file in mat_filelist
 for i = 1:height(mat_filelist)
 
-    % get current filename from the table
+    % get the current filename from the table
     currentFile = mat_filelist.MAT_filenames{i};
 
     % Check if the current file exists in IO_MatfileNames
@@ -46,7 +46,10 @@ end
     
 for i = 1:height(mat_filelist)
 
-    tmpFilename = MATmatchedFiles.FullFile{i}; % retrieve filename for i-th .mat file from the 'FullFile' field of mat_filelist
+    % navigate to directory where raw MATLAB data files are located
+    cd(RawDataDir)
+
+    tmpFilename = mat_filelist.FullFile{i}; % retrieve filename for i-th .mat file from the 'FullFile' field of mat_filelist
     matFileInfo = matfile(tmpFilename);     % create matfile object representing the .mat file specified by tmpFilename
     matFileVars1 = whos(matFileInfo);       % use 'whos' function to get info about variables stored in .mat file represented by matFileInfo 
     matFileVars2 = {matFileVars1.name};     % extract names of all variables in the .mat file and store them in cell array matFileVars2.
@@ -58,7 +61,6 @@ for i = 1:height(mat_filelist)
         % 3. Find all mLFP 'CMacro_LFP'
         % 4. Find all TTL 'CDIG'
         % Optional Find EMG when used
-        
     % 1. Find all spike files 'CSPK'
     [outStructSPK] = getFILEinfo('CSPK',matFileVars2,tmpFilename);
     % 2. Find all LFP

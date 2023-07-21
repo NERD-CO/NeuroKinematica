@@ -1,9 +1,8 @@
 function mat_filelist = save_IO_mat_files(studyID)
 
-    % hardcode directories
-    IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
-    RawDataDir = [IO_DataDir, filesep, 'Raw Electrophysiology MATLAB']; % filesep saves based OS syntax
-    ProcDataDir = [IO_DataDir, filesep, 'Processed Electrophysiology'];
+    % load XLSX file location
+    xlsxLoc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
+    cd(xlsxLoc) 
 
     % load summaryXLSX table (save in GitHub repo)
     summaryXLSX = readtable("Subject_AO.xlsx");
@@ -16,10 +15,15 @@ function mat_filelist = save_IO_mat_files(studyID)
 
     % extract relevant .mat filenames in the ao_MAT_file column
     mat_filelist = filteredXLSX.ao_MAT_file(trial_rows); % correspond with non-NAN/non-empty cells in the trialNum column
+    % output = cell array of relevant .mat filenames
 
-    % output cell array of relevant .mat filenames
-    if isnumeric(mat_filelist) % check the type of mat_files, if it's a cell array no need to convert
-        mat_filelist = num2cell(mat_filelist); % if it's a numeric vector, convert it to cell array
-    end
+    % convert cell array to table
+    T_mat_filelist = cell2table(mat_filelist, 'VariableNames', {'MAT_filenames'});
 
+    % specify output filename
+    out_mat_filelist = fullfile(xlsxLoc, 'mat_filelist.xlsx');
+
+    % write table to an Excel file
+    writetable(T_mat_filelist, out_mat_filelist);
+    
 end
