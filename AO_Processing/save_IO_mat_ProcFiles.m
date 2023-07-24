@@ -19,7 +19,7 @@ for i = 1:height(mat_filelist)
     ftypes = {'CSPK', 'CLFP', 'CMacro_LFP', 'CDIG', 'CEMG', 'CACC'};
 
     % isolate fields of interest per filetype
-    for f = 1:6
+    for f = 1:4 % 1:6
         Ftype = ftypes{f};
 
         % use getFILEinfo function to process the data based on the ftype - look at code in GitHub repo: save_DLCprocFiles_er
@@ -47,21 +47,18 @@ for i = 1:height(mat_filelist)
                 ProcEphys.TTL = outStruct;
                 % Debugging 'otherwise' case
             
-            case 'CEMG'
-                % 5. Find all EMG files and extract relevant fields via getFILEinfo
-                % save to outStruct
-                ProcEphys.EMG = outStruct;
-
-            case 'CACC'
-                % 6. Find all accelerometry files and extract relevant fields via getFILEinfo
-                % save to outStruct
-                ProcEphys.ACC = outStruct;
+            % case 'CEMG'
+            %     % 5. Find all EMG files and extract relevant fields via getFILEinfo
+            %     % save to outStruct
+            %     ProcEphys.EMG = outStruct;
+            % 
+            % case 'CACC'
+            %     % 6. Find all accelerometry files and extract relevant fields via getFILEinfo
+            %     % save to outStruct
+            %     ProcEphys.ACC = outStruct;
         end
 
     end
-
-    % 5. Find EMG when used
-    % 6. Find ACC when used
 
     % save into new directory with new name
     saveName = ['Processed_',tmpFilename];

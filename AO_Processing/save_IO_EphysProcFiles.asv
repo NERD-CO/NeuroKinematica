@@ -1,5 +1,7 @@
 %% Function outline
 
+% function [] = save_IO_EphysProcFiles(studyID, Case_DataDir)
+
 % Goal: 
     % query rows in summaryXLSX by specific pt hemisphere/studyID (single integer correlated with StudyNum)
     % identify rows with non-empty/non-NAN cells in the trialNum column 
@@ -14,20 +16,20 @@
     % Directories for saving post-processed data
 
 %% CCC
+
 clc
 close all
 clear all
 
-% function [] = save_IO_EphysProcFiles(studyID, Case_DataDir)
-
 %% Variable Inputs
 
 % isolate a specific studyID
-studyID = 5;
+studyID = 8;
 
 % specify directory where case-specific data files are located 
-Case_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\04_13_2023'; 
+Case_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_18_2023_b'; 
 
+RawDataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_18_2023_b\Raw Electrophysiology MATLAB\LH';
 
 % Completed cases:
 % 1: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_09_2023'
@@ -36,10 +38,14 @@ Case_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraop
 % 4: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\04_13_2023'
 % 5: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\04_13_2023'
      % RawDataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\04_13_2023\Raw Electrophysiology MATLAB\RH'
-% 6: 
+% 6: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_11_2023'; *ACC
+% 7: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_18_2023_a'; *ACC
+% 8: 
+     % RawDataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_18_2023_b\Raw Electrophysiology MATLAB\LH'
+
 %% Hardcode directories
 IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';  % directory where all IO data is located
-RawDataDir = [Case_DataDir, filesep, 'Raw Electrophysiology MATLAB'];                    % directory where raw MATLAB data files are located (case-specific)
+%RawDataDir = [Case_DataDir, filesep, 'Raw Electrophysiology MATLAB'];                    % directory where raw MATLAB data files are located (case-specific)
 ProcDataDir = [Case_DataDir, filesep, 'Processed Electrophysiology'];                    % directory where processed MATLAB data should be saved (case-specific)
 mkdir(ProcDataDir);
 
