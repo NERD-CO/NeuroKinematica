@@ -3,7 +3,6 @@ function [] = save_IO_mat_ProcFiles(mat_filelist, Case_DataDir)
 % hardcode directories
 RawDataDir = [Case_DataDir, filesep, 'Raw Electrophysiology MATLAB']; % directory where raw MATLAB data files are located (case-specific)
 ProcDataDir = [Case_DataDir, filesep, 'Processed Electrophysiology']; % directory where processed MATLAB data should be saved (case-specific)
-mkdir(ProcDataDir);
 
 % navigate to directory where raw MATLAB data files are located
 cd(RawDataDir)
@@ -17,10 +16,10 @@ for i = 1:height(mat_filelist)
     matFileVars2 = {matFileVars1.name};     % extract names of all variables in the .mat file and store them in cell array matFileVars2.
 
     % list Ephys filetypes of interest (conditions)
-    ftypes = {'CSPK', 'CLFP', 'CMacro_LFP', 'CDIG'};
+    ftypes = {'CSPK', 'CLFP', 'CMacro_LFP', 'CDIG', 'CEMG', 'CACC'};
 
     % isolate fields of interest per filetype
-    for f = 1:4
+    for f = 1:6
         Ftype = ftypes{f};
 
         % use getFILEinfo function to process the data based on the ftype - look at code in GitHub repo: save_DLCprocFiles_er
@@ -46,10 +45,17 @@ for i = 1:height(mat_filelist)
                 % 4. Find all TTL files and extract relevant fields via getFILEinfo
                 % save to outStruct
                 ProcEphys.TTL = outStruct;
-                % Debugging
-            otherwise
-                warning(['Unexpected fTYPE value: ', fTYPE]);
-                ProcEphys.TTL = [];
+                % Debugging 'otherwise' case
+            
+            case 'CEMG'
+                % 5. Find all EMG files and extract relevant fields via getFILEinfo
+                % save to outStruct
+                ProcEphys.EMG = outStruct;
+
+            case 'CACC'
+                % 6. Find all accelerometry files and extract relevant fields via getFILEinfo
+                % save to outStruct
+                ProcEphys.ACC = outStruct;
         end
 
     end
@@ -72,7 +78,7 @@ function [outStruct] = getFILEinfo(fTYPE, varITEMS, mfname)
 
 switch fTYPE
 
-    case {'CSPK','CLFP','CMacro_LFP'} % add EMG and ACC ftypes to this case later
+    case {'CSPK','CLFP','CMacro_LFP', 'CEMG', 'CACC' } % add EMG and ACC ftypes to this case later
         indiCES = contains(varITEMS, fTYPE); % find relevant fields of ftype
         % Get list
         varLIST = varITEMS(indiCES);

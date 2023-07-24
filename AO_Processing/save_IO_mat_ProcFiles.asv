@@ -16,7 +16,7 @@ for i = 1:height(mat_filelist)
     matFileVars2 = {matFileVars1.name};     % extract names of all variables in the .mat file and store them in cell array matFileVars2.
 
     % list Ephys filetypes of interest (conditions)
-    ftypes = {'CSPK', 'CLFP', 'CMacro_LFP', 'CDIG'};
+    ftypes = {'CSPK', 'CLFP', 'CMacro_LFP', 'CDIG', 'CEMG', 'CACC'};
 
     % isolate fields of interest per filetype
     for f = 1:4
@@ -67,12 +67,12 @@ end
 
 %% helper functions
 
-function [outStruct] = getFILEinfo(fTYPE,varITEMS,mfname)
+function [outStruct] = getFILEinfo(fTYPE, varITEMS, mfname)
 
 switch fTYPE
 
-    case {'CSPK','CLFP','CMacro_LFP'} % add EMG and ACC ftypes to this case later
-        indiCES = contains(varITEMS,fTYPE); % find relevant fields of ftype
+    case {'CSPK','CLFP','CMacro_LFP', 'CEMG', 'CACC' } % add EMG and ACC ftypes to this case later
+        indiCES = contains(varITEMS, fTYPE); % find relevant fields of ftype
         % Get list
         varLIST = varITEMS(indiCES);
         % how many micro electrodes
@@ -91,7 +91,7 @@ switch fTYPE
 
         for ei = 1:numel(wholeEleID) % numel - # of elements in array
             % Hz
-            [freqItem] = getVARid(varLIST , wholeEleID{ei} , fTYPE, '_KHz');
+            [freqItem] = getVARid(varLIST, wholeEleID{ei}, fTYPE, '_KHz');
             % outStruct.(['E',num2str(eleIDs{ei})]).Hz = load(mfname,freqItem);
             if ~isempty(freqItem)
                 outStruct.(['E',num2str(eleIDs{ei})]).Hz = load(mfname,freqItem);
@@ -100,7 +100,7 @@ switch fTYPE
             end
 
             % Raw data
-            [dataItem] = getVARid(varLIST , wholeEleID{ei} , fTYPE, '');
+            [dataItem] = getVARid(varLIST, wholeEleID{ei}, fTYPE, '');
             % outStruct.(['E',num2str(eleIDs{ei})]).rawData = load(mfname,dataItem);
             if ~isempty(dataItem)
                 outStruct.(['E',num2str(eleIDs{ei})]).rawData = load(mfname,dataItem);
@@ -118,7 +118,7 @@ switch fTYPE
             end
 
             % End time
-            [endTitem] = getVARid(varLIST, wholeEleID{ei} , fTYPE, '_TimeEnd');
+            [endTitem] = getVARid(varLIST, wholeEleID{ei}, fTYPE, '_TimeEnd');
             % outStruct.(['E',num2str(eleIDs{ei})]).endTime = load(mfname,endTitem);
             if ~isempty(endTitem)
                 outStruct.(['E',num2str(eleIDs{ei})]).endTime = load(mfname,endTitem);
@@ -128,7 +128,7 @@ switch fTYPE
         end
 
     case 'CDIG'
-        indiCES = contains(varITEMS,fTYPE);
+        indiCES = contains(varITEMS, fTYPE);
         % Get list
         varLIST = varITEMS(indiCES);
 
@@ -140,7 +140,7 @@ switch fTYPE
         end
 
         % Hz
-        [freqItem] = getVARid(varLIST , 'IN_1' , fTYPE, '_KHz');
+        [freqItem] = getVARid(varLIST, 'IN_1', fTYPE, '_KHz');
         % outStruct.TTL.Hz = load(mfname,freqItem);
         [freqItem] = getVARid(varLIST , 'IN_1' , fTYPE, '_KHz');
         if ~isempty(freqItem)
@@ -150,7 +150,7 @@ switch fTYPE
         end
 
         % Down
-        [freqItem] = getVARid(varLIST , 'IN_1' , fTYPE, '_Down');
+        [freqItem] = getVARid(varLIST, 'IN_1', fTYPE, '_Down');
         % outStruct.TTL.Down = load(mfname,freqItem);
         if ~isempty(freqItem)
             outStruct.TTL.Down = load(mfname,freqItem);
@@ -159,7 +159,7 @@ switch fTYPE
         end
 
         % Start time
-        [freqItem] = getVARid(varLIST , 'IN_1' , fTYPE, '_TimeBegin');
+        [freqItem] = getVARid(varLIST, 'IN_1', fTYPE, '_TimeBegin');
         % outStruct.TTL.startTime = load(mfname,freqItem);
         if ~isempty(freqItem)
             outStruct.TTL.startTime = load(mfname,freqItem);
@@ -168,7 +168,7 @@ switch fTYPE
         end
 
         % End time
-        [freqItem] = getVARid(varLIST , 'IN_1' , fTYPE, '_TimeEnd');
+        [freqItem] = getVARid(varLIST, 'IN_1', fTYPE, '_TimeEnd');
         % outStruct.TTL.endTime = load(mfname,freqItem);
         if ~isempty(freqItem)
             outStruct.TTL.endTime = load(mfname,freqItem);
@@ -180,7 +180,7 @@ end
 end
 
 
-function [varNAME] = getVARid(vLIST , wholeEleID , fTYPE1, fTYPE2)
+function [varNAME] = getVARid(vLIST, wholeEleID, fTYPE1, fTYPE2)
 
 % Debugging
 disp(['vLIST: ', strjoin(vLIST, ', ')]);
@@ -188,7 +188,7 @@ disp(['wholeEleID: ', wholeEleID]);
 disp(['fTYPE1: ', fTYPE1]);
 disp(['fTYPE2: ', fTYPE2]);
 
-freqItem = vLIST(matches(vLIST,[fTYPE1,'_', wholeEleID ,fTYPE2]));
+freqItem = vLIST(matches(vLIST,[fTYPE1, '_', wholeEleID, fTYPE2]));
 
 if isempty(freqItem)
     warning('Variable list is empty. Returning empty varNAME');
