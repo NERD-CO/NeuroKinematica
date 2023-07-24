@@ -1,18 +1,19 @@
 %% Function outline
 
 % Goal: 
-    % query by pt/study ID
+    % query rows in summaryXLSX by specific pt hemisphere/studyID (single integer correlated with StudyNum)
+    % identify rows with non-empty/non-NAN cells in the trialNum column 
     % extract fields of interest in mat file
     % restructure relevant data into matrix
 
-%% Required resources
-
-% Summary XLSX file 
-    % trial IDs and mat filenames
-% Directories for raw data locs
-% Directories for saving post-processed data
+% Required resources
+    % Summary XLSX file 
+        % trial IDs and mat filenames
+    % Directories for raw data locs
+    % Directories for saving post-processed data
 
 %% pseudocode
+% function [] = save_IO_EphysProcFiles(IO_DataDir,summaryXLSX,studyID,Case_DataDir,RawDataDir,ProcDataDir)
 
 % hardcode directories
 IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';              % directory where all IO data is located
@@ -33,14 +34,15 @@ studyID = 1;
 %% call functions
 
 % extract relevant .mat filenames in the ao_MAT_file column
-mat_filelist = save_IO_mat_files(studyID);
+mat_filelist = save_IO_mat_filenames(studyID);
 
+% extract relevant info from relevant .mat files in mat_filelist
 save_IO_mat_ProcFiles(mat_filelist, Case_DataDir);
  
 
 %% main functions
 
-function mat_filelist = save_IO_mat_files(studyID)
+function mat_filelist = save_IO_mat_filenames(studyID)
 
     % load XLSX file location
     xlsxLoc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
@@ -60,6 +62,7 @@ function mat_filelist = save_IO_mat_files(studyID)
     % output = cell array of relevant .mat filenames
 
 end
+
 
 function [] = save_IO_mat_ProcFiles(mat_filelist, Case_DataDir)
 

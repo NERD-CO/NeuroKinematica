@@ -17,7 +17,7 @@ for i = 1:height(mat_filelist)
 
     % list Ephys filetypes of interest (conditions)
     ftypes = {'CSPK', 'CLFP', 'CMacro_LFP', 'CDIG'};
-    
+
     % isolate fields of interest per filetype
     for f = 1:4
         Ftype = ftypes{f};
@@ -45,6 +45,10 @@ for i = 1:height(mat_filelist)
                 % 4. Find all TTL files and extract relevant fields via getFILEinfo
                 % save to outStruct
                 ProcEphys.TTL = outStruct;
+                % Debugging
+            otherwise
+                warning(['Unexpected fTYPE value: ', fTYPE]);
+                ProcEphys.TTL = [];
         end
 
     end
@@ -61,13 +65,14 @@ end
 end
 
 
-%% functions
+%% helper functions
 
-function [outStruct] = getFILEinfo(fTYPE,varITEMS,mfname)
+function [outStruct] = getFILEinfo(fTYPE, varITEMS, mfname)
 
 switch fTYPE
+
     case {'CSPK','CLFP','CMacro_LFP'} % add EMG and ACC ftypes to this case later
-        indiCES = contains(varITEMS,fTYPE); % find relevant fields of ftype
+        indiCES = contains(varITEMS, fTYPE); % find relevant fields of ftype
         % Get list
         varLIST = varITEMS(indiCES);
         % how many micro electrodes
@@ -76,53 +81,120 @@ switch fTYPE
         eleIDs = extractAfter(unique(eleContent),1);
         wholeEleID = unique(eleContent);
 
+        % Debugging - print eleIDs
+        disp(['eleIDs: ', strjoin(eleIDs, ', ')]);
+        % return an empty struct if eleIDs is empty
+        if isempty(eleIDs)
+            outStruct = struct;
+            return
+        end
+
         for ei = 1:numel(wholeEleID) % numel - # of elements in array
             % Hz
-            [freqItem] = getVARid(varLIST , wholeEleID{ei} , fTYPE, '_KHz');
-            outStruct.(['E',num2str(eleIDs{ei})]).Hz = load(mfname,freqItem);
+            [freqItem] = getVARid(varLIST, wholeEleID{ei}, fTYPE, '_KHz');
+            % outStruct.(['E',num2str(eleIDs{ei})]).Hz = load(mfname,freqItem);
+            if ~isempty(freqItem)
+                outStruct.(['E',num2str(eleIDs{ei})]).Hz = load(mfname,freqItem);
+            else
+                warning('freqItem is empty. Skipping load operation for E%d.Hz.', ei);
+            end
 
             % Raw data
-            [dataItem] = getVARid(varLIST , wholeEleID{ei} , fTYPE, '');
-            outStruct.(['E',num2str(eleIDs{ei})]).rawData = load(mfname,dataItem);
+            [dataItem] = getVARid(varLIST, wholeEleID{ei}, fTYPE, '');
+            % outStruct.(['E',num2str(eleIDs{ei})]).rawData = load(mfname,dataItem);
+            if ~isempty(dataItem)
+                outStruct.(['E',num2str(eleIDs{ei})]).rawData = load(mfname,dataItem);
+            else
+                warning('dataItem is empty. Skipping load operation for E%d.rawData.', ei);
+            end
 
             % Start time
-            [startTitem] = getVARid(varLIST , wholeEleID{ei} , fTYPE, '_TimeBegin');
-            outStruct.(['E',num2str(eleIDs{ei})]).startTime = load(mfname,startTitem);
+            [startTitem] = getVARid(varLIST, wholeEleID{ei}, fTYPE, '_TimeBegin');
+            % outStruct.(['E',num2str(eleIDs{ei})]).startTime = load(mfname,startTitem);
+            if ~isempty(startTitem)
+                outStruct.(['E',num2str(eleIDs{ei})]).startTime = load(mfname,startTitem);
+            else
+                warning('startTitem is empty. Skipping load operation for E%d.startTime.', ei);
+            end
 
             % End time
-            [endTitem] = getVARid(varLIST , wholeEleID{ei} , fTYPE, '_TimeEnd');
-            outStruct.(['E',num2str(eleIDs{ei})]).endTime = load(mfname,endTitem);
+            [endTitem] = getVARid(varLIST, wholeEleID{ei}, fTYPE, '_TimeEnd');
+            % outStruct.(['E',num2str(eleIDs{ei})]).endTime = load(mfname,endTitem);
+            if ~isempty(endTitem)
+                outStruct.(['E',num2str(eleIDs{ei})]).endTime = load(mfname,endTitem);
+            else
+                warning('endTitem is empty. Skipping load operation for E%d.endTime.', ei);
+            end
         end
 
     case 'CDIG'
-        indiCES = contains(varITEMS,fTYPE);
+        indiCES = contains(varITEMS, fTYPE);
         % Get list
         varLIST = varITEMS(indiCES);
 
+        % Debugging
+        if isempty(varLIST)
+            disp('Warning: Variable list (vLIST) is empty for CDIG file type. Skipping operations...');
+            outStruct = struct;
+            return
+        end
+
         % Hz
+        [freqItem] = getVARid(varLIST, 'IN_1', fTYPE, '_KHz');
+        % outStruct.TTL.Hz = load(mfname,freqItem);
         [freqItem] = getVARid(varLIST , 'IN_1' , fTYPE, '_KHz');
-        outStruct.TTL.Hz = load(mfname,freqItem);
+        if ~isempty(freqItem)
+            outStruct.TTL.Hz = load(mfname,freqItem);
+        else
+            warning('freqItem is empty. Skipping load operation for TTL.Hz.');
+        end
 
         % Down
-        [freqItem] = getVARid(varLIST , 'IN_1' , fTYPE, '_Down');
-        outStruct.TTL.Down = load(mfname,freqItem);
+        [freqItem] = getVARid(varLIST, 'IN_1', fTYPE, '_Down');
+        % outStruct.TTL.Down = load(mfname,freqItem);
+        if ~isempty(freqItem)
+            outStruct.TTL.Down = load(mfname,freqItem);
+        else
+            warning('freqItem is empty. Skipping load operation for TTL.Down.');
+        end
 
         % Start time
-        [freqItem] = getVARid(varLIST , 'IN_1' , fTYPE, '_TimeBegin');
-        outStruct.TTL.startTime = load(mfname,freqItem);
+        [freqItem] = getVARid(varLIST, 'IN_1', fTYPE, '_TimeBegin');
+        % outStruct.TTL.startTime = load(mfname,freqItem);
+        if ~isempty(freqItem)
+            outStruct.TTL.startTime = load(mfname,freqItem);
+        else
+            warning('freqItem is empty. Skipping load operation for TTL.startTime.');
+        end
 
         % End time
-        [freqItem] = getVARid(varLIST , 'IN_1' , fTYPE, '_TimeEnd');
-        outStruct.TTL.endTime = load(mfname,freqItem);
-end
+        [freqItem] = getVARid(varLIST, 'IN_1', fTYPE, '_TimeEnd');
+        % outStruct.TTL.endTime = load(mfname,freqItem);
+        if ~isempty(freqItem)
+            outStruct.TTL.endTime = load(mfname,freqItem);
+        else
+            warning('freqItem is empty. Skipping load operation for TTL.endTime.');
+        end
 
 end
+end
 
 
+function [varNAME] = getVARid(vLIST, wholeEleID, fTYPE1, fTYPE2)
 
-function [varNAME] = getVARid(vLIST , wholeEleID , fTYPE1, fTYPE2)
+% Debugging
+disp(['vLIST: ', strjoin(vLIST, ', ')]);
+disp(['wholeEleID: ', wholeEleID]);
+disp(['fTYPE1: ', fTYPE1]);
+disp(['fTYPE2: ', fTYPE2]);
 
-freqItem = vLIST(matches(vLIST,[fTYPE1,'_', wholeEleID ,fTYPE2]));
-varNAME = freqItem{1};
+freqItem = vLIST(matches(vLIST,[fTYPE1, '_', wholeEleID, fTYPE2]));
+
+if isempty(freqItem)
+    warning('Variable list is empty. Returning empty varNAME');
+    varNAME = [];
+else
+    varNAME = freqItem{1};
+end
 
 end
