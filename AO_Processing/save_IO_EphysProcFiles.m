@@ -33,7 +33,7 @@ studyID = 1;
 %% call functions
 
 % extract relevant .mat filenames in the ao_MAT_file column
-mat_filelist = save_IO_mat_files(studyID);
+mat_filelist = save_IO_mat_filenames(studyID);
 
 % extract relevant info from relevant .mat files in mat_filelist
 save_IO_mat_ProcFiles(mat_filelist, Case_DataDir);
@@ -41,7 +41,7 @@ save_IO_mat_ProcFiles(mat_filelist, Case_DataDir);
 
 %% main functions
 
-function mat_filelist = save_IO_mat_files(studyID)
+function mat_filelist = save_IO_mat_filenames(studyID)
 
     % load XLSX file location
     xlsxLoc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';

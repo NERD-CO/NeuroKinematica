@@ -1,4 +1,4 @@
-function mat_filelist = save_IO_mat_files(studyID)
+function mat_filelist = save_IO_mat_filenames(studyID)
 
     % load XLSX file location
     xlsxLoc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
