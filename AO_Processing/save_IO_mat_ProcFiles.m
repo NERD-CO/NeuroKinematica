@@ -3,6 +3,7 @@ function [] = save_IO_mat_ProcFiles(mat_filelist, Case_DataDir)
 % hardcode directories
 RawDataDir = [Case_DataDir, filesep, 'Raw Electrophysiology MATLAB']; % directory where raw MATLAB data files are located (case-specific)
 ProcDataDir = [Case_DataDir, filesep, 'Processed Electrophysiology']; % directory where processed MATLAB data should be saved (case-specific)
+mkdir(ProcDataDir);
 
 % navigate to directory where raw MATLAB data files are located
 cd(RawDataDir)

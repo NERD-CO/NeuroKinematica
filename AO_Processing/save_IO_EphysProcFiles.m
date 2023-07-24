@@ -17,20 +17,26 @@
 % function [] = save_IO_EphysProcFiles(IO_DataDir,summaryXLSX,studyID,Case_DataDir,RawDataDir,ProcDataDir)
 
 % hardcode directories
-IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';              % directory where all IO data is located
-Case_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_09_2023'; % directory where case-specific data files are located 
-RawDataDir = [Case_DataDir, filesep, 'Raw Electrophysiology MATLAB'];                                % directory where raw MATLAB data files are located (case-specific)
-ProcDataDir = [Case_DataDir, filesep, 'Processed Electrophysiology'];                                % directory where processed MATLAB data should be saved (case-specific)
+IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';  % directory where all IO data is located
+RawDataDir = [Case_DataDir, filesep, 'Raw Electrophysiology MATLAB'];                    % directory where raw MATLAB data files are located (case-specific)
+ProcDataDir = [Case_DataDir, filesep, 'Processed Electrophysiology'];                    % directory where processed MATLAB data should be saved (case-specific)
 
 % load XLSX file location
-xlsxLoc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
-cd(xlsxLoc)
+cd(IO_DataDir)
 
 % load summaryXLSX table (save in GitHub repo)
 summaryXLSX = readtable("Subject_AO.xlsx");
 
+%% Variable Inputs
+
 % isolate a specific studyID
-studyID = 1;
+studyID = 2;
+
+% specify directory where case-specific data files are located 
+Case_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_23_2023'
+
+% Completed cases:
+% 1: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_09_2023'
 
 %% call functions
 
