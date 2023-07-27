@@ -1,16 +1,16 @@
-% read in csv file
-% loop through depths of interest per stn region
 
+% navigate to summaryXLSX file location (IO_DataDir)
 xlsxLoc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
 cd(xlsxLoc) 
 
+% read in summaryXLSX table 
 summaryXLSX = readtable("Subject_AO.xlsx");
 
-% Inputs: isolate a specific subject
-studyID = 1;
-studyMatDataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_09_2023\Raw Electrophysiology MATLAB'
+%% Inputs: isolate a specific subject/case date
+studyID = 10;
+studyMatDataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_31_2023\Raw Electrophysiology MATLAB'
 
-% Completed subjects/cases:
+%% Completed subjects/cases:
 % 1: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_09_2023\Raw Electrophysiology MATLAB'
 % 2: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_23_2023\Raw Electrophysiology MATLAB'
 % 3: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\04_05_2023\Raw Electrophysiology MATLAB'
@@ -20,7 +20,9 @@ studyMatDataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intr
 % 7: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_18_2023_a\Raw Electrophysiology MATLAB'
 % 8: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_18_2023_b\Raw Electrophysiology MATLAB\LH'
 % 9: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_18_2023_b\Raw Electrophysiology MATLAB\RH'
+% 10: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_31_2023\Raw Electrophysiology MATLAB'
 
+%% function
 
 % Define data table and indexing variables:
 studyTable = summaryXLSX(ismember(summaryXLSX.StudyNum,studyID),:);
@@ -29,7 +31,7 @@ studyTblIndex = ismember(summaryXLSX.StudyNum,studyID); % logical index = loc of
 % create and extract list of unique stn locations
 stn_locs = unique(studyTable.stn_loc);
 
-% loop through stn locations
+% loop through depths of interest per stn region
 for sti = 1:length(stn_locs)
     % create counter
     keepCount = 1;
