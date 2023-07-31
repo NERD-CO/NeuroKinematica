@@ -19,15 +19,28 @@
 
 clc
 close all
-clear all
+clear
 
 %% Variable Inputs
 
 % isolate a specific studyID
-studyID = 10;
+studyID = 1;
 
 % specify directory where case-specific data files are located 
-Case_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_31_2023'; 
+
+curPCname = getenv('COMPUTERNAME'); % for windows
+
+switch curPCname
+    case 'DESKTOP-I5CPDO7'
+        Case_DataDir = 'X:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_09_2023'; 
+        IO_DataDir = 'X:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';  
+    otherwise
+        Case_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_31_2023'; 
+        IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';  
+
+end
+
+
 
 % Completed cases:
 % 1: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_09_2023'
@@ -45,10 +58,13 @@ Case_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraop
 % 10: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_31_2023'; *ACC
 
 %% Hardcode directories
-IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';  % directory where all IO data is located
+% directory where all IO data is located
 RawDataDir = [Case_DataDir, filesep, 'Raw Electrophysiology MATLAB'];                    % directory where raw MATLAB data files are located (case-specific)
-ProcDataDir = [Case_DataDir, filesep, 'Processed Electrophysiology'];                    % directory where processed MATLAB data should be saved (case-specific)
-mkdir(ProcDataDir);
+ProcDataDir = [Case_DataDir, filesep, 'Processed Electrophysiology']; 
+% directory where processed MATLAB data should be saved (case-specific)
+if ~exist(ProcDataDir,'dir')
+    mkdir(ProcDataDir);
+end
 
 % load XLSX file location
 cd(IO_DataDir)
@@ -59,7 +75,9 @@ summaryXLSX = readtable("Subject_AO.xlsx");
 %% call main functions
 
 % extract relevant .mat filenames in the ao_MAT_file column
-mat_filelist = save_IO_mat_filenames(studyID);
+mat_filelist = save_IO_mat_filenames(studyID , IO_DataDir);
+
+%%
 
 % extract relevant info from relevant .mat files in mat_filelist
 save_IO_mat_ProcFiles(mat_filelist, Case_DataDir);
