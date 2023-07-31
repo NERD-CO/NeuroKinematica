@@ -1,4 +1,4 @@
-function [] = save_IO_mat_ProcFiles(mat_filelist, Case_DataDir)
+function [] = save_IO_mat_ProcFiles(mat_filelist, Case_DataDir, ACC_IO)
 
 % hardcode directories
 RawDataDir = [Case_DataDir, filesep, 'Raw Electrophysiology MATLAB']; % directory where raw MATLAB data files are located (case-specific)
@@ -16,14 +16,14 @@ for i = 1:height(mat_filelist)
     matFileVars2 = {matFileVars1.name};     % extract names of all variables in the .mat file and store them in cell array matFileVars2.
 
     % list Ephys filetypes of interest (conditions)
-    ftypes = {'CSPK', 'CLFP', 'CMacro_LFP', 'CDIG', 'CEMG', 'CACC'};
+    ftypes = {'CSPK', 'CLFP', 'CMacro_LFP', 'CDIG', 'CACC'}; % 'CEMG'
 
     % isolate fields of interest per filetype
-    for f = 1:4
+    for f = 1:5 % 1:6
         Ftype = ftypes{f};
 
         % use getFILEinfo function to process the data based on the ftype - look at code in GitHub repo: save_DLCprocFiles_er
-        outStruct = getFILEinfo(Ftype, matFileVars2, tmpFilename); % create new struct containing fields of interest
+        outStruct = getFILEinfo(Ftype, matFileVars2, tmpFilename, ACC_IO(i)); % create new struct containing fields of interest
 
         switch Ftype
             case 'CSPK'
@@ -45,16 +45,20 @@ for i = 1:height(mat_filelist)
                 % 4. Find all TTL files and extract relevant fields via getFILEinfo
                 % save to outStruct
                 ProcEphys.TTL = outStruct;
-                % Debugging
-            otherwise
-                warning(['Unexpected fTYPE value: ', fTYPE]);
-                ProcEphys.TTL = [];
+                % Debugging 'otherwise' case
+
+                % case 'CEMG'
+                %     % 5. Find all EMG files and extract relevant fields via getFILEinfo
+                %     % save to outStruct
+                %     ProcEphys.EMG = outStruct;
+                %
+            case 'CACC'
+                % 6. Find all accelerometry files and extract relevant fields via getFILEinfo
+                % save to outStruct
+                ProcEphys.ACC = outStruct;
         end
 
     end
-
-    % 5. Find EMG when used
-    % 6. Find ACC when used
 
     % save into new directory with new name
     saveName = ['Processed_',tmpFilename];
@@ -67,11 +71,11 @@ end
 
 %% helper functions
 
-function [outStruct] = getFILEinfo(fTYPE, varITEMS, mfname)
+function [outStruct] = getFILEinfo(fTYPE, varITEMS, mfname, accelCount)
 
 switch fTYPE
 
-    case {'CSPK','CLFP','CMacro_LFP', 'CEMG', 'CACC' } % add EMG and ACC ftypes to this case later
+    case {'CSPK','CLFP','CMacro_LFP', 'CEMG'} % add EMG and ACC ftypes to this case later
         indiCES = contains(varITEMS, fTYPE); % find relevant fields of ftype
         % Get list
         varLIST = varITEMS(indiCES);
@@ -142,7 +146,6 @@ switch fTYPE
         % Hz
         [freqItem] = getVARid(varLIST, 'IN_1', fTYPE, '_KHz');
         % outStruct.TTL.Hz = load(mfname,freqItem);
-        [freqItem] = getVARid(varLIST , 'IN_1' , fTYPE, '_KHz');
         if ~isempty(freqItem)
             outStruct.TTL.Hz = load(mfname,freqItem);
         else
@@ -176,6 +179,54 @@ switch fTYPE
             warning('freqItem is empty. Skipping load operation for TTL.endTime.');
         end
 
+        
+    case 'CACC'
+        indiCES = contains(varITEMS, fTYPE); % find relevant fields of ftype
+        % Get list
+        varLIST = varITEMS(indiCES);
+        % how many micro electrodes
+        % Get info between '-'
+        elePresent1 = cellfun(@(x) x(22:end), varLIST, 'UniformOutput', false);
+        elePresent2 = cellfun(@(x) str2double(x(1)), elePresent1, 'UniformOutput', true);
+        AccelAvailable = 1:accelCount;
+        eleIDs = elePresent2(ismember(elePresent2, AccelAvailable));
+        wholeEleID = unique(eleIDs);
+
+        outStruct = struct;
+
+        for ei = 1:numel(wholeEleID) % numel - # of elements in array
+            % Hz
+            [freqItem] = getVARid(varLIST, wholeEleID(ei), fTYPE, '_KHz');
+            % outStruct.(['E',num2str(eleIDs{ei})]).Hz = load(mfname,freqItem);
+            if ~isempty(freqItem)
+                outStruct.(['ACC',num2str(wholeEleID(ei))]).Hz = load(mfname,freqItem{1});
+            else
+                warning('freqItem is empty. Skipping load operation for ACC%d.Hz.', ei);
+            end
+
+            % Raw data
+            [dataItem] = getVARid(varLIST, wholeEleID(ei), fTYPE, 'DATA');
+            % outStruct.(['E',num2str(eleIDs{ei})]).rawData = load(mfname,dataItem);
+            if ~isempty(dataItem)
+                for di = 1:length(dataItem)
+                    
+                    outStruct.(['ACC',num2str(wholeEleID(ei))]).rawData(di,:) = load(mfname,dataItem{di});
+                end 
+            else
+                warning('dataItem is empty. Skipping load operation for ACC%d.rawData.', ei);
+
+
+            end
+
+            % Start time
+            [startTitem] = getVARid(varLIST, wholeEleID(ei), fTYPE, '_Time');
+            % outStruct.(['E',num2str(eleIDs{ei})]).startTime = load(mfname,startTitem);
+            if ~isempty(startTitem)
+                outStruct.(['ACC',num2str(wholeEleID(ei))]).startTime = load(mfname,startTitem{1});
+            else
+                warning('startTitem is empty. Skipping load operation for ACC%d.startTime.', ei);
+            end
+        end
 end
 end
 
@@ -188,13 +239,59 @@ disp(['wholeEleID: ', wholeEleID]);
 disp(['fTYPE1: ', fTYPE1]);
 disp(['fTYPE2: ', fTYPE2]);
 
-freqItem = vLIST(matches(vLIST,[fTYPE1, '_', wholeEleID, fTYPE2]));
+if matches(fTYPE1,'CACC')
 
-if isempty(freqItem)
-    warning('Variable list is empty. Returning empty varNAME');
-    varNAME = [];
+    if matches(fTYPE2,'DATA')
+
+        % Get the Sensor
+        vLISTa = extractBefore(extractAfter(vLIST,21),2);
+        sensorList = cellfun(@(x) str2double(x), vLISTa, 'UniformOutput',true);
+        sensorLog = sensorList == wholeEleID;
+        xyzList = extractAfter(vLIST,25);
+
+        xyzIDs = {'X','Y','Z'};
+        freqItemS = cell(1,3);
+        for xi = 1:length(xyzIDs)
+            xyz = contains(xyzList,xyzIDs{xi});
+            fieldLIST = vLIST(sensorLog & xyz);
+            fList_acceli = fieldLIST{matches(extractAfter(fieldLIST,25),xyzIDs{xi})};
+            freqItemS{xi} = fList_acceli;
+        end
+
+    else
+        % Get the Sensor
+        % vLISTa = extractBefore(extractAfter(vLIST,21),2);
+        % sensorList = cellfun(@(x) str2double(x), vLISTa, 'UniformOutput',true);
+        % sensorLog = sensorList == wholeEleID;
+        % xList = extractAfter(vLIST,25);
+        % xLog = contains(xList,'X');
+        % fieldLIST = vLIST(sensorLog & xLog);
+
+        % Get X
+        if wholeEleID == 1
+            sensorID = '01';
+            eleID = '1';
+        else
+            sensorID = '04';
+            eleID = '2';
+        end
+        tempFINDname = ['CACC_3___',sensorID,'___Sensor_',eleID , '___X',fTYPE2];
+
+        freqItem = vLIST(matches(vLIST,tempFINDname));
+    end
+
+varNAME = freqItem;
+
 else
-    varNAME = freqItem{1};
+    freqItem = vLIST(matches(vLIST,[fTYPE1, '_', wholeEleID, fTYPE2]));
+
+    if isempty(freqItem)
+        warning('Variable list is empty. Returning empty varNAME');
+        varNAME = [];
+    else
+        varNAME = freqItem{1};
+    end
 end
+
 
 end

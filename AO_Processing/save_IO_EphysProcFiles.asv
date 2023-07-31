@@ -1,4 +1,4 @@
-%% Function outline
+%% Script / function outline
 
 % function [] = save_IO_EphysProcFiles(studyID, Case_DataDir)
 
@@ -42,7 +42,7 @@ Case_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraop
      % RawDataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_18_2023_b\Raw Electrophysiology MATLAB\LH'
 % 9: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_18_2023_b'
      % RawDataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_18_2023_b\Raw Electrophysiology MATLAB\RH';
-% 10: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_31_2023';
+% 10: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_31_2023'; *ACC
 
 %% Hardcode directories
 IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';  % directory where all IO data is located
@@ -56,14 +56,11 @@ cd(IO_DataDir)
 % load summaryXLSX table (save in GitHub repo)
 summaryXLSX = readtable("Subject_AO.xlsx");
 
-%% call functions
+%% call main functions
 
 % extract relevant .mat filenames in the ao_MAT_file column
-mat_filelist = save_IO_mat_filenames(studyID);
+[mat_filelist, ACC_check] = save_IO_mat_filenames(studyID);
 
 % extract relevant info from relevant .mat files in mat_filelist
-save_IO_mat_ProcFiles(mat_filelist, Case_DataDir);
-
-%% main functions
-
+save_IO_mat_ProcFiles(mat_filelist, Case_DataDir, ACC_check);
 

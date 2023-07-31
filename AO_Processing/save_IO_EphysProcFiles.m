@@ -75,10 +75,14 @@ summaryXLSX = readtable("Subject_AO.xlsx");
 %% call main functions
 
 % extract relevant .mat filenames in the ao_MAT_file column
+<<<<<<< Updated upstream
 mat_filelist = save_IO_mat_filenames(studyID , IO_DataDir);
 
 %%
+=======
+[mat_filelist, ACC_check] = save_IO_mat_filenames(studyID);
+>>>>>>> Stashed changes
 
 % extract relevant info from relevant .mat files in mat_filelist
-save_IO_mat_ProcFiles(mat_filelist, Case_DataDir);
+save_IO_mat_ProcFiles(mat_filelist, Case_DataDir, ACC_check);
 
