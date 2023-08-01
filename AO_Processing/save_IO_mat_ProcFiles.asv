@@ -19,13 +19,10 @@ for i = 1:height(mat_filelist)
     matFileVars2 = {matFileVars1.name};     % extract names of all variables in the .mat file and store them in cell array matFileVars2.
 
     % list Ephys filetypes of interest (conditions)
-    if ACC_IO(i) == 0
-        ftypes = {'CSPK', 'CLFP', 'CMacro_LFP', 'CDIG'}; % 'CEMG'
-    else
-        ftypes = {'CSPK', 'CLFP', 'CMacro_LFP', 'CDIG', 'CACC'}; % 'CEMG'
-    end
+    ftypes = {'CSPK', 'CLFP', 'CMacro_LFP', 'CDIG', 'CACC'}; % 'CEMG'
+
     % isolate fields of interest per filetype
-    for f = 1:length(ftypes) % 1:6
+    for f = 1:5 % 1:6
         Ftype = ftypes{f};
 
         % use getFILEinfo function to process the data based on the ftype - look at code in GitHub repo: save_DLCprocFiles_er
@@ -113,13 +110,13 @@ switch fTYPE
 
             % Start time
             [startTitem] = getVARid(varLIST, wholeEleID{ei}, fTYPE, '_TimeBegin');
-            [varStime] = extractVarName(mfname,startTitem);
+            [varStime] = extractVarName(mfname,freqItem);
             outStruct.(['E',num2str(eleIDs{ei})]).startTime = varStime;
             % End time
 
             [endTitem] = getVARid(varLIST, wholeEleID{ei}, fTYPE, '_TimeEnd');
-            [varEtime] = extractVarName(mfname,endTitem);
-            outStruct.(['E',num2str(eleIDs{ei})]).endTime = varEtime;
+            [varExtract] = extractVarName(mfname,freqItem);
+            outStruct.(['E',num2str(eleIDs{ei})]).endTime = load(mfname,endTitem);
         end
 
     case 'CDIG'
@@ -128,23 +125,20 @@ switch fTYPE
         varLIST = varITEMS(indiCES);
         % Hz
         [freqItem] = getVARid(varLIST, 'IN_1', fTYPE, '_KHz');
-        [varFreq] = extractVarName(mfname,freqItem);
-        outStruct.Hz = varFreq;
+        outStruct.TTL.Hz = load(mfname,freqItem);
 
         % Down
-        [downItem] = getVARid(varLIST, 'IN_1', fTYPE, '_Down');
-        [varDown] = extractVarName(mfname,downItem);
-        outStruct.Down = varDown;
+        [freqItem] = getVARid(varLIST, 'IN_1', fTYPE, '_Down');
+        outStruct.TTL.Down = load(mfname,freqItem);
 
         % Start time
-        [startTitem] = getVARid(varLIST, 'IN_1', fTYPE, '_TimeBegin');
-        [varStime] = extractVarName(mfname,startTitem);
-        outStruct.startTime = varStime;
-
+        [freqItem] = getVARid(varLIST, 'IN_1', fTYPE, '_TimeBegin');
+        % outStruct.TTL.startTime = load(mfname,freqItem);
+        outStruct.TTL.startTime = load(mfname,freqItem);
         % End time
-        [endTitem] = getVARid(varLIST, 'IN_1', fTYPE, '_TimeEnd');
-        [varEtime] = extractVarName(mfname,endTitem);
-        outStruct.endTime = varEtime;
+        [freqItem] = getVARid(varLIST, 'IN_1', fTYPE, '_TimeEnd');
+        % outStruct.TTL.endTime = load(mfname,freqItem);
+        outStruct.TTL.endTime = load(mfname,freqItem);
 
     case 'CACC'
         indiCES = contains(varITEMS, fTYPE); % find relevant fields of ftype
@@ -163,8 +157,7 @@ switch fTYPE
         for ei = 1:numel(wholeEleID) % numel - # of elements in array
             % Hz
             [freqItem] = getVARid(varLIST, wholeEleID(ei), fTYPE, '_KHz');
-            [varFreq] = extractVarName(mfname,freqItem{1});
-            outStruct.(['ACC',num2str(wholeEleID(ei))]).Hz = varFreq;
+            outStruct.(['ACC',num2str(wholeEleID(ei))]).Hz = load(mfname,freqItem{1});
 
             % Raw data
             [dataItem] = getVARid(varLIST, wholeEleID(ei), fTYPE, 'DATA');
@@ -178,13 +171,13 @@ switch fTYPE
 
             % Start time
             [startTitem] = getVARid(varLIST, wholeEleID(ei), fTYPE, '_TimeBegin');
-            [varStime] = extractVarName(mfname,startTitem{1});
-            outStruct.(['ACC',num2str(wholeEleID(ei))]).startTime = varStime;
+            % outStruct.TTL.startTime = load(mfname,freqItem);
+            outStruct.(['ACC',num2str(wholeEleID(ei))]).startTime = load(mfname,startTitem{1});
 
             % End time
             [endTitem] = getVARid(varLIST, wholeEleID(ei), fTYPE, '_TimeEnd');
-            [varEtime] = extractVarName(mfname,endTitem{1});
-            outStruct.(['ACC',num2str(wholeEleID(ei))]).endTime = varEtime;
+            % outStruct.TTL.endTime = load(mfname,freqItem);
+            outStruct.(['ACC',num2str(wholeEleID(ei))]).endTime = load(mfname,endTitem{1});
 
         end
 end
@@ -253,7 +246,7 @@ end
 
 function [varExtract] = extractVarName(inMfname,inMvar)
 
-tmpLoadF = load(inMfname,inMvar);
+tmpLoadF = load(inMfname,inMvar{di});
 tmpLoadFns = fieldnames(tmpLoadF);
 varExtract = tmpLoadF.(tmpLoadFns{1});
 
