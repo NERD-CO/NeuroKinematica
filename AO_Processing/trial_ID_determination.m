@@ -7,8 +7,8 @@ cd(xlsxLoc)
 summaryXLSX = readtable("Subject_AO.xlsx");
 
 %% Inputs: isolate a specific subject/case date
-studyID = 10;
-studyMatDataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_31_2023\Raw Electrophysiology MATLAB'
+studyID = 18;
+studyMatDataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\07_26_2023\Raw Electrophysiology MATLAB';
 
 %% Completed subjects/cases:
 % 1: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_09_2023\Raw Electrophysiology MATLAB'
@@ -21,6 +21,14 @@ studyMatDataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intr
 % 8: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_18_2023_b\Raw Electrophysiology MATLAB\LH'
 % 9: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_18_2023_b\Raw Electrophysiology MATLAB\RH'
 % 10: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_31_2023\Raw Electrophysiology MATLAB'
+% 11: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\06_08_2023\Raw Electrophysiology MATLAB'
+% 12: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\06_08_2023\Raw Electrophysiology MATLAB'
+% 13: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\07_06_2023_bilateral\Raw Electrophysiology MATLAB'
+% 14: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\07_06_2023_bilateral\Raw Electrophysiology MATLAB'
+% 15: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\07_13_2023_bilateral\Raw Electrophysiology MATLAB'
+% 16: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\07_13_2023_bilateral\Raw Electrophysiology MATLAB'
+% 17: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\07_20_2023\Raw Electrophysiology MATLAB'
+% 18: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\07_26_2023\Raw Electrophysiology MATLAB'
 
 %% function
 

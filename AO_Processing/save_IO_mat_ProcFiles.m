@@ -170,6 +170,7 @@ switch fTYPE
             [dataItem] = getVARid(varLIST, wholeEleID(ei), fTYPE, 'DATA');
             % outStruct.(['E',num2str(eleIDs{ei})]).rawData = load(mfname,dataItem);
 
+            % loop through 3 axes of each accel
             for di = 1:length(dataItem)
                 tmpLoadF = load(mfname,dataItem{di});
                 tmpLoadFns = fieldnames(tmpLoadF);

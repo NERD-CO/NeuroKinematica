@@ -24,7 +24,7 @@ clear
 %% Variable Inputs
 
 % isolate a specific studyID
-studyID = 6;
+studyID = 14;
 
 % specify directory where case-specific data files are located 
 
@@ -34,12 +34,10 @@ switch curPCname
     case 'DESKTOP-I5CPDO7'
         Case_DataDir = 'X:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_09_2023'; 
         IO_DataDir = 'X:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';  
-    otherwise
-        Case_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_31_2023'; 
+    case 'DSKTP-JTLAB-EMR'
+        Case_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\07_13_2023_bilateral'; 
         IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';  
-
 end
-
 
 
 % Completed cases:
@@ -56,12 +54,21 @@ end
 % 9: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_18_2023_b'
      % RawDataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_18_2023_b\Raw Electrophysiology MATLAB\RH';
 % 10: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_31_2023'; *ACC
+% 11: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\06_08_2023'; *ACC
+% 12: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\06_08_2023'; *ACC
+% 13: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\07_06_2023_bilateral';
+% 14: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\07_06_2023_bilateral'; *ACC
+% 15: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\07_13_2023_bilateral'; *ACC
+
+
+% 16: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\07_13_2023_bilateral\Raw Electrophysiology MATLAB'
+% 17: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\07_20_2023\Raw Electrophysiology MATLAB'
+% 18: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\07_26_2023\Raw Electrophysiology MATLAB'
 
 %% Hardcode directories
 % directory where all IO data is located
-RawDataDir = [Case_DataDir, filesep, 'Raw Electrophysiology MATLAB'];                    % directory where raw MATLAB data files are located (case-specific)
-ProcDataDir = [Case_DataDir, filesep, 'Processed Electrophysiology']; 
-% directory where processed MATLAB data should be saved (case-specific)
+RawDataDir = [Case_DataDir, filesep, 'Raw Electrophysiology MATLAB'];       % directory where raw MATLAB data files are located (case-specific)
+ProcDataDir = [Case_DataDir, filesep, 'Processed Electrophysiology'];       % directory where processed MATLAB data should be saved (case-specific)
 if ~exist(ProcDataDir,'dir')
     mkdir(ProcDataDir);
 end
@@ -72,12 +79,13 @@ cd(IO_DataDir)
 % load summaryXLSX table (save in GitHub repo)
 summaryXLSX = readtable("Subject_AO.xlsx");
 
-%% call main functions
+%% call main functions (1)
 
 % extract relevant .mat filenames in the ao_MAT_file column
 [mat_filelist, ACC_check] = save_IO_mat_filenames(studyID, IO_DataDir);
 
-%%
+%% call main functions (2)
+
 % extract relevant info from relevant .mat files in mat_filelist
 save_IO_mat_ProcFiles(mat_filelist, Case_DataDir, ACC_check);
 
