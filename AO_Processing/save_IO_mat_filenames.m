@@ -1,8 +1,5 @@
-<<<<<<< Updated upstream
-function mat_filelist = save_IO_mat_filenames(studyID , xlsxLoc)
-=======
-function [mat_filelist, ACC_check] = save_IO_mat_filenames(studyID)
->>>>>>> Stashed changes
+
+function [mat_filelist, ACC_check] = save_IO_mat_filenames(studyID , xlsxLoc)
 
 % load XLSX file location
 cd(xlsxLoc)
@@ -18,14 +15,8 @@ trial_rows = ~isnan(filteredXLSX.trialNum); % logical operation
 
 % extract relevant .mat filenames in the ao_MAT_file column
 mat_filelist = filteredXLSX.ao_MAT_file(trial_rows); % correspond with non-NAN/non-empty cells in the trialNum column
+ACC_check = filteredXLSX.IMU(trial_rows);
+
 % output = cell array of relevant .mat filenames
 
-<<<<<<< Updated upstream
-=======
-    % extract relevant .mat filenames in the ao_MAT_file column
-    mat_filelist = filteredXLSX.ao_MAT_file(trial_rows); % correspond with non-NAN/non-empty cells in the trialNum column
-    ACC_check = filteredXLSX.IMU(trial_rows);
-    % output = cell array of relevant .mat filenames
-    
->>>>>>> Stashed changes
 end

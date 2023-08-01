@@ -54,18 +54,12 @@ for i = 1:height(mat_filelist)
                 %     % 5. Find all EMG files and extract relevant fields via getFILEinfo
                 %     % save to outStruct
                 %     ProcEphys.EMG = outStruct;
+
                 %
-<<<<<<< Updated upstream
-                % case 'CACC'
-                %     % 6. Find all accelerometry files and extract relevant fields via getFILEinfo
-                %     % save to outStruct
-                %     ProcEphys.ACC = outStruct;
-=======
             case 'CACC'
                 % 6. Find all accelerometry files and extract relevant fields via getFILEinfo
                 % save to outStruct
                 ProcEphys.ACC = outStruct;
->>>>>>> Stashed changes
         end
 
     end
@@ -106,63 +100,32 @@ switch fTYPE
         for ei = 1:numel(wholeEleID) % numel - # of elements in array
             % Hz
             [freqItem] = getVARid(varLIST, wholeEleID{ei}, fTYPE, '_KHz');
-            % outStruct.(['E',num2str(eleIDs{ei})]).Hz = load(mfname,freqItem);
-
             outStruct.(['E',num2str(eleIDs{ei})]).Hz = load(mfname,freqItem);
 
             % Raw data
             [dataItem] = getVARid(varLIST, wholeEleID{ei}, fTYPE, '');
-            % outStruct.(['E',num2str(eleIDs{ei})]).rawData = load(mfname,dataItem);
-
             outStruct.(['E',num2str(eleIDs{ei})]).rawData = load(mfname,dataItem);
 
             % Start time
             [startTitem] = getVARid(varLIST, wholeEleID{ei}, fTYPE, '_TimeBegin');
-            % outStruct.(['E',num2str(eleIDs{ei})]).startTime = load(mfname,startTitem);
-            if ~isempty(startTitem)
-                outStruct.(['E',num2str(eleIDs{ei})]).startTime = load(mfname,startTitem);
-            else
-                warning('startTitem is empty. Skipping load operation for E%d.startTime.', ei);
-            end
-
+            outStruct.(['E',num2str(eleIDs{ei})]).startTime = load(mfname,startTitem);
             % End time
+
             [endTitem] = getVARid(varLIST, wholeEleID{ei}, fTYPE, '_TimeEnd');
-            % outStruct.(['E',num2str(eleIDs{ei})]).endTime = load(mfname,endTitem);
-            if ~isempty(endTitem)
-                outStruct.(['E',num2str(eleIDs{ei})]).endTime = load(mfname,endTitem);
-            else
-                warning('endTitem is empty. Skipping load operation for E%d.endTime.', ei);
-            end
+            outStruct.(['E',num2str(eleIDs{ei})]).endTime = load(mfname,endTitem);
         end
 
     case 'CDIG'
         indiCES = contains(varITEMS, fTYPE);
         % Get list
         varLIST = varITEMS(indiCES);
-
         % Hz
         [freqItem] = getVARid(varLIST, 'IN_1', fTYPE, '_KHz');
-        % outStruct.TTL.Hz = load(mfname,freqItem);
-<<<<<<< Updated upstream
-        % [freqItem] = getVARid(varLIST , 'IN_1' , fTYPE, '_KHz');
-
         outStruct.TTL.Hz = load(mfname,freqItem);
-=======
-        if ~isempty(freqItem)
-            outStruct.TTL.Hz = load(mfname,freqItem);
-        else
-            warning('freqItem is empty. Skipping load operation for TTL.Hz.');
-        end
->>>>>>> Stashed changes
 
         % Down
         [freqItem] = getVARid(varLIST, 'IN_1', fTYPE, '_Down');
-        % outStruct.TTL.Down = load(mfname,freqItem);
-        if ~isempty(freqItem)
-            outStruct.TTL.Down = load(mfname,freqItem);
-        else
-            warning('freqItem is empty. Skipping load operation for TTL.Down.');
-        end
+        outStruct.TTL.Down = load(mfname,freqItem);
 
         % Start time
         [freqItem] = getVARid(varLIST, 'IN_1', fTYPE, '_TimeBegin');
@@ -177,8 +140,6 @@ switch fTYPE
         [freqItem] = getVARid(varLIST, 'IN_1', fTYPE, '_TimeEnd');
         % outStruct.TTL.endTime = load(mfname,freqItem);
         outStruct.TTL.endTime = load(mfname,freqItem);
-
-
 
     case 'CACC'
         indiCES = contains(varITEMS, fTYPE); % find relevant fields of ftype
@@ -197,35 +158,20 @@ switch fTYPE
         for ei = 1:numel(wholeEleID) % numel - # of elements in array
             % Hz
             [freqItem] = getVARid(varLIST, wholeEleID(ei), fTYPE, '_KHz');
-            % outStruct.(['E',num2str(eleIDs{ei})]).Hz = load(mfname,freqItem);
-            if ~isempty(freqItem)
-                outStruct.(['ACC',num2str(wholeEleID(ei))]).Hz = load(mfname,freqItem{1});
-            else
-                warning('freqItem is empty. Skipping load operation for ACC%d.Hz.', ei);
-            end
+            outStruct.(['ACC',num2str(wholeEleID(ei))]).Hz = load(mfname,freqItem{1});
 
             % Raw data
             [dataItem] = getVARid(varLIST, wholeEleID(ei), fTYPE, 'DATA');
             % outStruct.(['E',num2str(eleIDs{ei})]).rawData = load(mfname,dataItem);
-            if ~isempty(dataItem)
-                for di = 1:length(dataItem)
-                    
-                    outStruct.(['ACC',num2str(wholeEleID(ei))]).rawData(di,:) = load(mfname,dataItem{di});
-                end 
-            else
-                warning('dataItem is empty. Skipping load operation for ACC%d.rawData.', ei);
 
-
+            for di = 1:length(dataItem)
+                outStruct.(['ACC',num2str(wholeEleID(ei))]).rawData(di,:) = load(mfname,dataItem{di});
             end
 
             % Start time
             [startTitem] = getVARid(varLIST, wholeEleID(ei), fTYPE, '_Time');
-            % outStruct.(['E',num2str(eleIDs{ei})]).startTime = load(mfname,startTitem);
-            if ~isempty(startTitem)
-                outStruct.(['ACC',num2str(wholeEleID(ei))]).startTime = load(mfname,startTitem{1});
-            else
-                warning('startTitem is empty. Skipping load operation for ACC%d.startTime.', ei);
-            end
+            outStruct.(['ACC',num2str(wholeEleID(ei))]).startTime = load(mfname,startTitem{1});
+
         end
 end
 end
@@ -259,13 +205,6 @@ if matches(fTYPE1,'CACC')
         end
 
     else
-        % Get the Sensor
-        % vLISTa = extractBefore(extractAfter(vLIST,21),2);
-        % sensorList = cellfun(@(x) str2double(x), vLISTa, 'UniformOutput',true);
-        % sensorLog = sensorList == wholeEleID;
-        % xList = extractAfter(vLIST,25);
-        % xLog = contains(xList,'X');
-        % fieldLIST = vLIST(sensorLog & xLog);
 
         % Get X
         if wholeEleID == 1
