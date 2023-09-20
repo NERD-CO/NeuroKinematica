@@ -33,7 +33,7 @@ end
 
 % hdRT = getHDRinfo(CSV_list{1});
 
-outDATA = struct;
+% outDATA = struct;
 
 % for ci = 1:length(CSV_list)
 
@@ -42,10 +42,10 @@ rawCell = getRAWdat(useFile);
 
 [rawTAB] = datCellTab(rawCell , useFile);
 
-tmpHdr = getHDRinfo(useFile);
+% tmpHdr = getHDRinfo(useFile);
 
-outDATA.hdr.(tmpHdr.camera) = tmpHdr.camera;
-outDATA.labelTab.(tmpHdr.camera) = rawTAB;
+% outDATA.hdr.(tmpHdr.camera) = tmpHdr.camera;
+outDATA = rawTAB;
 
 % end
 
