@@ -7,7 +7,8 @@ arguments
     inPUTS.dirLOC (1,1) logical = 0 % TEMPORARY
     inPUTS.userLOC (1,1) string = "noLOC"
     inPUTS.saveLOC (1,1) string = "noLOC"
-    inPUTS.depNUM (1,1) double = 1; 
+    inPUTS.depNUM (1,1) double = 1;
+    inPUTS.USERid (1,:) char = 'ER';
 end
 
 
@@ -39,25 +40,36 @@ hdRT = getHDRinfo(CSV_list{1});
 outDATA = struct;
 
 for ci = 1:length(CSV_list)
-    
+
     % Read in frame data
     rawCell = getRAWdat(CSV_list{ci});
-     
+
     [rawTAB] = datCellTab(rawCell , CSV_list{ci});
-    
+
     tmpHdr = getHDRinfo(CSV_list{ci});
-    
+
     outDATA.hdr.(tmpHdr.camera) = tmpHdr.camera;
     outDATA.labelTab.(tmpHdr.camera) = rawTAB;
-    
+
 end
 
 % SAVE LOCATION
 cd(saveDIR);
 % Save name
 % Date of surgery, depth, and recording number
-saveName = ['dlcDAT_',hdRT.date,'_',hdRT.depth,'_','R',num2str(inPUTS.depNUM),'.mat'];
+switch inPUTS.USERid
+    case 'ER'
 
+        % date
+        % depth
+        % trial ID
+        % camera
+
+        saveName = ['dlcDAT_',hdRT.date,'_',hdRT.depth,'_','R',num2str(inPUTS.depNUM),'.mat'];
+
+    otherwise
+        saveName = ['dlcDAT_',hdRT.date,'_',hdRT.depth,'_','R',num2str(inPUTS.depNUM),'.mat'];
+end
 % Save file
 save(saveName,'outDATA');
 

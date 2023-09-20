@@ -1,10 +1,9 @@
-function [] = dlcIO_processCSV(inPUTS)
+function [] = dlcIO_processCSV2(inPUTS)
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
 
 
 arguments
-    inPUTS.dirLOC (1,1) logical = 0 % TEMPORARY
     inPUTS.userLOC (1,1) string = "noLOC"
     inPUTS.saveLOC (1,1) string = "noLOC"
     inPUTS.depNUM (1,1) double = 1;
@@ -13,16 +12,13 @@ end
 
 
 % DATA DIRECTORY LOCATION
-if ~inPUTS.dirLOC
-    % HARD coded Default location
-    doLOC = 'C:\Users\John\Documents\GitHub\DLCBoettcher\JAT_temp\testDATE';
+
+if strcmp(inPUTS.userLOC,"noLOC")
+    useFile = uigetfile([],'SELECT LOCATION OF LABEL CSV');
 else
-    if strcmp(inPUTS.userLOC,"noLOC")
-        doLOC = uigetdir([],'SELECT LOCATION OF LABEL CSV');
-    else
-        doLOC = inPUTS.userLOC;
-    end
+    useFile = inPUTS.userLOC;
 end
+
 
 % SAVE DIRECTORY LOCATION
 if strcmp(inPUTS.saveLOC,"noLOC")
@@ -31,27 +27,27 @@ else
     saveDIR = inPUTS.saveLOC;
 end
 
-cd(doLOC)
+% cd(doLOC)
 
-[CSV_list] = getFiles(doLOC , 'csv');
+% [CSV_list] = getFiles(doLOC , 'csv');
 
-hdRT = getHDRinfo(CSV_list{1});
+% hdRT = getHDRinfo(CSV_list{1});
 
 outDATA = struct;
 
-for ci = 1:length(CSV_list)
+% for ci = 1:length(CSV_list)
 
-    % Read in frame data
-    rawCell = getRAWdat(CSV_list{ci});
+% Read in frame data
+rawCell = getRAWdat(useFile);
 
-    [rawTAB] = datCellTab(rawCell , CSV_list{ci});
+[rawTAB] = datCellTab(rawCell , useFile);
 
-    tmpHdr = getHDRinfo(CSV_list{ci});
+tmpHdr = getHDRinfo(useFile);
 
-    outDATA.hdr.(tmpHdr.camera) = tmpHdr.camera;
-    outDATA.labelTab.(tmpHdr.camera) = rawTAB;
+outDATA.hdr.(tmpHdr.camera) = tmpHdr.camera;
+outDATA.labelTab.(tmpHdr.camera) = rawTAB;
 
-end
+% end
 
 % SAVE LOCATION
 cd(saveDIR);
@@ -64,8 +60,17 @@ switch inPUTS.USERid
         % depth
         % trial ID
         % camera
+        firstParse = split(useFile,'\');
+        fileNAME = firstParse{length(firstParse)};
+        secParse = split(fileNAME,'_');
+        date2use = secParse{1};
+        depth2use = secParse{3}; 
+        trial2use = secParse{2};
+        camera2use = secParse{5};
+        folder2use = secParse{4};
 
-        saveName = ['dlcDAT_',hdRT.date,'_',hdRT.depth,'_','R',num2str(inPUTS.depNUM),'.mat'];
+        saveName = ['dlcDAT_',date2use,'_',depth2use,'_',trial2use,'_',...
+            camera2use,'_',folder2use,'.mat'];
 
     otherwise
         saveName = ['dlcDAT_',hdRT.date,'_',hdRT.depth,'_','R',num2str(inPUTS.depNUM),'.mat'];
