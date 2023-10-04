@@ -1,4 +1,4 @@
-function [] = dlcIO_processCSV2(inPUTS)
+function [] = dlc_processCSV2(inPUTS)
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
 
