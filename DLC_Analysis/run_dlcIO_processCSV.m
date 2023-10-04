@@ -24,3 +24,11 @@ for csv_i = 1:length(csv_array2)
     
 end
 
+
+%% completed cases
+
+% 03_09_2023
+% vid_Loc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\post_DLCproc\03_09_2023\video folder'; % vid_dir 
+% csv_Loc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\post_DLCproc\03_09_2023\csv folder'; % csv_dir (input)
+% mat_Loc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\post_DLCproc\03_09_2023\mat folder'; % mat_dir (output)
+
