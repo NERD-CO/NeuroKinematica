@@ -143,6 +143,9 @@ for csv_i = 1:length(moveCSV)
     
 end
 
+% compare results from sessions 1 & 3 (Off Med, Off Stim) to sessions 7 & 9 (Off Med, On Stim) - Hand OC
+% compare set results (6) within session 5 (Off Med, Ramp Stim) - Finger Taps
+
 
 
 
