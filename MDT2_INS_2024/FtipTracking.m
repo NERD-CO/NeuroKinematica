@@ -134,7 +134,7 @@ for csv_i = 1:length(moveCSV)
     % Compute distances between consecutive peaks
     peakDists = diff(locs);
 
-    % Set up subplot for each iteration (e.g., 2 rows, ceil of half total iterations columns)
+    % Set up subplot for each iteration
     subplot(5, 1, csv_i);
     hold on
     plot(smoothed_fTipAveBlk, 'DisplayName', 'Smoothed Data');
