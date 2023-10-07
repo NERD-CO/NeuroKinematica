@@ -45,7 +45,7 @@ end
     % csv_Loc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\post_DLCproc\09_12_2023_LSTN_v2\csv folder'; % csv_dir (input)
     % mat_Loc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\post_DLCproc\09_12_2023_LSTN_v2\mat folder'; % mat_dir (output)
 
-% 09_12_2023 - RSTN (P7)
+% 09_12_2023 - LSTN (P7)
     % vid_Loc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\post_DLCproc\09_12_2023_RSTN_v1\video folder'; % vid_dir 
     % csv_Loc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\post_DLCproc\09_12_2023_RSTN_v1\csv folder'; % csv_dir (input)
     % mat_Loc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\post_DLCproc\09_12_2023_RSTN_v1\mat folder'; % mat_dir (output)

@@ -135,11 +135,14 @@ for csv_i = 1:length(moveCSV)
     peakDists = diff(locs);
 
 
-    % Set up subplot for each iteration (e.g., 2 rows, ceil of half total iterations columns)
+     % Set up subplot for each iteration (e.g., 2 rows, ceil of half total iterations columns)
     subplot(2, ceil(length(moveCSV)/2), csv_i);
-    hold on
+    hold on; % This will allow you to plot multiple datasets on the same graph
     plot(smoothed_fTipAveBlk, 'DisplayName', 'Smoothed Data');
-    hold off
+    hold off; % Stops overwriting to the current plot
+    
+    title(['Data for CSV ' num2str(csv_i)]); % Adds a title for each subplot
+   
     
 end
 
