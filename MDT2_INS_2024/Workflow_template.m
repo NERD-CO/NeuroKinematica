@@ -1,3 +1,11 @@
+pcName = getenv("COMPUTERNAME");
+
+switch pcName
+    case 'DESKTOP-I5CPDO7'
+
+
+
+%%
 
 % loop through and store as structs
 leftSTNLoc = 'C:\Users\johna\Dropbox\ConferencePresentationsMeta\INS_2024\MDT2\Streaming\Left STN';
