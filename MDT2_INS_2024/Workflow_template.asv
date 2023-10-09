@@ -52,7 +52,7 @@ function [dayTIMES] = getDAYtimes(inputTIMES)
 dayTIMES = cell(height(inputTIMES),1);
 dayS = cell(height(inputTIMES),1);
 fullDtime = cell(height(inputTIMES),1);
-durations = zeros(height(inputTIMES)-1,1);
+durations = zeros(height(inputTIMES),1);
 for ti = 1:height(inputTIMES)
 
     inputTi = inputTIMES{ti};
@@ -88,7 +88,11 @@ for di = 1:height(fullDtime)
         t1 = fullDtime{di}; 
         t2 = fullDtime{di + 1};
 
-        tmpdur = time(between(t1,t2));
+        tmpdur = between(t1,t2)
+
+
+
+
 
     end
 
