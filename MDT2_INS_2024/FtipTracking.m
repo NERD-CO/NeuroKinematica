@@ -49,16 +49,44 @@ moveCSV = mainCSV2(contains(mainCSV2,'Move'));
 
 %% Main function
 
-% Outside the loop, create a directory if it doesn't exist
+% create an outputs directory
 outputDir = [mainDir2 filesep 'fTipTracking_outputs'];
 if ~exist(outputDir, 'dir')
     mkdir(outputDir);
 end
 
-% set up results structure outside of loop
+% Define framerate of videos 
+fps = 60; % frames per second
+
+% Covert distance units to mm (conversion factor)
+% E.g., pxl_to_mm = ...; % Replace with actual value
+
+% set up a results structure outside of loop
 results = struct();
 
-% set up figure outside of loop
+% initialize variables to store the mean and variability for each video:
+mean_amplitudes = zeros(1, length(moveCSV));
+std_amplitudes = zeros(1, length(moveCSV));
+var_amplitudes = zeros(1, length(moveCSV));
+
+mean_widths = zeros(1, length(moveCSV));
+std_widths = zeros(1, length(moveCSV));
+var_widths = zeros(1, length(moveCSV));
+
+mean_peakDists = zeros(1, length(moveCSV));
+std_peakDists = zeros(1, length(moveCSV));
+var_peakDists = zeros(1, length(moveCSV));
+
+% initialize arrays to store concatenated data for selected videos/conditions:
+OffOff_amplitudes = [];
+OffOff_widths = [];
+OffOff_peakDists = [];
+
+OffOn_amplitudes = [];
+OffOn_widths = [];
+OffOn_peakDists = [];
+
+% initialize a figure outside of loop
 figure;
 
 % Loop through CSV files
@@ -111,7 +139,6 @@ for csv_i = 1:length(moveCSV)
 
     end
 
-
     % Filter the computed distances related to fingertip movements
     fTipInds = contains(colNames4,'fTip');
     fTipEuclid = euclidall(:,fTipInds);
@@ -136,9 +163,12 @@ for csv_i = 1:length(moveCSV)
     smoothed_fTipAveBlk = smoothdata(fTipAveBlk, 'gaussian', window_Width);
 
     % Find peak amplitudes and compute half-widths -- findpeaks function [documentation: peak prominences]
-    [peaks, locs, widths, prominences] = findpeaks(smoothed_fTipAveBlk);
-    amplitudes = peaks;
+    [peaks, locs, widths, prominences] = findpeaks(smoothed_fTipAveBlk, MinPeakHeight=8, MinPeakDistance=20, MinPeakProminence = 4, Annotate ='extents');
+    amplitudes = peaks; % local maxima
     halfWidths = widths / 2;
+
+    % Compute timepoints from locs
+    timepoints = locs / fps; % Convert frame numbers to time (in seconds)
 
     % Compute distances between consecutive peaks
     peakDists = diff(locs);
@@ -146,7 +176,8 @@ for csv_i = 1:length(moveCSV)
     % Plot smooth movement for each CSV iteration
     subplot(length(moveCSV), 1, csv_i);
     hold on
-    plot(smoothed_fTipAveBlk)
+    % plot(smoothed_fTipAveBlk)
+    findpeaks(smoothed_fTipAveBlk, MinPeakHeight=8, MinPeakDistance=20, MinPeakProminence = 4, Annotate ='extents')
     hold off
     title(['Smooth Hand O/C Movement, ', num2str(matName_title)])
 
@@ -159,47 +190,162 @@ for csv_i = 1:length(moveCSV)
         % subplot(length(moveCSV), 2, 2*csv_i); % Adjust subplot for two plots per csv_i
         % plot(smoothed_fTipAveBlk);
         % title(['Smooth Hand O/C Movement ', num2str(matName_title)]);
+    
+    % Compute the mean and variability for each measurement
+    mean_amplitudes(csv_i) = mean(amplitudes);
+    std_amplitudes(csv_i) = std(amplitudes);
+    var_amplitudes(csv_i) = var(amplitudes);
+
+    mean_widths(csv_i) = mean(widths);
+    std_widths(csv_i) = std(widths);
+    var_widths(csv_i) = var(widths);
+
+    mean_peakDists(csv_i) = mean(peakDists);
+    std_peakDists(csv_i) = std(peakDists);
+    var_peakDists(csv_i) = var(peakDists);
+    
+    % Store the measures to the respective array based on the video index
+    if ismember(csv_i, [1, 2]) % sessions 1 & 3
+        OffOff_amplitudes = [OffOff_amplitudes; amplitudes];
+        OffOff_widths = [OffOff_widths; widths];
+        OffOff_peakDists = [OffOff_peakDists; peakDists];
+    elseif ismember(csv_i, [4, 5]) % sessions 7 & 9
+        OffOn_amplitudes = [OffOn_amplitudes; amplitudes];
+        OffOn_widths = [OffOn_widths; widths];
+        OffOn_peakDists = [OffOn_peakDists; peakDists];
+    end
+
+    % Compute the mean and variability for each measurement in the OffMed, OffStim condition
+    mean_OffOff_amplitudes_i(csv_i) = mean(OffOff_amplitudes);
+    std_OffOff_amplitudes_i(csv_i) = std(OffOff_amplitudes);
+    var_OffOff_amplitudes_i(csv_i) = var(OffOff_amplitudes);
+
+    mean_OffOff_widths_i(csv_i) = mean(OffOff_widths);
+    std_OffOff_widths_i(csv_i) = std(OffOff_widths);
+    var_OffOff_widths_i(csv_i) = var(OffOff_widths);
+
+    mean_OffOff_peakDists_i(csv_i) = mean(OffOff_peakDists);
+    std_OffOff_peakDists_i(csv_i) = std(OffOff_peakDists);
+    var_OffOff_peakDists_i(csv_i) = var(OffOff_peakDists);
+
+    % Compute the mean and variability for each measurement in the OffMed, OnStim condition
+    mean_OffOn_amplitudes_i(csv_i) = mean(OffOn_amplitudes);
+    std_OffOn_amplitudes_i(csv_i) = std(OffOn_amplitudes);
+    var_OffOn_amplitudes_i(csv_i) = var(OffOn_amplitudes);
+
+    mean_OffOn_widths_i(csv_i) = mean(OffOn_widths);
+    std_OffOn_widths_i(csv_i) = std(OffOn_widths);
+    var_OffOn_widths_i(csv_i) = var(OffOn_widths);
+
+    mean_OffOn_peakDists_i(csv_i) = mean(OffOn_peakDists);
+    std_OffOn_peakDists_i(csv_i) = std(OffOn_peakDists);
+    var_OffOn_peakDists_i(csv_i) = var(OffOn_peakDists);
+
 
     % Store results for each csv_i into a structure
     results(csv_i).fileName = tmpCSV;
     results(csv_i).matName = matName;
     results(csv_i).rawMovement = fTipAveBlk;
     results(csv_i).smoothMovement = smoothed_fTipAveBlk;
-    results(csv_i).peaks = peaks;
+    results(csv_i).timepoints = timepoints;
     results(csv_i).locs = locs;
-    results(csv_i).widths = widths;
-    results(csv_i).prominences = prominences;
+    results(csv_i).peaks = peaks;
     results(csv_i).amplitudes = amplitudes;
+    results(csv_i).prominences = prominences;
+    results(csv_i).widths = widths;
     results(csv_i).halfWidths = halfWidths;
     results(csv_i).peakDists = peakDists;
+
+    results(csv_i).mean_amplitudes = mean_amplitudes(csv_i);
+    results(csv_i).std_amplitudes = std_amplitudes(csv_i);
+    results(csv_i).var_amplitudes = var_amplitudes(csv_i);
+    
+    results(csv_i).mean_widths = mean_widths(csv_i);
+    results(csv_i).std_widths = std_widths(csv_i);
+    results(csv_i).var_widths = var_widths(csv_i);
+    
+    results(csv_i).mean_peakDists = mean_peakDists(csv_i);
+    results(csv_i).std_peakDists = std_peakDists(csv_i);
+    results(csv_i).var_peakDists = var_peakDists(csv_i);
+
+
+    % Define unique name for the results output file based on the current CSV name
+    fTipTracking_results = [outputDir filesep 'output_' tmpCSV(1:end-44) '.csv']; % assumes tmpCSV is a string ending in '.csv'
+
+    % Create a table to store results based on computed variables
+    T1 = table(timepoints, locs, peaks, amplitudes, prominences, widths, halfWidths, 'VariableNames', {'Timepoints', 'Locations', 'Peaks', 'Amplitudes', 'Prominences', 'Widths', 'HalfWidths'});
+
+    % Write results table to a CSV file
+    writetable(T1, fTipTracking_results);
+
+
+    % Define unique name for the summary results output file based on the current CSV name
+    fTipTracking_results_summary = [outputDir filesep 'summary_output_' tmpCSV(1:end-44) '.csv']; % assumes tmpCSV is a string ending in '.csv'
+
+    % Create a table to store summary results
+    T2 = table(mean_amplitudes(csv_i), std_amplitudes(csv_i), var_amplitudes(csv_i), ... 
+               mean_widths(csv_i), std_widths(csv_i), var_widths(csv_i), ...
+               mean_peakDists(csv_i), std_peakDists(csv_i), var_peakDists(csv_i), ... 
+               'VariableNames', {'MeanAmplitude', 'StdAmplitude', 'VarAmplitude', 'MeanWidth', 'StdWidth', 'VarWidth', 'MeanPeakDist', 'StdPeakDist', 'VarPeakDist'});
+
+    % Write summary results table to a CSV file
+    writetable(T2, fTipTracking_results_summary);
+
+
 end
 
-% Save results structure
+% Save results structure in MAT file
 save([outputDir filesep 'fTipTracking_results.mat'], 'results');
 
-%%
+
+%% Compute and save concatenated summary results for analyses
+
+% Compute overall mean and variability for OffMed, OffStim condition (sessions 1 & 3)
+mean_OffOff_amplitudes = mean(OffOff_amplitudes);
+std_OffOff_amplitudes = std(OffOff_amplitudes);
+var_OffOff_amplitudes = var(OffOff_amplitudes);
+
+mean_OffOff_widths = mean(OffOff_widths);
+std_OffOff_widths = std(OffOff_widths);
+var_OffOff_widths = var(OffOff_widths);
+
+mean_OffOff_peakDists = mean(OffOff_peakDists);
+std_OffOff_peakDists = std(OffOff_peakDists);
+var_OffOff_peakDists = var(OffOff_peakDists);
+
+% Create a table to store overall summary results for OffMed, OffStim condition
+T3 = table(mean_OffOff_amplitudes, std_OffOff_amplitudes, var_OffOff_amplitudes, ...
+           mean_OffOff_widths, std_OffOff_widths, var_OffOff_widths, ...
+           mean_OffOff_peakDists, std_OffOff_peakDists, var_OffOff_peakDists, ...
+           'VariableNames', {'MeanAmplitude', 'StdAmplitude', 'VarAmplitude', 'MeanWidth', 'StdWidth', 'VarWidth', 'MeanPeakDist', 'StdPeakDist', 'VarPeakDist'});
+
+% Write overall summary results table to a CSV file for OffMed, OffStim condition
+writetable(T3, [outputDir filesep 'fTipTracking_results_OffOff_summary.csv']);
+
+% Compute overall mean and variability for OffMed, OnStim condition (sessions 7 & 9)
+mean_OffOn_amplitudes = mean(OffOn_amplitudes);
+std_OffOn_amplitudes = std(OffOn_amplitudes);
+var_OffOn_amplitudes = var(OffOn_amplitudes);
+
+mean_OffOn_widths = mean(OffOn_widths);
+std_OffOn_widths = std(OffOn_widths);
+var_OffOn_widths = var(OffOn_widths);
+
+mean_OffOn_peakDists = mean(OffOn_peakDists);
+std_OffOn_peakDists = std(OffOn_peakDists);
+var_OffOn_peakDists = var(OffOn_peakDists);
+
+% Create a table to store overall summary results for OffMed, OffStim condition
+T4 = table(mean_OffOn_amplitudes, std_OffOn_amplitudes, var_OffOn_amplitudes, ...
+           mean_OffOn_widths, std_OffOn_widths, var_OffOn_widths, ...
+           mean_OffOn_peakDists, std_OffOn_peakDists, var_OffOn_peakDists, ...
+           'VariableNames', {'MeanAmplitude', 'StdAmplitude', 'VarAmplitude', 'MeanWidth', 'StdWidth', 'VarWidth', 'MeanPeakDist', 'StdPeakDist', 'VarPeakDist'});
+
+% Write overall summary results table to a CSV file for OffMed, OffStim condition
+writetable(T4, [outputDir filesep 'fTipTracking_results_OffOn_summary.csv']);
+
+%% Comparisons
 
 % compare results from sessions 1 & 3 (Off Med, Off Stim) to sessions 7 & 9 (Off Med, On Stim) - Hand OC
+
 % compare set results (6) within session 5 (Off Med, Ramp Stim) - Finger Taps
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
