@@ -49,6 +49,18 @@ moveCSV = mainCSV2(contains(mainCSV2,'Move'));
 
 %% Main function
 
+% Outside the loop, create a directory if it doesn't exist
+outputDir = [mainDir2 filesep 'fTipTracking_outputs'];
+if ~exist(outputDir, 'dir')
+    mkdir(outputDir);
+end
+
+% set up results structure outside of loop
+results = struct();
+
+% set up figure outside of loop
+figure;
+
 % Loop through CSV files
 for csv_i = 1:length(moveCSV)
 
@@ -59,6 +71,7 @@ for csv_i = 1:length(moveCSV)
     dateID = nameParts{1};
     sessID = nameParts{3};
     hemID = nameParts{8};
+    matName_title = [dateID , '-' , sessID, '-', hemID];
 
     % Find and load corresponding dlcDAT MAT file
     matTempfind = [dateID , '_' , sessID];
@@ -90,57 +103,81 @@ for csv_i = 1:length(moveCSV)
 
         for frame_i = 1:height(labelData)
             if frame_i ~= height(labelData)
-
                 point1 = labelData(frame_i,:);
                 point2 = labelData(frame_i + 1,:);
                 euclidall(frame_i , label_i) = pdist2(point1 , point2);
-
             end
         end
 
     end
 
 
-    % Filter the computed distances related to fingertip movements 
+    % Filter the computed distances related to fingertip movements
     fTipInds = contains(colNames4,'fTip');
     fTipEuclid = euclidall(:,fTipInds);
 
     % Average the computed distances related to fingertip movements
     fTipAverage = mean(fTipEuclid,2);
 
-    % Process dlcDAT MAT files using MoveIndex CSV files to select specific portions of the averaged fingertip distances 
+    % Process dlcDAT MAT files using MoveIndex CSV files to select specific portions of the averaged fingertip distances
     moveINDtab = readtable(tmpCSV);
-    moveINDtab = moveINDtab(~moveINDtab.BeginF == 0,:); % clean up - filters out rows in moveINDtab where the BeginF field is zero. 
+    moveINDtab = moveINDtab(~moveINDtab.BeginF == 0,:); % clean up - filters out rows in moveINDtab where the BeginF field is zero.
     moveINDtab = moveINDtab(~moveINDtab.EndF == 0,:); % clean up - filters out rows in moveINDtab where the EndF field is zero.
-    
-    % Align with Euclidean distance frames 
+
+    % Align with Euclidean distance frames
     firstBegin = moveINDtab.BeginF(1) - 1; % assigned to value of the first element in the BeginF column of moveINDtab - 1 (because MATLAB uses 1-based indexing)
     lastEnd = moveINDtab.EndF(height(moveINDtab)) - 1; % assigned to value of the last element in the EndF column of moveINDtab - 1
 
     % Extract and store the average fingertip distance for specified frames (in fTip Average Block)
     fTipAveBlk = fTipAverage(firstBegin:lastEnd); % extracts subset of fTipAverage w/in frame range from firstBegin to lastEnd (represents specific portion of data where specified movement is detected, as indicated in MoveIndex CSV file)
-    plot(fTipAveBlk)
 
-    % Smooth out edges -- smoothdata function w/ 'guassian' method  
+    % Smooth out edges -- smoothdata function w/ 'guassian' method
     window_Width = 5; % set windowWidth as needed
     smoothed_fTipAveBlk = smoothdata(fTipAveBlk, 'gaussian', window_Width);
-    plot(smoothed_fTipAveBlk)
 
-    % Find peak amplitudes and compute half-widths -- findpeaks function [documention: peak prominences]
+    % Find peak amplitudes and compute half-widths -- findpeaks function [documentation: peak prominences]
     [peaks, locs, widths, prominences] = findpeaks(smoothed_fTipAveBlk);
     amplitudes = peaks;
     halfWidths = widths / 2;
-    
+
     % Compute distances between consecutive peaks
     peakDists = diff(locs);
 
-    % Set up subplot for each iteration
-    subplot(5, 1, csv_i);
+    % Plot smooth movement for each CSV iteration
+    subplot(length(moveCSV), 1, csv_i);
     hold on
-    plot(smoothed_fTipAveBlk, 'DisplayName', 'Smoothed Data');
+    plot(smoothed_fTipAveBlk)
     hold off
-    
+    title(['Smooth Hand O/C Movement, ', num2str(matName_title)])
+
+        % % Plot Raw Movement
+        % subplot(length(moveCSV), 2, 2*csv_i-1); % Adjust subplot for two plots per csv_i
+        % plot(fTipAveBlk);
+        % title(['Raw Hand O/C Movement ', num2str(matName_title)]);
+        % 
+        % % Plot Smooth Movement
+        % subplot(length(moveCSV), 2, 2*csv_i); % Adjust subplot for two plots per csv_i
+        % plot(smoothed_fTipAveBlk);
+        % title(['Smooth Hand O/C Movement ', num2str(matName_title)]);
+
+    % Store results for each csv_i into a structure
+    results(csv_i).fileName = tmpCSV;
+    results(csv_i).matName = matName;
+    results(csv_i).rawMovement = fTipAveBlk;
+    results(csv_i).smoothMovement = smoothed_fTipAveBlk;
+    results(csv_i).peaks = peaks;
+    results(csv_i).locs = locs;
+    results(csv_i).widths = widths;
+    results(csv_i).prominences = prominences;
+    results(csv_i).amplitudes = amplitudes;
+    results(csv_i).halfWidths = halfWidths;
+    results(csv_i).peakDists = peakDists;
 end
+
+% Save results structure
+save([outputDir filesep 'fTipTracking_results.mat'], 'results');
+
+%%
 
 % compare results from sessions 1 & 3 (Off Med, Off Stim) to sessions 7 & 9 (Off Med, On Stim) - Hand OC
 % compare set results (6) within session 5 (Off Med, Ramp Stim) - Finger Taps
