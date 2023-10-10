@@ -13,6 +13,10 @@ switch pcname
     case 'DSKTP-JTLAB-EMR'   %%% ER
 
         mainDir = 'Z:\RadcliffeE\INS_2024';
+
+    case 'NSG-M-FQBPFK3'
+
+        mainDir = 'Z:\RadcliffeE\INS_2024';
 end
 
 
@@ -173,11 +177,25 @@ for csv_i = 1:length(moveCSV)
     % Compute distances between consecutive peaks
     peakDists = diff(locs);
 
+%     % Plot smooth movement for each CSV iteration
+%     subplot(length(moveCSV), 1, csv_i);
+%     hold on
+%     % plot(smoothed_fTipAveBlk)
+%     findpeaks(smoothed_fTipAveBlk, MinPeakHeight=8, MinPeakDistance=20, MinPeakProminence = 4, Annotate ='extents')
+%     hold off
+%     title(['Smooth Hand O/C Movement, ', num2str(matName_title)])
+
+    % Compute timepoints for all indices
+    timepoints__fTipAveBlk = (1:length(smoothed_fTipAveBlk))/fps;
+
     % Plot smooth movement for each CSV iteration
     subplot(length(moveCSV), 1, csv_i);
     hold on
-    % plot(smoothed_fTipAveBlk)
-    findpeaks(smoothed_fTipAveBlk, MinPeakHeight=8, MinPeakDistance=20, MinPeakProminence = 4, Annotate ='extents')
+    % Adjust the parameters in findpeaks
+    findpeaks(smoothed_fTipAveBlk, timepoints__fTipAveBlk, MinPeakHeight=8, MinPeakDistance=0.25, MinPeakProminence=4, Annotate = 'extents');
+    % define axes labels and subplot titles
+    xlabel('time (s)');
+    ylabel('amplitude'); 
     hold off
     title(['Smooth Hand O/C Movement, ', num2str(matName_title)])
 
@@ -191,6 +209,7 @@ for csv_i = 1:length(moveCSV)
         % plot(smoothed_fTipAveBlk);
         % title(['Smooth Hand O/C Movement ', num2str(matName_title)]);
     
+
     % Compute the mean and variability for each measurement
     mean_amplitudes(csv_i) = mean(amplitudes);
     std_amplitudes(csv_i) = std(amplitudes);
@@ -322,6 +341,7 @@ T3 = table(mean_OffOff_amplitudes, std_OffOff_amplitudes, var_OffOff_amplitudes,
 % Write overall summary results table to a CSV file for OffMed, OffStim condition
 writetable(T3, [outputDir filesep 'fTipTracking_results_OffOff_summary.csv']);
 
+
 % Compute overall mean and variability for OffMed, OnStim condition (sessions 7 & 9)
 mean_OffOn_amplitudes = mean(OffOn_amplitudes);
 std_OffOn_amplitudes = std(OffOn_amplitudes);
@@ -344,8 +364,64 @@ T4 = table(mean_OffOn_amplitudes, std_OffOn_amplitudes, var_OffOn_amplitudes, ..
 % Write overall summary results table to a CSV file for OffMed, OffStim condition
 writetable(T4, [outputDir filesep 'fTipTracking_results_OffOn_summary.csv']);
 
-%% Comparisons
+% Assuming T3 and T4 are your table objects
+T3.Properties.RowNames = {'OffOff_Condition'}; % Assign row names to T3
+T4.Properties.RowNames = {'OffOn_Condition'};  % Assign row names to T4
+
+% Combine the tables vertically
+T5 = [T3; T4];
+
+% Save the combined table to a CSV file
+writetable(T5, [outputDir filesep 'fTipTracking_results-per-condition_summary.csv'], 'WriteRowNames', true); 
+
+
+%% Plotting comparisions
+
+% Concatenate smoothed fTip movement data for videos 1 and 2 [OffMed, OffStim condition (sessions 1 & 3)]
+concatenated_smoothed_OffOff = cat(1, results(1).smoothMovement, results(2).smoothMovement);
+
+% Concatenate smoothed fTip movement data for videos 4 and 5 [OffMed, OnStim condition (sessions 7 & 9)]
+concatenated_smoothed_OffOn = cat(1, results(4).smoothMovement, results(5).smoothMovement);
+
+% Create a new time vector for concatenated data
+timepoints_concatenated_OffOff = (1:length(concatenated_smoothed_OffOff))/fps;
+timepoints_concatenated_OffOn = (1:length(concatenated_smoothed_OffOn))/fps;
+
+% Plot the results
+figure;
+hold on;
+
+% Plot concatenated smoothed data for videos 1 and 2
+plot(timepoints_concatenated_OffOff, concatenated_smoothed_OffOff, 'b'); % 'b' for blue, adjust as needed
+
+% Plot concatenated smoothed data for videos 4 and 5
+plot(timepoints_concatenated_OffOn, concatenated_smoothed_OffOn, 'r'); % 'r' for red, adjust as needed
+
+xlabel('time (s)');
+ylabel('finger movement amplitude');
+legend('Off Med, Off Stim', 'Off Med, On Stim');
+
+hold off;
+
+
+%% Computing comparisons
 
 % compare results from sessions 1 & 3 (Off Med, Off Stim) to sessions 7 & 9 (Off Med, On Stim) - Hand OC
 
-% compare set results (6) within session 5 (Off Med, Ramp Stim) - Finger Taps
+% Perform t-tests
+[~, p_value_amplitude] = ttest2(OffOff_amplitudes, OffOn_amplitudes);
+[~, p_value_width] = ttest2(OffOff_widths, OffOn_widths);
+[~, p_value_peakDists] = ttest2(OffOff_peakDists, OffOn_peakDists);
+
+% Display p-values
+disp(['p-value for amplitude: ', num2str(p_value_amplitude)]);
+disp(['p-value for width: ', num2str(p_value_width)]);
+disp(['p-value for peak distance: ', num2str(p_value_peakDists)]);
+
+% Create p-value table 
+p_value_table = table(p_value_amplitude, p_value_width, p_value_peakDists, 'VariableNames', {'p_val_Amplitude', 'p_val_Width', 'p_val_PeakDistance'});
+
+% Save the table to a CSV file
+writetable(p_value_table, [outputDir filesep 'p_values.csv']);
+
+%% compare set results (6) within session 5 (Off Med, Ramp Stim) - Finger Taps
