@@ -63,8 +63,10 @@ end
 fps = 60; % frames per second
 
 % Convert distance units to mm (distance conversion factor)
-pixels_to_mm = 0.0048; % given that camera system pixel size is 4.8 micrometers
-% assuming FLIR camera system = BFS-U3-13Y3M-C: https://www.flir.com/products/blackfly-s-usb3/?model=BFS-U3-13Y3M-C&vertical=machine+vision&segment=iis
+pixels_to_mm = 2.109; % 232 mm / 110 pxl = 2.1091 mm per pixel
+% Anthropometry: vertical distance from the bottom of the chin (menton) to the top of the head: https://upload.wikimedia.org/wikipedia/commons/0/06/AvgHeadSizes.png
+% US adult male, 50th percentile: Avg. = 23.2 cm, 9.1 inches
+% Subject in video frames: Avg. = 110 pixels
 
 % set up a results structure outside of loop
 results = struct();
@@ -170,7 +172,7 @@ for csv_i = 1:length(moveCSV)
     smoothed_fTipAveBlk = smoothdata(fTipAveBlk, 'gaussian', window_Width);
 
     % Find peak amplitudes and compute half-widths -- findpeaks function [review documentation]
-    [peaks, locs, widths, prominences] = findpeaks(smoothed_fTipAveBlk, MinPeakHeight=0.04, MinPeakDistance=20, MinPeakProminence=0.02, Annotate ='extents'); 
+    [peaks, locs, widths, prominences] = findpeaks(smoothed_fTipAveBlk, MinPeakHeight=20, MinPeakDistance=20, MinPeakProminence=10, Annotate ='extents'); 
 
     % Convert distance variables to mm usng conversion factor
     amplitudes = peaks * pixels_to_mm; % converting amplitudes to mm
@@ -191,7 +193,7 @@ for csv_i = 1:length(moveCSV)
     subplot(length(moveCSV), 1, csv_i);
     hold on
     % Adjust the parameters in findpeaks
-    findpeaks(smoothed_fTipAveBlk, timepoints__fTipAveBlk, MinPeakHeight=0.04, MinPeakDistance=0.20, MinPeakProminence=0.02, Annotate ='extents');
+    findpeaks(smoothed_fTipAveBlk, timepoints__fTipAveBlk, MinPeakHeight=20, MinPeakDistance=0.20, MinPeakProminence=10, Annotate ='extents');
     % define axes labels and subplot titles
     xlabel('time (s)');
     ylabel('amplitude');
