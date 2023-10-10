@@ -1,4 +1,4 @@
-%% fTip tracking script (v1)
+%% fTip tracking script (v2)
 
 % Goal: analyze  fingertip movement timeseries data based on videos that have been anatomically labeled (13pt per frame) and analyzed via a trained DeepLabCut model
 
@@ -54,16 +54,17 @@ moveCSV = mainCSV2(contains(mainCSV2,'Move'));
 %% Main function
 
 % create an outputs directory
-outputDir = [mainDir2 filesep 'fTipTracking_outputs'];
+outputDir = [mainDir2 filesep 'fTipTracking_outputs_mm'];
 if ~exist(outputDir, 'dir')
     mkdir(outputDir);
 end
 
-% Define framerate of videos 
+% Define framerate of videos (time conversion factor)
 fps = 60; % frames per second
 
-% Convert distance units to mm (conversion factor) 
-% E.g., pxl_to_mm = ...; % Replace with actual value
+% Convert distance units to mm (distance conversion factor)
+pixels_to_mm = 0.0048; % given that camera system pixel size is 4.8 micrometers
+% assuming FLIR camera system = BFS-U3-13Y3M-C: https://www.flir.com/products/blackfly-s-usb3/?model=BFS-U3-13Y3M-C&vertical=machine+vision&segment=iis
 
 % set up a results structure outside of loop
 results = struct();
@@ -140,8 +141,10 @@ for csv_i = 1:length(moveCSV)
                 euclidall(frame_i , label_i) = pdist2(point1 , point2);
             end
         end
-
     end
+
+    % Convert distance variables to mm usng conversion factor
+    euclidall = euclidall * pixels_to_mm; % converting euclidean distances to mm
 
     % Filter the computed distances related to fingertip movements
     fTipInds = contains(colNames4,'fTip');
@@ -166,13 +169,16 @@ for csv_i = 1:length(moveCSV)
     window_Width = 5; % set windowWidth as needed
     smoothed_fTipAveBlk = smoothdata(fTipAveBlk, 'gaussian', window_Width);
 
-    % Find peak amplitudes and compute half-widths -- findpeaks function [documentation: peak prominences]
-    [peaks, locs, widths, prominences] = findpeaks(smoothed_fTipAveBlk, MinPeakHeight=8, MinPeakDistance=20, MinPeakProminence=4, Annotate ='extents');
-    amplitudes = peaks; % local maxima
+    % Find peak amplitudes and compute half-widths -- findpeaks function [review documentation]
+    [peaks, locs, widths, prominences] = findpeaks(smoothed_fTipAveBlk, MinPeakHeight=0.04, MinPeakDistance=20, MinPeakProminence=0.02, Annotate ='extents'); 
+
+    % Convert distance variables to mm usng conversion factor
+    amplitudes = peaks * pixels_to_mm; % converting amplitudes to mm
+    widths = widths * pixels_to_mm; % converting widths to mm
     halfWidths = widths / 2;
 
-    % Compute timepoints from locs
-    timepoints = locs / fps; % Convert frame numbers to time (in seconds)
+    % Compute timepoints from locs (vector of integer indices corresponding to video frame number)
+    timepoints = locs / fps; % Convert frame numbers to time (in seconds) using video sampling rate (Fs) conversion factor
 
     % Compute distances between consecutive peaks
     peakDists = diff(locs); % by frame indice
@@ -185,12 +191,13 @@ for csv_i = 1:length(moveCSV)
     subplot(length(moveCSV), 1, csv_i);
     hold on
     % Adjust the parameters in findpeaks
-    findpeaks(smoothed_fTipAveBlk, timepoints__fTipAveBlk, MinPeakHeight=8, MinPeakDistance=0.20, MinPeakProminence=4, Annotate = 'extents');
+    findpeaks(smoothed_fTipAveBlk, timepoints__fTipAveBlk, MinPeakHeight=0.04, MinPeakDistance=0.20, MinPeakProminence=0.02, Annotate ='extents');
     % define axes labels and subplot titles
     xlabel('time (s)');
-    ylabel('amplitude'); 
+    ylabel('amplitude');
     hold off
     title(['Smooth Hand O/C Movement, ', num2str(matName_title)])
+
 
     % Compute the mean and variability for each measurement
     mean_amplitudes(csv_i) = mean(amplitudes);
@@ -204,7 +211,7 @@ for csv_i = 1:length(moveCSV)
     mean_peakDists(csv_i) = mean(peakDists);
     std_peakDists(csv_i) = std(peakDists);
     var_peakDists(csv_i) = var(peakDists);
-    
+
     % Store the measures to the respective array based on the video index
     if ismember(csv_i, [1, 2]) % sessions 1 & 3
         OffOff_amplitudes = [OffOff_amplitudes; amplitudes];
@@ -260,43 +267,43 @@ for csv_i = 1:length(moveCSV)
     results(csv_i).mean_amplitudes = mean_amplitudes(csv_i);
     results(csv_i).std_amplitudes = std_amplitudes(csv_i);
     results(csv_i).var_amplitudes = var_amplitudes(csv_i);
-    
+
     results(csv_i).mean_widths = mean_widths(csv_i);
     results(csv_i).std_widths = std_widths(csv_i);
     results(csv_i).var_widths = var_widths(csv_i);
-    
+
     results(csv_i).mean_peakDists = mean_peakDists(csv_i);
     results(csv_i).std_peakDists = std_peakDists(csv_i);
     results(csv_i).var_peakDists = var_peakDists(csv_i);
 
 
     % Define unique name for the results output file based on the current CSV name
-    fTipTracking_results = [outputDir filesep 'output_' tmpCSV(1:end-44) '.csv']; % assumes tmpCSV is a string ending in '.csv'
+    fTipTracking_results_mm = [outputDir filesep 'output_' tmpCSV(1:end-44) '.csv']; % assumes tmpCSV is a string ending in '.csv'
 
     % Create a table to store results based on computed variables
     T1 = table(timepoints, locs, peaks, amplitudes, prominences, widths, halfWidths, 'VariableNames', {'Timepoints', 'Locations', 'Peaks', 'Amplitudes', 'Prominences', 'Widths', 'HalfWidths'});
 
     % Write results table to a CSV file
-    writetable(T1, fTipTracking_results);
+    writetable(T1, fTipTracking_results_mm);
 
 
     % Define unique name for the summary results output file based on the current CSV name
-    fTipTracking_results_summary = [outputDir filesep 'summary_output_' tmpCSV(1:end-44) '.csv']; % assumes tmpCSV is a string ending in '.csv'
+    fTipTracking_results_summary_mm = [outputDir filesep 'summary_output_' tmpCSV(1:end-44) '.csv']; % assumes tmpCSV is a string ending in '.csv'
 
     % Create a table to store summary results
-    T2 = table(mean_amplitudes(csv_i), std_amplitudes(csv_i), var_amplitudes(csv_i), ... 
-               mean_widths(csv_i), std_widths(csv_i), var_widths(csv_i), ...
-               mean_peakDists(csv_i), std_peakDists(csv_i), var_peakDists(csv_i), ... 
-               'VariableNames', {'MeanAmplitude', 'StdAmplitude', 'VarAmplitude', 'MeanWidth', 'StdWidth', 'VarWidth', 'MeanPeakDist', 'StdPeakDist', 'VarPeakDist'});
+    T2 = table(mean_amplitudes(csv_i), std_amplitudes(csv_i), var_amplitudes(csv_i), ...
+        mean_widths(csv_i), std_widths(csv_i), var_widths(csv_i), ...
+        mean_peakDists(csv_i), std_peakDists(csv_i), var_peakDists(csv_i), ...
+        'VariableNames', {'MeanAmplitude', 'StdAmplitude', 'VarAmplitude', 'MeanWidth', 'StdWidth', 'VarWidth', 'MeanPeakDist', 'StdPeakDist', 'VarPeakDist'});
 
     % Write summary results table to a CSV file
-    writetable(T2, fTipTracking_results_summary);
+    writetable(T2, fTipTracking_results_summary_mm);
 
 
 end
 
 % Save results structure in MAT file
-save([outputDir filesep 'fTipTracking_results.mat'], 'results');
+save([outputDir filesep 'fTipTracking_results_mm.mat'], 'results');
 
 
 %% Compute and save concatenated summary results for analyses
@@ -316,12 +323,12 @@ var_OffOff_peakDists = var(OffOff_peakDists);
 
 % Create a table to store overall summary results for OffMed, OffStim condition
 T3 = table(mean_OffOff_amplitudes, std_OffOff_amplitudes, var_OffOff_amplitudes, ...
-           mean_OffOff_widths, std_OffOff_widths, var_OffOff_widths, ...
-           mean_OffOff_peakDists, std_OffOff_peakDists, var_OffOff_peakDists, ...
-           'VariableNames', {'MeanAmplitude', 'StdAmplitude', 'VarAmplitude', 'MeanWidth', 'StdWidth', 'VarWidth', 'MeanPeakDist', 'StdPeakDist', 'VarPeakDist'});
+    mean_OffOff_widths, std_OffOff_widths, var_OffOff_widths, ...
+    mean_OffOff_peakDists, std_OffOff_peakDists, var_OffOff_peakDists, ...
+    'VariableNames', {'MeanAmplitude', 'StdAmplitude', 'VarAmplitude', 'MeanWidth', 'StdWidth', 'VarWidth', 'MeanPeakDist', 'StdPeakDist', 'VarPeakDist'});
 
 % Write overall summary results table to a CSV file for OffMed, OffStim condition
-writetable(T3, [outputDir filesep 'fTipTracking_results_OffOff_summary.csv']);
+writetable(T3, [outputDir filesep 'fTipTracking_results_OffOff_summary_mm.csv']);
 
 
 % Compute overall mean and variability for OffMed, OnStim condition (sessions 7 & 9)
@@ -339,23 +346,23 @@ var_OffOn_peakDists = var(OffOn_peakDists);
 
 % Create a table to store overall summary results for OffMed, OffStim condition
 T4 = table(mean_OffOn_amplitudes, std_OffOn_amplitudes, var_OffOn_amplitudes, ...
-           mean_OffOn_widths, std_OffOn_widths, var_OffOn_widths, ...
-           mean_OffOn_peakDists, std_OffOn_peakDists, var_OffOn_peakDists, ...
-           'VariableNames', {'MeanAmplitude', 'StdAmplitude', 'VarAmplitude', 'MeanWidth', 'StdWidth', 'VarWidth', 'MeanPeakDist', 'StdPeakDist', 'VarPeakDist'});
+    mean_OffOn_widths, std_OffOn_widths, var_OffOn_widths, ...
+    mean_OffOn_peakDists, std_OffOn_peakDists, var_OffOn_peakDists, ...
+    'VariableNames', {'MeanAmplitude', 'StdAmplitude', 'VarAmplitude', 'MeanWidth', 'StdWidth', 'VarWidth', 'MeanPeakDist', 'StdPeakDist', 'VarPeakDist'});
 
 % Write overall summary results table to a CSV file for OffMed, OffStim condition
 writetable(T4, [outputDir filesep 'fTipTracking_results_OffOn_summary.csv']);
 
 
 % Assign row names to T3 (OffOff) and T4 (OffOn) summary results tables
-T3.Properties.RowNames = {'OffOff_Condition'}; 
-T4.Properties.RowNames = {'OffOn_Condition'}; 
+T3.Properties.RowNames = {'OffOff_Condition'};
+T4.Properties.RowNames = {'OffOn_Condition'};
 
 % Combine the tables vertically
 T5 = [T3; T4];
 
 % Save the combined table to a CSV file
-writetable(T5, [outputDir filesep 'fTipTracking_results-per-condition_summary.csv'], 'WriteRowNames', true); 
+writetable(T5, [outputDir filesep 'fTipTracking_results-per-condition_summary.csv'], 'WriteRowNames', true);
 
 
 %% Plotting smooth movement comparisions
@@ -379,7 +386,7 @@ OffOncolor = [0.2 0.7 0.8]; % teal/turquoise
 hold on;
 
 % Plot concatenated smoothed data for videos 1 and 2
-plot(timepoints_concatenated_OffOff, concatenated_smoothed_OffOff, 'Color', OffOffcolor); 
+plot(timepoints_concatenated_OffOff, concatenated_smoothed_OffOff, 'Color', OffOffcolor);
 
 % Plot concatenated smoothed data for videos 4 and 5
 plot(timepoints_concatenated_OffOn, concatenated_smoothed_OffOn, 'Color', OffOncolor);
@@ -404,7 +411,7 @@ disp(['p-value for amplitude: ', num2str(p_value_amplitude)]);
 disp(['p-value for width: ', num2str(p_value_width)]);
 disp(['p-value for peak distance: ', num2str(p_value_peakDists)]);
 
-% Create p-value table 
+% Create p-value table
 p_value_table = table(p_value_amplitude, p_value_width, p_value_peakDists, 'VariableNames', {'p_val_Amplitude', 'p_val_Width', 'p_val_PeakDistance'});
 
 % Save the table to a CSV file
@@ -450,19 +457,20 @@ for i = 1:3
         x = b.XEndPoints(cond); % get the x-coordinate of each bar
         y = b.YEndPoints(cond); % get the y-coordinate of each bar
         text(x, y + 0.05, sprintf('%.2f (SD=%.2f)', means_matrix(cond,i), sd_matrix(cond,i)),...
-             'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
+            'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
     end
-    
+
     % Use either standard deviation (sd_matrix) or variance (var_matrix) for the error bars
-    errorbar(1:2, means_matrix(:, i), sd_matrix(:, i), '.k', 'LineWidth', 1.5); 
-    
+    errorbar(1:2, means_matrix(:, i), sd_matrix(:, i), '.k', 'LineWidth', 1.5);
+
     set(gca, 'XTickLabel', group_labels);
     title(['Comparison of ', metric_labels{i}]);
     ylabel(['Mean ', metric_labels{i}]);
     xlabel('Condition');
-    
+
     hold off;
 end
 
 
 %% compare set results (6) within session 5 (Off Med, Ramp Stim) - Finger Taps
+

@@ -62,7 +62,7 @@ end
 % Define framerate of videos 
 fps = 60; % frames per second
 
-% Covert distance units to mm (conversion factor)
+% Convert distance units to mm (conversion factor) 
 % E.g., pxl_to_mm = ...; % Replace with actual value
 
 % set up a results structure outside of loop
@@ -175,15 +175,8 @@ for csv_i = 1:length(moveCSV)
     timepoints = locs / fps; % Convert frame numbers to time (in seconds)
 
     % Compute distances between consecutive peaks
-    peakDists = diff(locs);
-
-%     % Plot smooth movement for each CSV iteration
-%     subplot(length(moveCSV), 1, csv_i);
-%     hold on
-%     % plot(smoothed_fTipAveBlk)
-%     findpeaks(smoothed_fTipAveBlk, MinPeakHeight=8, MinPeakDistance=20, MinPeakProminence = 4, Annotate ='extents')
-%     hold off
-%     title(['Smooth Hand O/C Movement, ', num2str(matName_title)])
+    peakDists = diff(locs); % by frame indice
+    peakDists = diff(timepoints); % by timepoint
 
     % Compute timepoints for all indices
     timepoints__fTipAveBlk = (1:length(smoothed_fTipAveBlk))/fps;
@@ -198,17 +191,6 @@ for csv_i = 1:length(moveCSV)
     ylabel('amplitude'); 
     hold off
     title(['Smooth Hand O/C Movement, ', num2str(matName_title)])
-
-        % % Plot Raw Movement
-        % subplot(length(moveCSV), 2, 2*csv_i-1); % Adjust subplot for two plots per csv_i
-        % plot(fTipAveBlk);
-        % title(['Raw Hand O/C Movement ', num2str(matName_title)]);
-        % 
-        % % Plot Smooth Movement
-        % subplot(length(moveCSV), 2, 2*csv_i); % Adjust subplot for two plots per csv_i
-        % plot(smoothed_fTipAveBlk);
-        % title(['Smooth Hand O/C Movement ', num2str(matName_title)]);
-    
 
     % Compute the mean and variability for each measurement
     mean_amplitudes(csv_i) = mean(amplitudes);
@@ -364,20 +346,19 @@ T4 = table(mean_OffOn_amplitudes, std_OffOn_amplitudes, var_OffOn_amplitudes, ..
 % Write overall summary results table to a CSV file for OffMed, OffStim condition
 writetable(T4, [outputDir filesep 'fTipTracking_results_OffOn_summary.csv']);
 
-% Assuming T3 and T4 are your table objects
-T3.Properties.RowNames = {'OffOff_Condition'}; % Assign row names to T3
-T4.Properties.RowNames = {'OffOn_Condition'};  % Assign row names to T4
+
+% Assign row names to T3 (OffOff) and T4 (OffOn) summary results tables
+T3.Properties.RowNames = {'OffOff_Condition'}; 
+T4.Properties.RowNames = {'OffOn_Condition'}; 
 
 % Combine the tables vertically
 T5 = [T3; T4];
 
 % Save the combined table to a CSV file
-writetable(T5, 'fTipTracking_results-per-condition_summary.csv', ...
-           'WriteRowNames', true); % Include row names in the CSV file
+writetable(T5, [outputDir filesep 'fTipTracking_results-per-condition_summary.csv'], 'WriteRowNames', true); 
 
 
-
-%% Plotting comparisions
+%% Plotting smooth movement comparisions
 
 % Concatenate smoothed fTip movement data for videos 1 and 2 [OffMed, OffStim condition (sessions 1 & 3)]
 concatenated_smoothed_OffOff = cat(1, results(1).smoothMovement, results(2).smoothMovement);
@@ -391,13 +372,17 @@ timepoints_concatenated_OffOn = (1:length(concatenated_smoothed_OffOn))/fps;
 
 % Plot the results
 figure;
+
+OffOffcolor = [0.4 0.2 0.6]; % indigo/purple
+OffOncolor = [0.2 0.7 0.8]; % teal/turquoise
+
 hold on;
 
 % Plot concatenated smoothed data for videos 1 and 2
-plot(timepoints_concatenated_OffOff, concatenated_smoothed_OffOff, 'b'); % 'b' for blue, adjust as needed
+plot(timepoints_concatenated_OffOff, concatenated_smoothed_OffOff, 'Color', OffOffcolor); 
 
 % Plot concatenated smoothed data for videos 4 and 5
-plot(timepoints_concatenated_OffOn, concatenated_smoothed_OffOn, 'r'); % 'r' for red, adjust as needed
+plot(timepoints_concatenated_OffOn, concatenated_smoothed_OffOn, 'Color', OffOncolor);
 
 xlabel('time (s)');
 ylabel('finger movement amplitude');
@@ -405,8 +390,7 @@ legend('Off Med, Off Stim', 'Off Med, On Stim');
 
 hold off;
 
-
-%% Computing comparisons
+%% Computing stat comparisons
 
 % compare results from sessions 1 & 3 (Off Med, Off Stim) to sessions 7 & 9 (Off Med, On Stim) - Hand OC
 
@@ -425,5 +409,60 @@ p_value_table = table(p_value_amplitude, p_value_width, p_value_peakDists, 'Vari
 
 % Save the table to a CSV file
 writetable(p_value_table, [outputDir filesep 'p_values.csv']);
+
+%% Plotting stat comparisons
+
+% Input data
+OffOff_means = [mean_OffOff_amplitudes, mean_OffOff_widths, mean_OffOff_peakDists];
+OffOn_means = [mean_OffOn_amplitudes, mean_OffOn_widths, mean_OffOn_peakDists];
+
+OffOff_sd = [std_OffOff_amplitudes, std_OffOff_widths, std_OffOff_peakDists];
+OffOn_sd = [std_OffOn_amplitudes, std_OffOn_widths, std_OffOn_peakDists];
+
+OffOff_var = [var_OffOff_amplitudes, var_OffOff_widths, var_OffOff_peakDists];
+OffOn_var = [var_OffOn_amplitudes, var_OffOn_widths, var_OffOn_peakDists];
+
+% Data organization for plotting
+means_matrix = [OffOff_means; OffOn_means];
+sd_matrix = [OffOff_sd; OffOn_sd];
+var_matrix = [OffOff_var; OffOn_var];
+
+% Labels
+group_labels = {'Off Med, Off Stim', 'Off Med, On Stim'};
+metric_labels = {'Peak Amplitudes', 'Peak Widths', 'Peak Distances'};
+
+% Plotting
+figure;
+colors = [0.4 0.2 0.6; 0.2 0.7 0.8]; % RGB triplet per condition bar
+
+for i = 1:3
+    subplot(1, 3, i);
+    b = bar(means_matrix(:, i), 'FaceColor', 'flat');
+    hold on;
+
+    % Assign colors per condition bar
+    for cond = 1:2
+        b.CData(cond,:) = colors(cond, :);
+    end
+
+    % Add text annotations
+    for cond = 1:2
+        x = b.XEndPoints(cond); % get the x-coordinate of each bar
+        y = b.YEndPoints(cond); % get the y-coordinate of each bar
+        text(x, y + 0.05, sprintf('%.2f (SD=%.2f)', means_matrix(cond,i), sd_matrix(cond,i)),...
+             'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
+    end
+    
+    % Use either standard deviation (sd_matrix) or variance (var_matrix) for the error bars
+    errorbar(1:2, means_matrix(:, i), sd_matrix(:, i), '.k', 'LineWidth', 1.5); 
+    
+    set(gca, 'XTickLabel', group_labels);
+    title(['Comparison of ', metric_labels{i}]);
+    ylabel(['Mean ', metric_labels{i}]);
+    xlabel('Condition');
+    
+    hold off;
+end
+
 
 %% compare set results (6) within session 5 (Off Med, Ramp Stim) - Finger Taps
