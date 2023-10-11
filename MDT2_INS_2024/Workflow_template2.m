@@ -71,50 +71,24 @@ for gi = 1:height(groupIDchk)
 
 end
 
-% Get Group A rows
-groupA_inds = matches(groupIDs,'GROUP_A');
-stnL_LFP_BS_grA = stnLEFTBSlfp(groupA_inds,:); % BS LFP 
-stnL_LFP_BStms_grA = BSlfptimes(groupA_inds,:);
-stnL_Ttims_grA = stnLEFTsTtimes(groupA_inds,:);
-stnLSt_tab_LH_grA = stnLSt_tab_LH(groupA_inds,:); % Stream LFP
+group2use333 = 'b';
 
-% Pull in video durations
+[GROUP_Video_Name , GROUP_Video_MoveIND_Name, GROUP_Video_CSV,...
+    stnL_LFP_St_GrpA_KinLFP]...
+    = getGroupInfo(group2use333 , groupIDs, stnLEFTBSlfp , stnLEFTsTtimes ,...
+    stnLSt_tab_LH , leftSTN_rightBD_Vinfo_fname);
 
-% Load Video info XslX
-stnL_BD_R_vinfo = readtable(leftSTN_rightBD_Vinfo_fname);
-% Pull out Group A and Group B
-groupA_Vinfo = stnL_BD_R_vinfo(contains(stnL_BD_R_vinfo.ftype,'A'),:);
 
-[~ , stnL_BD_BS_row] = min(abs(groupA_Vinfo.duration - stnL_Ttims_grA.Duration));
 
-% GROUP A - Condition TEST
-stnL_BD_BS_GrpA_testInfo = stnL_Ttims_grA(stnL_BD_BS_row,:);
-stnL_LFP_BS_GrpA_KinLFP = stnL_LFP_BS_grA(stnL_BD_BS_row,:);
-stnL_LFP_St_GrpA_KinLFP = stnLSt_tab_LH_grA(stnL_BD_BS_row,:);
-
-GROUPA_Video_CSV = groupA_Vinfo.csvName;
-allVideoNames = dir('*.mp4');
-allVideoNames2 = {allVideoNames.name};
-allVideoNames3 = cellfun(@(x) [extractBefore(x,'_labeled'),'.mp4'],...
-    allVideoNames2, 'UniformOutput',false);
-GROUPA_Video_Name = allVideoNames2(contains(allVideoNames3,...
-    extractBefore(GROUPA_Video_CSV{1},'.')));
-GROUPA_Video_MoveIND_Name = [extractBefore(GROUPA_Video_Name{1},'.'),'_MoveIndex.csv'];
-% USE stnL_BD_BSdata to FIND!
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%% 
-%%% USE ERIN CODE TO GET CSV data
-%%% USE OJEMANN CODE TO GET FRAMES for LFP alignment
-GROUPA_LFP = 1;
 
 % DLC CVS convert video frame CSV
-%% Load and Process CSV file
+% Load and Process CSV file
 csv_vidLoc  = leftSTN_rightBD_dir;
 save_matLoc = leftSTN_rightBD_dir;
 cd(csv_vidLoc)
 
 dlcIO_processCSV('dirLOC',1,'userLOC',csv_vidLoc,'saveLOC',save_matLoc,...
-    'selCSV',GROUPA_Video_CSV,'USERid','JAT','hemiS','L','bodyS','R')
+    'selCSV',GROUP_Video_CSV,'USERid','JAT','hemiS','L','bodyS','R')
 
 cd(save_matLoc)
 
@@ -124,7 +98,7 @@ matLISTu = {matLIST.name};
 
 stnSIDE = 'L';
 
-csvNparts = split(GROUPA_Video_Name , {'_','-'});
+csvNparts = split(GROUP_Video_Name , {'_','-'});
 csvMatSearch = [csvNparts{1},'_',csvNparts{3},'_',csvNparts{4},'_',stnSIDE,'STN'];
 dlcMATname = matLISTu{contains(matLISTu,csvMatSearch)};
 
@@ -135,8 +109,16 @@ d1_labDAT = outDATA.labelTab.(camFields{1});
 % VIDEO WILL BE LONGER THAN LFP ---- TRIM FRAMES by LFP --- KEEP TRACK of
 % INDEX
 % STEP 1 ---- TRIM FRAMES by LFP
-tabletFRAMEstart = 180;
-tabletFRAMEend = 6445;
+%%%%%%%%%%%%%% HARD CODED
+
+switch group2use333
+    case 'a'
+        tabletFRAMEstart = 180;
+        tabletFRAMEend = 6445;
+    case 'b'
+        tabletFRAMEstart = 63;
+        tabletFRAMEend = 4624;
+end
 
 dlc_lab2use = d1_labDAT(tabletFRAMEstart:tabletFRAMEend,:);
 
@@ -169,10 +151,14 @@ trimFrB_int = linspace(tabletFRAMEstart,tabletFRAMEend, length(ts_LFP));
 
 %%
 % Pull in 
-moveIND = readtable(GROUPA_Video_MoveIND_Name);
+moveIND = readtable(GROUP_Video_MoveIND_Name);
 moveINDc = moveIND(~moveIND.BeginF == 0,:);
-moveINDc = moveINDc(1:8,:); % remove last too short in time
+if matches(group2use333,'a')
+    moveINDc = moveINDc(1:8,:); % remove last too short in time
+end
 
+groupLFPAmp = zeros(height(moveINDc),1); 
+groupKinAmp = zeros(height(moveINDc),1);
 for mii = 1:height(moveINDc)
 
     tmpMOve = moveINDc(mii,:);
@@ -225,10 +211,12 @@ for mii = 1:height(moveINDc)
     ylabel('voltage')
     xlabel('Time in seconds')
 
-    mean(abs(inst_freq_filtered2))
+    groupLFPAmp(mii) = max(abs(inst_freq_filtered2));
+    groupKinAmp(mii) = max(abs(pointXsm));
 
-    pause 
+    % pause 
     close all
+    clc
 
  
 
@@ -289,11 +277,55 @@ end
 
 
 
-function [] = getGroupInfo()
+function [GROUPA_Video_Name ,GROUPA_Video_MoveIND_Name ,...
+    GROUPA_Video_CSV, stnL_LFP_St_GrpA_KinLFP]...
+    = getGroupInfo(groupType , allGroups, BS_LFP , LFPstreamTimes ,...
+    LFPstreamTab , videoFname)
+
+switch groupType
+    case 'a'
+        group2use = 'GROUP_A';
+        group2use2 = 'A';
 
 
+    case 'b'
+        group2use = 'GROUP_B';
+        group2use2 = 'B';
 
+    case 'c'
+        group2use = 'GROUP_C';
+        group2use2 = 'C';
+end
 
+% Get Group A rows
+groupA_inds = matches(allGroups,group2use);
+stnL_LFP_BS_grA = BS_LFP(groupA_inds,:); % BS LFP 
+% stnL_LFP_BStms_grA = BSlfptimes(groupA_inds,:);
+stnL_Ttims_grA = LFPstreamTimes(groupA_inds,:);
+stnLSt_tab_LH_grA = LFPstreamTab(groupA_inds,:); % Stream LFP
+
+% Pull in video durations
+
+% Load Video info XslX
+stnL_BD_R_vinfo = readtable(videoFname);
+% Pull out Group A and Group B
+groupA_Vinfo = stnL_BD_R_vinfo(contains(stnL_BD_R_vinfo.ftype,group2use2),:);
+
+[~ , stnL_BD_BS_row] = min(abs(groupA_Vinfo.duration - stnL_Ttims_grA.Duration));
+
+% GROUP A - Condition TEST
+stnL_BD_BS_GrpA_testInfo = stnL_Ttims_grA(stnL_BD_BS_row,:);
+stnL_LFP_BS_GrpA_KinLFP = stnL_LFP_BS_grA(stnL_BD_BS_row,:);
+stnL_LFP_St_GrpA_KinLFP = stnLSt_tab_LH_grA(stnL_BD_BS_row,:);
+
+GROUPA_Video_CSV = groupA_Vinfo.csvName;
+allVideoNames = dir('*.mp4');
+allVideoNames2 = {allVideoNames.name};
+allVideoNames3 = cellfun(@(x) [extractBefore(x,'_labeled'),'.mp4'],...
+    allVideoNames2, 'UniformOutput',false);
+GROUPA_Video_Name = allVideoNames2(contains(allVideoNames3,...
+    extractBefore(GROUPA_Video_CSV{1},'.')));
+GROUPA_Video_MoveIND_Name = [extractBefore(GROUPA_Video_Name{1},'.'),'_MoveIndex.csv'];
 
 
 

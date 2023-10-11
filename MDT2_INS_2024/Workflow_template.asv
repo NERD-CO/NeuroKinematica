@@ -105,7 +105,7 @@ GROUPA_Video_MoveIND_Name = [extractBefore(GROUPA_Video_Name{1},'.'),'_MoveIndex
 %%%% 
 %%% USE ERIN CODE TO GET CSV data
 %%% USE OJEMANN CODE TO GET FRAMES for LFP alignment
-GROUPA_LFP = 1;
+
 
 % DLC CVS convert video frame CSV
 %% Load and Process CSV file
@@ -289,11 +289,50 @@ end
 
 
 
-function [] = getGroupInfo()
+function [] = getGroupInfo(groupType , allGroups, BS_LFP , LFPstreamTimes ,...
+    LFPstreamTab , videoFname)
+
+switch groupType
+    case 'a'
+        group2use = 'GROUP_A';
 
 
+    case 'b'
+        group2use = 'GROUP_B';
 
+    case 'c'
+        group2use = 'GROUP_C';
+end
 
+% Get Group A rows
+groupA_inds = matches(allGroups,group2use);
+stnL_LFP_BS_grA = BS_LFP(groupA_inds,:); % BS LFP 
+% stnL_LFP_BStms_grA = BSlfptimes(groupA_inds,:);
+stnL_Ttims_grA = LFPstreamTimes(groupA_inds,:);
+stnLSt_tab_LH_grA = LFPstreamTab(groupA_inds,:); % Stream LFP
+
+% Pull in video durations
+
+% Load Video info XslX
+stnL_BD_R_vinfo = readtable(videoFname);
+% Pull out Group A and Group B
+groupA_Vinfo = stnL_BD_R_vinfo(contains(stnL_BD_R_vinfo.ftype,'A'),:);
+
+[~ , stnL_BD_BS_row] = min(abs(groupA_Vinfo.duration - stnL_Ttims_grA.Duration));
+
+% GROUP A - Condition TEST
+stnL_BD_BS_GrpA_testInfo = stnL_Ttims_grA(stnL_BD_BS_row,:);
+stnL_LFP_BS_GrpA_KinLFP = stnL_LFP_BS_grA(stnL_BD_BS_row,:);
+stnL_LFP_St_GrpA_KinLFP = stnLSt_tab_LH_grA(stnL_BD_BS_row,:);
+
+GROUPA_Video_CSV = groupA_Vinfo.csvName;
+allVideoNames = dir('*.mp4');
+allVideoNames2 = {allVideoNames.name};
+allVideoNames3 = cellfun(@(x) [extractBefore(x,'_labeled'),'.mp4'],...
+    allVideoNames2, 'UniformOutput',false);
+GROUPA_Video_Name = allVideoNames2(contains(allVideoNames3,...
+    extractBefore(GROUPA_Video_CSV{1},'.')));
+GROUPA_Video_MoveIND_Name = [extractBefore(GROUPA_Video_Name{1},'.'),'_MoveIndex.csv'];
 
 
 

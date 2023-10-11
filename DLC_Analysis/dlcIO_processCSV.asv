@@ -91,7 +91,7 @@ switch inPUTS.USERid
         cameraID = fileParts{4};
 
         saveName = ['dlcDAT_',hdRT.date,'_',sessionID,'_',cameraID,'_',inPUTS.hemiS,...
-            'STN_',inPUTS.bodyS,'BODY.mat'];
+            '_',,'.mat'];
 
     otherwise
         saveName = ['dlcDAT_',hdRT.date,'_',hdRT.depth,'_','R',num2str(inPUTS.depNUM),'.mat'];
