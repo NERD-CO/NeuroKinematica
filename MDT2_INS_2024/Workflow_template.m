@@ -34,11 +34,10 @@ leftSTN_rightBD_Vinfo_fname = fullfile(leftSTN_rightBD_dir ,"VideoINFO.xlsx");
 
 % Right STN / Left Body videos
 
-%%
 stnLEFTjson  = jsondecode(fileread(leftFF));
 stnRIGHTjson = jsondecode(fileread(rightFF));
 
-%%
+%
 stnLEFTstream = stnLEFTjson.BrainSenseTimeDomain;
 stnLSt_tab = struct2table(stnLEFTstream);
 % Get relevant rows for hemi recorded
@@ -53,7 +52,7 @@ stnLEFTBSlfp = struct2table(stnLEFTjson.BrainSenseLfp);
 
 % Get times from BS LFP
 [BSlfptimes] = getBSLFPtimes(stnLEFTBSlfp.FirstPacketDateTime);
-%%
+%
 
 % first test '11:56:27 AM MDT'
 % second test '12:11:18 PM MDT'
@@ -74,9 +73,10 @@ end
 
 % Get Group A rows
 groupA_inds = matches(groupIDs,'GROUP_A');
-stnL_LFP_BS_grA = stnLEFTBSlfp(groupA_inds,:);
+stnL_LFP_BS_grA = stnLEFTBSlfp(groupA_inds,:); % BS LFP 
 stnL_LFP_BStms_grA = BSlfptimes(groupA_inds,:);
 stnL_Ttims_grA = stnLEFTsTtimes(groupA_inds,:);
+stnLSt_tab_LH_grA = stnLSt_tab_LH(groupA_inds,:); % Stream LFP
 
 % Pull in video durations
 
@@ -87,7 +87,10 @@ groupA_Vinfo = stnL_BD_R_vinfo(contains(stnL_BD_R_vinfo.ftype,'A'),:);
 
 [~ , stnL_BD_BS_row] = min(abs(groupA_Vinfo.duration - stnL_Ttims_grA.Duration));
 
-stnL_BD_BSdata = stnL_Ttims_grA(stnL_BD_BS_row,:);
+% GROUP A - Condition TEST
+stnL_BD_BS_GrpA_testInfo = stnL_Ttims_grA(stnL_BD_BS_row,:);
+stnL_LFP_BS_GrpA_KinLFP = stnL_LFP_BS_grA(stnL_BD_BS_row,:);
+stnL_LFP_St_GrpA_KinLFP = stnLSt_tab_LH_grA(stnL_BD_BS_row,:);
 
 GROUPA_Video_CSV = groupA_Vinfo.csvName;
 allVideoNames = dir('*.mp4');
@@ -102,6 +105,34 @@ GROUPA_Video_Name = allVideoNames2(contains(allVideoNames3,...
 %%% USE ERIN CODE TO GET CSV data
 %%% USE OJEMANN CODE TO GET FRAMES for LFP alignment
 GROUPA_LFP = 1;
+
+% DLC CVS convert video frame CSV
+%% Load and Process CSV file
+csv_vidLoc  = leftSTN_rightBD_dir;
+save_matLoc = leftSTN_rightBD_dir;
+cd(csv_vidLoc)
+
+dlcIO_processCSV('dirLOC',1,'userLOC',csv_vidLoc,'saveLOC',save_matLoc)
+
+cd(save_matLoc)
+load('dlcDAT_20230912_idea08_R1.mat','outDATA')
+d1_labDAT = outDATA.labelTab.leftCam;
+
+% VIDEO WILL BE LONGER THAN LFP ---- TRIM FRAMES by LFP --- KEEP TRACK of
+% INDEX
+% STEP 1 ---- TRIM FRAMES by LFP
+tabletFRAMEstart = 180;
+tabletFRAMEend = 6445;
+
+dlc_lab2use = d1_labDAT(tabletFRAMEstart:tabletFRAMEend,:);
+
+% offsetSamples = 195;
+% offsetSecs = 195/60;
+totalNumSamplesV = height(dlc_lab2use);
+totalNumSecs = totalNumSamplesV/60; % 60 fps
+
+totalNumSampsLFP = floor(totalNumSecs*250);
+
 
 
 
