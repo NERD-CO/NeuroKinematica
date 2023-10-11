@@ -174,17 +174,19 @@ for csv_i = 1:length(moveCSV)
     % Find peak amplitudes and compute half-widths -- findpeaks function [review documentation]
     [peaks, locs, widths, prominences] = findpeaks(smoothed_fTipAveBlk, MinPeakHeight=20, MinPeakDistance=20, MinPeakProminence=10, Annotate ='extents'); 
 
-    % Convert distance variables to mm usng conversion factor
+    % Convert distance variables to mm usng distance conversion factor
     amplitudes = peaks * pixels_to_mm; % converting amplitudes to mm
-    widths = widths * pixels_to_mm; % converting widths to mm
-    halfWidths = widths / 2;
 
     % Compute timepoints from locs (vector of integer indices corresponding to video frame number)
     timepoints = locs / fps; % Convert frame numbers to time (in seconds) using video sampling rate (Fs) conversion factor
-
+    
     % Compute distances between consecutive peaks
-    peakDists = diff(locs); % by frame indice
-    peakDists = diff(timepoints); % by timepoint
+    peakDists_frames = diff(locs); % by frame indice
+    peakDists = diff(timepoints); % by timepoint (seconds)
+
+    % Convert frame-relative variables to seconds using time conversion factor
+    widths = widths / fps; % converting widths to mm
+    halfWidths = widths / 2;
 
     % Compute timepoints for all indices
     timepoints__fTipAveBlk = (1:length(smoothed_fTipAveBlk))/fps;
