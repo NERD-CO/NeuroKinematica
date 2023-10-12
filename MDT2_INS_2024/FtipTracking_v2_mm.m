@@ -411,8 +411,8 @@ hold off;
 [~, p_value_peakDists] = ttest2(OffOff_peakDists, OffOn_peakDists);
 
 % Display p-values
-disp(['p-value for amplitude: ', num2str(p_value_amplitude)]);
-disp(['p-value for width: ', num2str(p_value_width)]);
+disp(['p-value for peak amplitude: ', num2str(p_value_amplitude)]);
+disp(['p-value for peak width: ', num2str(p_value_width)]);
 disp(['p-value for peak distance: ', num2str(p_value_peakDists)]);
 
 % Create p-value table
