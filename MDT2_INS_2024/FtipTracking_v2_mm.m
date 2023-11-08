@@ -22,7 +22,7 @@ end
 
 %% Analyze data isolated by hemisphere
 
-hemisphere = 'L';
+hemisphere = 'R';
 
 switch hemisphere
     case 'L'
@@ -31,7 +31,7 @@ switch hemisphere
 
     case 'R'
 
-        mainDir2 = [mainDir , filesep , 'LSTN'];
+        mainDir2 = [mainDir , filesep , 'RSTN'];
 end
 
 cd(mainDir2)
@@ -390,8 +390,8 @@ writetable(T5, [outputDir filesep 'fTipTracking_results-per-condition_summary_mm
 concatenated_smoothed_OffOff = cat(1, results(1).smoothMovement, results(2).smoothMovement);
 
 % Concatenate smoothed fTip movement data for videos 4 and 5 [OffMed, OnStim condition (L: sessions 7 & 9, R: sessions 8 & 10)]
- concatenated_smoothed_OffOn = cat(1, results(4).smoothMovement, results(5).smoothMovement); % L: sessions 7 & 9
-% concatenated_smoothed_OffOn = cat(1, results(3).smoothMovement, results(4).smoothMovement); % R: sessions 8 & 10
+%concatenated_smoothed_OffOn = cat(1, results(4).smoothMovement, results(5).smoothMovement); % L: sessions 7 & 9
+concatenated_smoothed_OffOn = cat(1, results(3).smoothMovement, results(4).smoothMovement); % R: sessions 8 & 10
 
 % Create a new time vector for concatenated data
 timepoints_concatenated_OffOff = (1:length(concatenated_smoothed_OffOff))/fps;

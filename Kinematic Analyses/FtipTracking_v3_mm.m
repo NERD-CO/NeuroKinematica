@@ -1,40 +1,52 @@
 %% fTip tracking script (v2)
 
-% Goal: analyze  fingertip movement timeseries data based on videos that have been anatomically labeled (13pt per frame) and analyzed via a trained DeepLabCut model
+% Goal: analyze fingertip movement timeseries data based on videos that have been anatomically labeled (13pt per frame) and analyzed via a trained DeepLabCut model
 
 %% Directory set-up - Navigate b/t machines
 pcname = getenv('COMPUTERNAME');
 
 switch pcname
-    case 'DESKTOP-I5CPDO7'   %%% JAT
+    case 'DESKTOP-I5CPDO7'   %%% JAT Desktop
 
-        mainDir = 'W:\RadcliffeE\INS_2024';
+       % mainDir = '';
 
-    case 'DSKTP-JTLAB-EMR'   %%% ER
+    case 'DSKTP-JTLAB-EMR'   %%% ER Desktop
 
-        mainDir = 'Z:\RadcliffeE\INS_2024';
+        mainDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\Kinematic Analyses'; 
+    case 'NSG-M-FQBPFK3'     %%% ER PC
 
-    case 'NSG-M-FQBPFK3'
-
-        mainDir = 'Z:\RadcliffeE\INS_2024';
+        mainDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\Kinematic Analyses';
 end
 
 
-%% Analyze data isolated by hemisphere
+%% Analyze data isolated by casedate and hemisphere
 
+% Define switch case inputs
+casedate = '09_12_2023';
 hemisphere = 'L';
+
+switch casedate
+    case '09_12_2023';
+
+        mainDir2 = [mainDir , filesep , '09_12_2023'];
+
+    case '[insert relevant casedate]'
+
+        mainDir2 = [mainDir , filesep , 'relevant casedate'];
+end
+
 
 switch hemisphere
     case 'L'
 
-        mainDir2 = [mainDir , filesep , 'LSTN'];
+        mainDir3 = [mainDir2 , filesep , 'LSTN'];
 
     case 'R'
 
-        mainDir2 = [mainDir , filesep , 'LSTN'];
+        mainDir3 = [mainDir2 , filesep , 'RSTN'];
 end
 
-cd(mainDir2)
+cd(mainDir3)
 
 
 %% Isolate dlc outputs of interest
@@ -187,7 +199,7 @@ for csv_i = 1:length(moveCSV)
     
     % Compute distances between consecutive peaks
     peakDists_frames = diff(locs); % by frame indice
-    peakDists = diff(timepoints); % by timepoint (seconds)
+    peakDists = diff(timepoints); % by timepoint (in seconds)
 
     % Convert frame-relative variables to seconds using time conversion factor
     widths = widths / fps; % converting widths to mm
@@ -222,41 +234,51 @@ for csv_i = 1:length(moveCSV)
     var_peakDists(csv_i) = var(peakDists);
 
     % Store the measures to the respective array based on the video index
-    if ismember(csv_i, [1, 2]) % sessions 1 & 3
+    if ismember(csv_i, [1, 2]) % L: sessions 1 & 3, R: sessions 2 & 4
         OffOff_amplitudes = [OffOff_amplitudes; amplitudes];
         OffOff_widths = [OffOff_widths; widths];
         OffOff_peakDists = [OffOff_peakDists; peakDists];
-    elseif ismember(csv_i, [4, 5]) % sessions 7 & 9
+    elseif ismember(csv_i, [4, 5]) % L: sessions 7 & 9, R: sessions 8 & 10
         OffOn_amplitudes = [OffOn_amplitudes; amplitudes];
         OffOn_widths = [OffOn_widths; widths];
         OffOn_peakDists = [OffOn_peakDists; peakDists];
     end
 
-    % Compute the mean and variability for each measurement in the OffMed, OffStim condition
-    mean_OffOff_amplitudes_i(csv_i) = mean(OffOff_amplitudes);
-    std_OffOff_amplitudes_i(csv_i) = std(OffOff_amplitudes);
-    var_OffOff_amplitudes_i(csv_i) = var(OffOff_amplitudes);
+    
+    % storage condition indep of iterator (~ like while loop)
+    if ismember(csv_i, [1, 2])
+        % Compute the mean and variability for each measurement in the OffMed, OffStim condition
+        mean_OffOff_amplitudes_i(countOffOff) = mean(OffOff_amplitudes,'omitnan');
+        std_OffOff_amplitudes_i(countOffOff) = std(OffOff_amplitudes, 'omitnan');
+        var_OffOff_amplitudes_i(countOffOff) = var(OffOff_amplitudes, 'omitnan');
 
-    mean_OffOff_widths_i(csv_i) = mean(OffOff_widths);
-    std_OffOff_widths_i(csv_i) = std(OffOff_widths);
-    var_OffOff_widths_i(csv_i) = var(OffOff_widths);
+        mean_OffOff_widths_i(countOffOff) = mean(OffOff_widths, 'omitnan');
+        std_OffOff_widths_i(countOffOff) = std(OffOff_widths, 'omitnan');
+        var_OffOff_widths_i(countOffOff) = var(OffOff_widths, 'omitnan');
 
-    mean_OffOff_peakDists_i(csv_i) = mean(OffOff_peakDists);
-    std_OffOff_peakDists_i(csv_i) = std(OffOff_peakDists);
-    var_OffOff_peakDists_i(csv_i) = var(OffOff_peakDists);
+        mean_OffOff_peakDists_i(countOffOff) = mean(OffOff_peakDists, 'omitnan');
+        std_OffOff_peakDists_i(countOffOff) = std(OffOff_peakDists, 'omitnan');
+        var_OffOff_peakDists_i(countOffOff) = var(OffOff_peakDists, 'omitnan');
 
-    % Compute the mean and variability for each measurement in the OffMed, OnStim condition
-    mean_OffOn_amplitudes_i(csv_i) = mean(OffOn_amplitudes);
-    std_OffOn_amplitudes_i(csv_i) = std(OffOn_amplitudes);
-    var_OffOn_amplitudes_i(csv_i) = var(OffOn_amplitudes);
+        countOffOff = countOffOff + 1;
+    end
 
-    mean_OffOn_widths_i(csv_i) = mean(OffOn_widths);
-    std_OffOn_widths_i(csv_i) = std(OffOn_widths);
-    var_OffOn_widths_i(csv_i) = var(OffOn_widths);
+    if ismember(csv_i, [4, 5])
+        % Compute the mean and variability for each measurement in the OffMed, OnStim condition
+        mean_OffOn_amplitudes_i(countOffOn) = mean(OffOn_amplitudes, 'omitnan');
+        std_OffOn_amplitudes_i(countOffOn) = std(OffOn_amplitudes, 'omitnan');
+        var_OffOn_amplitudes_i(countOffOn) = var(OffOn_amplitudes, 'omitnan');
 
-    mean_OffOn_peakDists_i(csv_i) = mean(OffOn_peakDists);
-    std_OffOn_peakDists_i(csv_i) = std(OffOn_peakDists);
-    var_OffOn_peakDists_i(csv_i) = var(OffOn_peakDists);
+        mean_OffOn_widths_i(countOffOn) = mean(OffOn_widths, 'omitnan');
+        std_OffOn_widths_i(countOffOn) = std(OffOn_widths, 'omitnan');
+        var_OffOn_widths_i(countOffOn) = var(OffOn_widths, 'omitnan');
+
+        mean_OffOn_peakDists_i(countOffOn) = mean(OffOn_peakDists, 'omitnan');
+        std_OffOn_peakDists_i(countOffOn) = std(OffOn_peakDists, 'omitnan');
+        var_OffOn_peakDists_i(countOffOn) = var(OffOn_peakDists, 'omitnan');
+
+        countOffOn = countOffOn + 1;
+    end
 
 
     % Store results for each csv_i into a structure
@@ -317,7 +339,7 @@ save([outputDir filesep 'fTipTracking_results_mm.mat'], 'results');
 
 %% Compute and save concatenated summary results for analyses
 
-% Compute overall mean and variability for OffMed, OffStim condition (sessions 1 & 3)
+% Compute overall mean and variability for OffMed, OffStim condition (L: sessions 1 & 3, R: sessions 2 & 4)
 mean_OffOff_amplitudes = mean(OffOff_amplitudes);
 std_OffOff_amplitudes = std(OffOff_amplitudes);
 var_OffOff_amplitudes = var(OffOff_amplitudes);
@@ -340,7 +362,7 @@ T3 = table(mean_OffOff_amplitudes, std_OffOff_amplitudes, var_OffOff_amplitudes,
 writetable(T3, [outputDir filesep 'fTipTracking_results_OffOff_summary_mm.csv']);
 
 
-% Compute overall mean and variability for OffMed, OnStim condition (sessions 7 & 9)
+% Compute overall mean and variability for OffMed, OnStim condition (L: sessions 7 & 9, R: sessions 8 & 10)
 mean_OffOn_amplitudes = mean(OffOn_amplitudes);
 std_OffOn_amplitudes = std(OffOn_amplitudes);
 var_OffOn_amplitudes = var(OffOn_amplitudes);
@@ -376,11 +398,12 @@ writetable(T5, [outputDir filesep 'fTipTracking_results-per-condition_summary_mm
 
 %% Plotting smooth movement comparisions
 
-% Concatenate smoothed fTip movement data for videos 1 and 2 [OffMed, OffStim condition (sessions 1 & 3)]
+% Concatenate smoothed fTip movement data for videos 1 and 2 [OffMed, OffStim condition (L: sessions 1 & 3, R: sessions 2 & 4)]
 concatenated_smoothed_OffOff = cat(1, results(1).smoothMovement, results(2).smoothMovement);
 
-% Concatenate smoothed fTip movement data for videos 4 and 5 [OffMed, OnStim condition (sessions 7 & 9)]
-concatenated_smoothed_OffOn = cat(1, results(4).smoothMovement, results(5).smoothMovement);
+% Concatenate smoothed fTip movement data for videos 4 and 5 [OffMed, OnStim condition (L: sessions 7 & 9, R: sessions 8 & 10)]
+ concatenated_smoothed_OffOn = cat(1, results(4).smoothMovement, results(5).smoothMovement); % L: sessions 7 & 9
+% concatenated_smoothed_OffOn = cat(1, results(3).smoothMovement, results(4).smoothMovement); % R: sessions 8 & 10
 
 % Create a new time vector for concatenated data
 timepoints_concatenated_OffOff = (1:length(concatenated_smoothed_OffOff))/fps;
@@ -408,7 +431,7 @@ hold off;
 
 %% Computing stat comparisons
 
-% compare results from sessions 1 & 3 (Off Med, Off Stim) to sessions 7 & 9 (Off Med, On Stim) - Hand OC
+% compare results from OffMed, OffStim sessions to OffMed, OnStim sessions - Hand OC
 
 % Perform t-tests
 [~, p_value_amplitude] = ttest2(OffOff_amplitudes, OffOn_amplitudes);
