@@ -1,4 +1,7 @@
+% Hardcode path
 path = 'C:\Users\erinr\Desktop\DLC';
+
+% Define video input
 video = "20230912_idea08_session022_rightCam-0000DLC_resnet50_Clin_2023-09-12_LSTN_v3Oct3shuffle1_100000_labeled.mp4";
 
 tab_vidObj = VideoReader(video);
