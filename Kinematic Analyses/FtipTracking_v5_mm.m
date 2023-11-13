@@ -1,4 +1,4 @@
-%% fTip tracking script (v2)
+%% fTip tracking script (v5)
 
 % Goal: analyze fingertip movement timeseries data based on videos that have been anatomically labeled (13pt per frame) and analyzed via a trained DeepLabCut model
 
@@ -23,7 +23,7 @@ end
 
 % Define switch case inputs
 casedate = '09_12_2023';
-hemisphere = 'R';
+hemisphere = 'L';
 
 switch casedate
     case '09_12_2023'
@@ -61,7 +61,6 @@ mainMAT2 = {mainMat.name};
 
 % Generate list of Motor Index CSVs (filters for CSVs that contain 'Move' string)
 moveCSV = mainCSV2(contains(mainCSV2,'Move'));
-
 
 %% Main function
 
@@ -262,7 +261,6 @@ for csv_i = 1:length(moveCSV)
         OnOn_peakDists = [OnOn_peakDists; peakDists];
     end
 
-
     % storage condition indep of iterator (~ like while loop)
     if ismember(csv_i, [1, 2])
         % Compute the mean and variability for each measurement in the OffMed, OffStim condition
@@ -394,14 +392,14 @@ save([outputDir filesep 'fTipTracking_results_mm.mat'], 'results');
 concatenated_smoothed_OffOff = cat(1, results(1).smoothMovement, results(2).smoothMovement);
 
 % Concatenate smoothed fTip movement data for videos [OffMed, OnStim condition]
-% concatenated_smoothed_OffOn = cat(1, results(4).smoothMovement, results(5).smoothMovement); % L sessions
- concatenated_smoothed_OffOn = cat(1, results(3).smoothMovement, results(4).smoothMovement); % R sessions
+concatenated_smoothed_OffOn = cat(1, results(4).smoothMovement, results(5).smoothMovement); % L sessions
+% concatenated_smoothed_OffOn = cat(1, results(3).smoothMovement, results(4).smoothMovement); % R sessions
 
 % Concatenate smoothed fTip movement data for videos [OnMed, OffStim condition]
-% concatenated_smoothed_OnOff = cat(1, results(6).smoothMovement, results(7).smoothMovement); % L sessions
+concatenated_smoothed_OnOff = cat(1, results(6).smoothMovement, results(7).smoothMovement); % L sessions
 
 % Concatenate smoothed fTip movement data for videos [OnMed, OnStim condition]
-% concatenated_smoothed_OnOn = cat(1, results(9).smoothMovement, results(10).smoothMovement); % L sessions
+concatenated_smoothed_OnOn = cat(1, results(9).smoothMovement, results(10).smoothMovement); % L sessions
 
 % Create a new time vector for concatenated data
 timepoints_concatenated_OffOff = (1:length(concatenated_smoothed_OffOff))/fps;
@@ -437,204 +435,23 @@ legend('Off Med, Off Stim', 'Off Med, On Stim', 'On Med, Off Stim', 'On Med, On 
 
 hold off;
 
-%% Compute and save concatenated summary results for analyses
+%% Call summarizeCondition_dstats function for each condition
 
-% Compute overall mean and variability for OffMed, OffStim condition (L: sessions 1 & 3, R: sessions 2 & 4)
-mean_OffOff_amplitudes = mean(OffOff_amplitudes);
-std_OffOff_amplitudes = std(OffOff_amplitudes);
-var_OffOff_amplitudes = var(OffOff_amplitudes);
-
-mean_OffOff_widths = mean(OffOff_widths);
-std_OffOff_widths = std(OffOff_widths);
-var_OffOff_widths = var(OffOff_widths);
-
-mean_OffOff_peakDists = mean(OffOff_peakDists);
-std_OffOff_peakDists = std(OffOff_peakDists);
-var_OffOff_peakDists = var(OffOff_peakDists);
-
-% Create a table to store overall summary results for OffMed, OffStim condition
-T3 = table(mean_OffOff_amplitudes, std_OffOff_amplitudes, var_OffOff_amplitudes, ...
-    mean_OffOff_widths, std_OffOff_widths, var_OffOff_widths, ...
-    mean_OffOff_peakDists, std_OffOff_peakDists, var_OffOff_peakDists, ...
-    'VariableNames', {'MeanAmplitude', 'StdAmplitude', 'VarAmplitude', 'MeanWidth', 'StdWidth', 'VarWidth', 'MeanPeakDist', 'StdPeakDist', 'VarPeakDist'});
-
-% Write overall summary results table to a CSV file for OffMed, OffStim condition
-writetable(T3, [outputDir filesep 'fTipTracking_results_OffOff_summary_mm.csv']);
-
-
-% Compute overall mean and variability for OffMed, OnStim condition (L: sessions 7 & 9, R: sessions 8 & 10)
-mean_OffOn_amplitudes = mean(OffOn_amplitudes);
-std_OffOn_amplitudes = std(OffOn_amplitudes);
-var_OffOn_amplitudes = var(OffOn_amplitudes);
-
-mean_OffOn_widths = mean(OffOn_widths);
-std_OffOn_widths = std(OffOn_widths);
-var_OffOn_widths = var(OffOn_widths);
-
-mean_OffOn_peakDists = mean(OffOn_peakDists);
-std_OffOn_peakDists = std(OffOn_peakDists);
-var_OffOn_peakDists = var(OffOn_peakDists);
-
-% Create a table to store overall summary results for OffMed, OffStim condition
-T4 = table(mean_OffOn_amplitudes, std_OffOn_amplitudes, var_OffOn_amplitudes, ...
-    mean_OffOn_widths, std_OffOn_widths, var_OffOn_widths, ...
-    mean_OffOn_peakDists, std_OffOn_peakDists, var_OffOn_peakDists, ...
-    'VariableNames', {'MeanAmplitude', 'StdAmplitude', 'VarAmplitude', 'MeanWidth', 'StdWidth', 'VarWidth', 'MeanPeakDist', 'StdPeakDist', 'VarPeakDist'});
-
-% Write overall summary results table to a CSV file for OffMed, OffStim condition
-writetable(T4, [outputDir filesep 'fTipTracking_results_OffOn_summary_mm.csv']);
-
-
-% Compute overall mean and variability for OnMed, OffStim condition (L: sessions 13 & 15, R: sessions ...)
-mean_OnOff_amplitudes = mean(OnOff_amplitudes);
-std_OnOff_amplitudes = std(OnOff_amplitudes);
-var_OnOff_amplitudes = var(OnOff_amplitudes);
-
-mean_OnOff_widths = mean(OnOff_widths);
-std_OnOff_widths = std(OnOff_widths);
-var_OnOff_widths = var(OnOff_widths);
-
-mean_OnOff_peakDists = mean(OnOff_peakDists);
-std_OnOff_peakDists = std(OnOff_peakDists);
-var_OnOff_peakDists = var(OnOff_peakDists);
-
-% Create a table to store overall summary results for OffMed, OffStim condition
-T5 = table(mean_OnOff_amplitudes, std_OnOff_amplitudes, var_OnOff_amplitudes, ...
-    mean_OnOff_widths, std_OnOff_widths, var_OnOff_widths, ...
-    mean_OnOff_peakDists, std_OnOff_peakDists, var_OnOff_peakDists, ...
-    'VariableNames', {'MeanAmplitude', 'StdAmplitude', 'VarAmplitude', 'MeanWidth', 'StdWidth', 'VarWidth', 'MeanPeakDist', 'StdPeakDist', 'VarPeakDist'});
-
-% Write overall summary results table to a CSV file for OffMed, OffStim condition
-writetable(T5, [outputDir filesep 'fTipTracking_results_OnOff_summary_mm.csv']);
-
-
-% Compute overall mean and variability for OnMed, OffStim condition (L: sessions 20 & 22, R: sessions ...)
-mean_OnOn_amplitudes = mean(OnOn_amplitudes);
-std_OnOn_amplitudes = std(OnOn_amplitudes);
-var_OnOn_amplitudes = var(OnOn_amplitudes);
-
-mean_OnOn_widths = mean(OnOn_widths);
-std_OnOn_widths = std(OnOn_widths);
-var_OnOn_widths = var(OnOn_widths);
-
-mean_OnOn_peakDists = mean(OnOn_peakDists);
-std_OnOn_peakDists = std(OnOn_peakDists);
-var_OnOn_peakDists = var(OnOn_peakDists);
-
-% Create a table to store overall summary results for OffMed, OffStim condition
-T6 = table(mean_OnOn_amplitudes, std_OnOn_amplitudes, var_OnOn_amplitudes, ...
-    mean_OnOn_widths, std_OnOn_widths, var_OnOn_widths, ...
-    mean_OnOn_peakDists, std_OnOn_peakDists, var_OnOn_peakDists, ...
-    'VariableNames', {'MeanAmplitude', 'StdAmplitude', 'VarAmplitude', 'MeanWidth', 'StdWidth', 'VarWidth', 'MeanPeakDist', 'StdPeakDist', 'VarPeakDist'});
-
-% Write overall summary results table to a CSV file for OffMed, OffStim condition
-writetable(T6, [outputDir filesep 'fTipTracking_results_OnOn_summary_mm.csv']);
-
-% Assign row names to each conditions summary results tables
-T3.Properties.RowNames = {'OffOff_Condition'};
-T4.Properties.RowNames = {'OffOn_Condition'};
-T5.Properties.RowNames = {'OnOff_Condition'};
-T6.Properties.RowNames = {'OnOn_Condition'};
+T3 = summarizeCondition_dstats('OffOff', OffOff_amplitudes, OffOff_widths, OffOff_peakDists, outputDir);
+T4 = summarizeCondition_dstats('OffOn', OffOn_amplitudes, OffOn_widths, OffOn_peakDists, outputDir);
+T5 = summarizeCondition_dstats('OnOff', OnOff_amplitudes, OnOff_widths, OnOff_peakDists, outputDir);
+T6 = summarizeCondition_dstats('OnOn', OnOn_amplitudes, OnOn_widths, OnOn_peakDists, outputDir);
 
 % Combine the tables vertically
 T7 = [T3; T4; T5; T6];
 
 % Save the combined table to a CSV file
-writetable(T7, [outputDir filesep 'fTipTracking_results-per-condition_summary_mm.csv'], 'WriteRowNames', true);
-
-%% Call summarizeCondition_dstats function for each condition
-
-T31 = summarizeCondition_dstats('OffOff', OffOff_amplitudes, OffOff_widths, OffOff_peakDists, outputDir);
-T41 = summarizeCondition_dstats('OffOn', OffOn_amplitudes, OffOn_widths, OffOn_peakDists, outputDir);
-T51 = summarizeCondition_dstats('OnOff', OnOff_amplitudes, OnOff_widths, OnOff_peakDists, outputDir);
-T61 = summarizeCondition_dstats('OnOn', OnOn_amplitudes, OnOn_widths, OnOn_peakDists, outputDir);
-
-% Combine the tables vertically
-T71 = [T31; T41; T51; T61];
-
-% Save the combined table to a CSV file
-writetable(T71, [outputDir filesep 'fTipTracking_results-per-condition_summary_mm_v2.csv'], 'WriteRowNames', true);
-
-%% Computing stat comparisons (between 2 states)
-
-% compare results from OffMed, OffStim sessions to OffMed, OnStim sessions - Hand OC
-
-% Perform t-tests
-[~, p_value_amplitude] = ttest2(OffOff_amplitudes, OffOn_amplitudes);
-[~, p_value_width] = ttest2(OffOff_widths, OffOn_widths);
-[~, p_value_peakDists] = ttest2(OffOff_peakDists, OffOn_peakDists);
-
-% Display p-values
-disp(['p-value for peak amplitude: ', num2str(p_value_amplitude)]);
-disp(['p-value for peak width: ', num2str(p_value_width)]);
-disp(['p-value for peak distance: ', num2str(p_value_peakDists)]);
-
-% Create p-value table
-p_value_table = table(p_value_amplitude, p_value_width, p_value_peakDists, 'VariableNames', {'p_val_Amplitude', 'p_val_Width', 'p_val_PeakDistance'});
-
-% Save the table to a CSV file
-writetable(p_value_table, [outputDir filesep 'p_values_mm.csv']);
-
-
-% Plotting stat comparisons (between 2 states)
-% Input data
-OffOff_means = [mean_OffOff_amplitudes, mean_OffOff_widths, mean_OffOff_peakDists];
-OffOn_means = [mean_OffOn_amplitudes, mean_OffOn_widths, mean_OffOn_peakDists];
-
-OffOff_sd = [std_OffOff_amplitudes, std_OffOff_widths, std_OffOff_peakDists];
-OffOn_sd = [std_OffOn_amplitudes, std_OffOn_widths, std_OffOn_peakDists];
-
-OffOff_var = [var_OffOff_amplitudes, var_OffOff_widths, var_OffOff_peakDists];
-OffOn_var = [var_OffOn_amplitudes, var_OffOn_widths, var_OffOn_peakDists];
-
-% Data organization for plotting
-means_matrix = [OffOff_means; OffOn_means];
-sd_matrix = [OffOff_sd; OffOn_sd];
-var_matrix = [OffOff_var; OffOn_var];
-
-% Labels
-group_labels = {'Off Med, Off Stim', 'Off Med, On Stim'};
-metric_labels = {'Peak Amplitudes', 'Peak Widths', 'Peak Distances'};
-
-% Plotting
-figure;
-colors = [0.4 0.2 0.6; 0.2 0.7 0.8]; % RGB triplet per condition bar
-
-for i = 1:3
-    subplot(1, 3, i);
-    b = bar(means_matrix(:, i), 'FaceColor', 'flat');
-    hold on;
-
-    % Assign colors per condition bar
-    for cond = 1:2
-        b.CData(cond,:) = colors(cond, :);
-    end
-
-    % Add text annotations
-    for cond = 1:2
-        x = b.XEndPoints(cond); % get the x-coordinate of each bar
-        y = b.YEndPoints(cond); % get the y-coordinate of each bar
-        text(x, y + 0.05, sprintf('%.2f (SD=%.2f)', means_matrix(cond,i), sd_matrix(cond,i)),...
-            'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
-    end
-
-    % Use either standard deviation (sd_matrix) or variance (var_matrix) for the error bars
-    errorbar(1:2, means_matrix(:, i), sd_matrix(:, i), '.k', 'LineWidth', 1.5);
-
-    set(gca, 'XTickLabel', group_labels);
-    title(['Comparison of ', metric_labels{i}]);
-    ylabel(['Mean ', metric_labels{i}]);
-    xlabel('Condition');
-
-    hold off;
-end
-
-
+writetable(T7, [outputDir filesep 'fTipTracking_results-per-condition_summary_mm_v2.csv'], 'WriteRowNames', true);
 
 
 %% Computing stat comparisons (between all states) - ANOVA
 
-%% Prepare amplitude data for ANOVA
+% Prepare amplitude data for ANOVA
 
 % Concatenate all amplitude datasets
 all_amplitudes = [OffOff_amplitudes; OffOn_amplitudes; OnOff_amplitudes; OnOn_amplitudes];
@@ -645,59 +462,8 @@ group_labels_amplitudes = [repmat({'OffOff'}, length(OffOff_amplitudes), 1);
     repmat({'OnOff'}, length(OnOff_amplitudes), 1);
     repmat({'OnOn'}, length(OnOn_amplitudes), 1)];
 
-% Perform ANOVA
-[p_value_anova, tbl, stats] = anova1(all_amplitudes, group_labels_amplitudes, 'off');
 
-% Display ANOVA results
-disp(['ANOVA p-value for amplitude: ', num2str(p_value_anova)]);
-disp(tbl);
-
-
-% Plot ANOVA Results
-figure;
-box_handle = boxplot(all_amplitudes, group_labels_amplitudes);
-title('Amplitude Comparison Across Conditions');
-ylabel('Amplitude (mm)');
-xlabel('Condition');
-
-% Find objects corresponding to the boxes in the boxplot
-boxes = findobj(gca, 'Tag', 'Box');
-
-% Get positions of box plots for annotations
-positions = arrayfun(@(x) x.XData(2), boxes);
-
-% Calculate means and standard deviations for each condition                %%%% fix redundancy
-means_amplitudes = [mean(OffOff_amplitudes), mean(OffOn_amplitudes), mean(OnOff_amplitudes), mean(OnOn_amplitudes)];
-stds_amplitudes = [std(OffOff_amplitudes), std(OffOn_amplitudes), std(OnOff_amplitudes), std(OnOn_amplitudes)];
-
-% determine axis limits for amplitude plot
-x_limits_amplitude = xlim;
-y_limits_amplitude = ylim;
-
-% Position for ANOVA p-value annotation (top right corner)
-text_position_x_amplitude = x_limits_amplitude(2) * 0.95; % 95% of the way to the right edge
-text_position_y_amplitude = y_limits_amplitude(2) * 0.95; % 95% of the way to the top
-
-% Annotate with ANOVA p-value
-text(text_position_x_amplitude, text_position_y_amplitude, ...
-    sprintf('ANOVA p-value: %.3f', p_value_anova), ...
-    'HorizontalAlignment', 'right', 'VerticalAlignment', 'top', ...
-    'FontSize', 10, 'FontWeight', 'bold');
-
-% Loop through each condition to annotate means and standard deviations
-for i = 1:length(means_amplitudes)
-    % Position for text annotation
-    text_position_amplitudes = [positions(i), max(boxes(i).YData) + 0.05]; % adjust y offset as need
-
-    % Annotate with mean and standard deviation
-    text(text_position_amplitudes(1), text_position_amplitudes(2), ...
-        sprintf('Mean=%.2f\nSD=%.2f', means_amplitudes(i), stds_amplitudes(i)), ...
-        'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom', ...
-        'FontSize', 8, 'FontWeight', 'bold');
-end
-
-
-%% Prepare peak width data for ANOVA
+% Prepare peak width data for ANOVA
 
 % Concatenate all peak width datasets
 all_widths = [OffOff_widths; OffOn_widths; OnOff_widths; OnOn_widths];
@@ -708,63 +474,8 @@ group_labels_widths = [repmat({'OffOff'}, length(OffOff_widths), 1);
     repmat({'OnOff'}, length(OnOff_widths), 1);
     repmat({'OnOn'}, length(OnOn_widths), 1)];
 
-% Perform ANOVA
-[p_value_anova, tbl, stats] = anova1(all_widths, group_labels_widths, 'off');
 
-% Display ANOVA results
-disp(['ANOVA p-value for intra-movement durations): ', num2str(p_value_anova)]);
-disp(tbl);
-
-
-% Plot ANOVA Results
-figure;
-box_handle = boxplot(all_widths, group_labels_widths);
-title('Intra-movement Durations Comparison Across Conditions');
-ylabel('Intra-movement Durations (s)');
-xlabel('Condition');
-
-% Find objects corresponding to the boxes in the boxplot
-boxes = findobj(gca, 'Tag', 'Box');
-
-% Get positions of box plots for annotations
-positions = arrayfun(@(x) x.XData(2), boxes);
-
-% Calculate means and standard deviations for each condition                %%%% fix redundancy
-means_widths = [mean(OffOff_widths), mean(OffOn_widths), mean(OnOff_widths), mean(OnOn_widths)];
-stds_widths = [std(OffOff_widths), std(OffOn_widths), std(OnOff_widths), std(OnOn_widths)];
-
-% determine axis limits for width plot
-x_limits_width = xlim;
-y_limits_width = ylim;
-
-% Position for ANOVA p-value annotation (top right corner)
-text_position_x_width = x_limits_width(2) * 0.95;
-text_position_y_width = y_limits_width(2) * 0.95;
-
-% Annotate with ANOVA p-value
-text(text_position_x_width, text_position_y_width, ...
-    sprintf('ANOVA p-value: %.3f', p_value_anova), ...
-    'HorizontalAlignment', 'right', 'VerticalAlignment', 'top', ...
-    'FontSize', 10, 'FontWeight', 'bold');
-
-% Loop through each condition to annotate means and standard deviations
-for i = 1:length(means_widths)
-    % Get the condition name for the current iteration
-    current_condition = group_labels_widths{(i-1) * length(OffOff_widths) + 1};
-
-    % Position for text annotation - Adjust y offset from the median of the box plot
-    offset = (y_limits_width(2) - y_limits_width(1)) * 0.02;  % 2% of the plot height
-    text_position_widths = [positions(i), median(all_widths(strcmp(group_labels_widths, current_condition))) + offset];
-
-    % Annotate with mean and standard deviation
-    text(text_position_widths(1), text_position_widths(2), ...
-        sprintf('Mean=%.2f\nSD=%.2f', means_widths(i), stds_widths(i)), ...
-        'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom', ...
-        'FontSize', 8, 'FontWeight', 'bold');
-end
-
-
-%% Prepare peak distance data for ANOVA
+% Prepare peak distance data for ANOVA
 
 % Concatenate all peak width datasets
 all_peakDists = [OffOff_peakDists; OffOn_peakDists; OnOff_peakDists; OnOn_peakDists];
@@ -775,76 +486,48 @@ group_labels_peakDists = [repmat({'OffOff'}, length(OffOff_peakDists), 1);
     repmat({'OnOff'}, length(OnOff_peakDists), 1);
     repmat({'OnOn'}, length(OnOn_peakDists), 1)];
 
-% Perform ANOVA
-[p_value_anova, tbl, stats] = anova1(all_peakDists, group_labels_peakDists, 'off');
-
-% Display ANOVA results
-disp(['ANOVA p-value for inter-movement durations): ', num2str(p_value_anova)]);
-disp(tbl);
-
-
-% Plot ANOVA Results
-figure;
-box_handle = boxplot(all_peakDists, group_labels_peakDists);
-title('Inter-movement Durations Comparison Across Conditions');
-ylabel('Inter-movement Durations (s)');
-xlabel('Condition');
-
-% Find objects corresponding to the boxes in the boxplot
-boxes = findobj(gca, 'Tag', 'Box');
-
-% Get positions of box plots for annotations
-positions = arrayfun(@(x) x.XData(2), boxes);
-
-% Calculate means and standard deviations for each condition                %%%% fix redundancy
-means_peakDists = [mean(OffOff_peakDists), mean(OffOn_peakDists), mean(OnOff_peakDists), mean(OnOn_peakDists)];
-stds_peakDists = [std(OffOff_peakDists), std(OffOn_peakDists), std(OnOff_peakDists), std(OnOn_peakDists)];
-
-% determine axis limits for width plot
-x_limits_peakDists = xlim;
-y_limits_peakDists = ylim;
-
-% Position for ANOVA p-value annotation (top right corner)
-text_position_x_peakDists = x_limits_peakDists(2) * 0.95;
-text_position_y_peakDists = y_limits_peakDists(2) * 0.95;
-
-% Annotate with ANOVA p-value
-text(text_position_x_peakDists, text_position_y_peakDists, ...
-    sprintf('ANOVA p-value: %.3f', p_value_anova), ...
-    'HorizontalAlignment', 'right', 'VerticalAlignment', 'top', ...
-    'FontSize', 10, 'FontWeight', 'bold');
-
-% Loop through each condition to annotate means and standard deviations
-for i = 1:length(means_peakDists)
-    % Get the condition name for the current iteration
-    current_condition = group_labels_peakDists{(i-1) * length(OffOff_peakDists) + 1};
-
-    % Position for text annotation - Adjust y offset from the median of the box plot
-    offset = (y_limits_peakDists(2) - y_limits_peakDists(1)) * 0.02;  % 2% of the plot height
-    text_position_peakDists = [positions(i), median(all_peakDists(strcmp(group_labels_peakDists, current_condition))) + offset];
-
-    % Annotate with mean and standard deviation
-    text(text_position_peakDists(1), text_position_peakDists(2), ...
-        sprintf('Mean=%.2f\nSD=%.2f', means_peakDists(i), stds_peakDists(i)), ...
-        'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom', ...
-        'FontSize', 8, 'FontWeight', 'bold');
-end
-
 
 %% Call plotAnovaResults function for each measure
 
-ANOVA_plot_allStates(all_amplitudes, group_labels_amplitudes, 'Amplitude', 'Amplitude (mm)', 'Amplitude Comparison Across Conditions');
-ANOVA_plot_allStates(all_widths, group_labels_widths, 'Width', 'Width (s)', 'Width Comparison Across Conditions');
-ANOVA_plot_allStates(all_peakDists, group_labels_peakDists, 'Peak Distances', 'Peak Distance (s)', 'Peak Distance Comparison Across Conditions');
-
-
-%% Note: use the `multcompare` function for post-hoc analysis if ANOVA shows significant differences
-% [c,m,h,nms] = multcompare(stats);
-
-% compare set results (6) within session 5 (Off Med, Ramp Stim) - Finger Taps
+ANOVA_plot_allStates(all_amplitudes, group_labels_amplitudes, 'Amplitudes', 'Amplitude (mm)', 'Amplitude Comparison Across Conditions');
+ANOVA_plot_allStates(all_widths, group_labels_widths, 'Intra-movement Durations', 'Intra-movement Durations (s)', 'Intra-movement Duration Comparison Across Conditions');
+ANOVA_plot_allStates(all_peakDists, group_labels_peakDists, 'Inter-movement Durations', 'Inter-movement Durations (s)', 'Inter-movement Duration Comparison Across Conditions');
 
 
 %% functions
+
+function summaryTable = summarizeCondition_dstats(conditionName, amplitudes, widths, peakDists, outputDir)
+
+% Compute overall mean, standard deviation, and variance
+mean_amplitudes = mean(amplitudes);
+std_amplitudes = std(amplitudes);
+var_amplitudes = var(amplitudes);
+
+mean_widths = mean(widths);
+std_widths = std(widths);
+var_widths = var(widths);
+
+mean_peakDists = mean(peakDists);
+std_peakDists = std(peakDists);
+var_peakDists = var(peakDists);
+
+% Create a table to store overall summary results
+summaryTable = table(mean_amplitudes, std_amplitudes, var_amplitudes, ...
+    mean_widths, std_widths, var_widths, ...
+    mean_peakDists, std_peakDists, var_peakDists, ...
+    'VariableNames', {'MeanAmplitude', 'StdAmplitude', 'VarAmplitude', ...
+    'MeanWidth', 'StdWidth', 'VarWidth', ...
+    'MeanPeakDist', 'StdPeakDist', 'VarPeakDist'});
+
+% Assign row name to the summary table
+summaryTable.Properties.RowNames = {sprintf('%s_Condition', conditionName)};
+
+% Write summary stats table per condition to a CSV file
+fileName = sprintf('%sfTipTracking_results_%s_summary_mm.csv', conditionName);
+writetable(summaryTable, [outputDir filesep fileName],'WriteRowNames', true);
+
+end
+
 
 function ANOVA_plot_allStates(data, group_labels, measureName, yLabel, anovaTitle)
 
@@ -894,37 +577,3 @@ for i = 1:length(means)
 end
 
 end
-
-
-function summaryTable = summarizeCondition_dstats(conditionName, amplitudes, widths, peakDists, outputDir)
-
-% Compute overall mean, standard deviation, and variance
-mean_amplitudes = mean(amplitudes);
-std_amplitudes = std(amplitudes);
-var_amplitudes = var(amplitudes);
-
-mean_widths = mean(widths);
-std_widths = std(widths);
-var_widths = var(widths);
-
-mean_peakDists = mean(peakDists);
-std_peakDists = std(peakDists);
-var_peakDists = var(peakDists);
-
-% Create a table to store overall summary results
-summaryTable = table(mean_amplitudes, std_amplitudes, var_amplitudes, ...
-    mean_widths, std_widths, var_widths, ...
-    mean_peakDists, std_peakDists, var_peakDists, ...
-    'VariableNames', {'MeanAmplitude', 'StdAmplitude', 'VarAmplitude', ...
-    'MeanWidth', 'StdWidth', 'VarWidth', ...
-    'MeanPeakDist', 'StdPeakDist', 'VarPeakDist'});
-
-% Assign row name to the summary table
-summaryTable.Properties.RowNames = {sprintf('%s_Condition', conditionName)};
-
-% Write summary stats table per condition to a CSV file
-fileName = sprintf('%sfTipTracking_results_%s_summary_mm.csv', conditionName);
-writetable(summaryTable, [outputDir filesep fileName],'WriteRowNames', true);
-
-end
-

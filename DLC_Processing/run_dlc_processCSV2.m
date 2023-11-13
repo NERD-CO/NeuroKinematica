@@ -5,9 +5,9 @@ IO_outer_Loc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraop
 Clin_outer_Loc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\post_DLCproc';
 
 % define case-specific file locations
-vid_Loc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\post_DLCproc\09_12_2023_LSTN_v2\video folder'; % vid_dir 
-csv_Loc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\post_DLCproc\09_12_2023_LSTN_v2\csv folder'; % csv_dir (input)
-mat_Loc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\post_DLCproc\09_12_2023_LSTN_v2\mat folder'; % mat_dir (output)
+vid_Loc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\post_DLCproc\09_12_2023_RSTN_v2\video folder'; % vid_dir 
+csv_Loc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\post_DLCproc\09_12_2023_RSTN_v2\csv folder'; % csv_dir (input)
+mat_Loc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\post_DLCproc\09_12_2023_RSTN_v2\mat folder'; % mat_dir (output)
 
 % change dir to case-specific csv folder
 cd(csv_Loc)

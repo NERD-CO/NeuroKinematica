@@ -23,7 +23,7 @@ end
 
 % Define switch case inputs
 casedate = '09_12_2023';
-hemisphere = 'R';
+hemisphere = 'L';
 
 switch casedate
     case '09_12_2023'
@@ -212,7 +212,7 @@ for csv_i = 1:length(moveCSV)
     peakDists = diff(timepoints); % by timepoint (in seconds)
 
     % Convert frame-relative variables to seconds using time conversion factor
-    widths = widths / fps; % converting widths to seconds
+    widths = widths / fps; % converting widths to mm
     halfWidths = widths / 2;
 
     % Compute timepoints for all indices
@@ -394,14 +394,14 @@ save([outputDir filesep 'fTipTracking_results_mm.mat'], 'results');
 concatenated_smoothed_OffOff = cat(1, results(1).smoothMovement, results(2).smoothMovement);
 
 % Concatenate smoothed fTip movement data for videos [OffMed, OnStim condition]
-% concatenated_smoothed_OffOn = cat(1, results(4).smoothMovement, results(5).smoothMovement); % L sessions
- concatenated_smoothed_OffOn = cat(1, results(3).smoothMovement, results(4).smoothMovement); % R sessions
+concatenated_smoothed_OffOn = cat(1, results(4).smoothMovement, results(5).smoothMovement); % L sessions
+% concatenated_smoothed_OffOn = cat(1, results(3).smoothMovement, results(4).smoothMovement); % R sessions
 
 % Concatenate smoothed fTip movement data for videos [OnMed, OffStim condition]
-% concatenated_smoothed_OnOff = cat(1, results(6).smoothMovement, results(7).smoothMovement); % L sessions
+concatenated_smoothed_OnOff = cat(1, results(6).smoothMovement, results(7).smoothMovement); % L sessions
 
 % Concatenate smoothed fTip movement data for videos [OnMed, OnStim condition]
-% concatenated_smoothed_OnOn = cat(1, results(9).smoothMovement, results(10).smoothMovement); % L sessions
+concatenated_smoothed_OnOn = cat(1, results(9).smoothMovement, results(10).smoothMovement); % L sessions
 
 % Create a new time vector for concatenated data
 timepoints_concatenated_OffOff = (1:length(concatenated_smoothed_OffOff))/fps;
@@ -433,7 +433,7 @@ plot(timepoints_concatenated_OnOn, concatenated_smoothed_OnOn, 'Color', OnOn_col
 
 xlabel('time (s)');
 ylabel('finger movement amplitude');
-legend('Off Med, Off Stim', 'Off Med, On Stim', 'On Med, Off Stim', 'On Med, On Stim');
+legend('Off Med, Off Stim', 'Off Med, On Stim', 'Off Med, On Stim', 'On Med, On Stim');
 
 hold off;
 
@@ -833,20 +833,18 @@ end
 
 %% Call plotAnovaResults function for each measure
 
-ANOVA_plot_allStates(all_amplitudes, group_labels_amplitudes, 'Amplitude', 'Amplitude (mm)', 'Amplitude Comparison Across Conditions');
-ANOVA_plot_allStates(all_widths, group_labels_widths, 'Width', 'Width (s)', 'Width Comparison Across Conditions');
-ANOVA_plot_allStates(all_peakDists, group_labels_peakDists, 'Peak Distances', 'Peak Distance (s)', 'Peak Distance Comparison Across Conditions');
-
+plotAnovaResults(all_amplitudes, group_labels_amplitudes, 'Amplitude', 'Amplitude (mm)', 'Amplitude Comparison Across Conditions');
+plotAnovaResults(all_widths, group_labels_widths, 'Width', 'Width (s)', 'Width Comparison Across Conditions');
+plotAnovaResults(all_peakDists, group_labels_peakDists, 'Peak Distances', 'Peak Distance (s)', 'Peak Distance Comparison Across Conditions');
 
 %% Note: use the `multcompare` function for post-hoc analysis if ANOVA shows significant differences
 % [c,m,h,nms] = multcompare(stats);
 
 % compare set results (6) within session 5 (Off Med, Ramp Stim) - Finger Taps
 
-
 %% functions
 
-function ANOVA_plot_allStates(data, group_labels, measureName, yLabel, anovaTitle)
+function plotAnovaResults(data, group_labels, measureName, yLabel, anovaTitle)
 
 % Check if the lengths of data and group_labels are equal
 if length(data) ~= length(group_labels)
