@@ -190,7 +190,7 @@ for csv_i = 1:length(moveCSV)
     peakDists = diff(timepoints); % by timepoint (in seconds)
 
     % Convert frame-relative variables to seconds using time conversion factor
-    widths = widths / fps; % converting widths to mm
+    widths = widths / fps; % converting widths seconds
     halfWidths = widths / 2;
 
     % Compute timepoints for all indices
