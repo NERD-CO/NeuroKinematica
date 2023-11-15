@@ -158,6 +158,8 @@ for csv_i = 1:length(moveCSV)
     % Initialize 'euclidall' to store Euclidean distances between successive points
     euclidall = zeros(height(outDATA)-1,length(colNames4));
 
+    % smooth the position data first, then compute euclidean distances
+
     % Iterate over each label and compute Euclidean distance for each frame
     for label_i = 1:length(colNames4)
 
@@ -204,7 +206,8 @@ for csv_i = 1:length(moveCSV)
     window_Width = 5; % set windowWidth as needed
     smoothed_fTipAveBlk = smoothdata(fTipAveBlk, 'gaussian', window_Width);
 
-    % Find peak amplitudes and compute half-widths -- findpeaks function [review documentation]
+    % Find peak amplitudes and compute widths -- findpeaks function [review documentation]
+    [temp_peaks, temp_locs, temp_widths, temp_prominences] = findpeaks(smoothed_fTipAveBlk, fps, MinPeakHeight=20, MinPeakDistance=0.20, MinPeakProminence=10, Annotate ='extents');
     [peaks, locs, widths, prominences] = findpeaks(smoothed_fTipAveBlk, MinPeakHeight=20, MinPeakDistance=20, MinPeakProminence=10, Annotate ='extents');
 
     % Convert distance variables to mm usng distance conversion factor
@@ -218,8 +221,11 @@ for csv_i = 1:length(moveCSV)
     peakDists = diff(timepoints); % by timepoint (in seconds)
 
     % Convert frame-relative variables to seconds using time conversion factor
-    widths = widths / fps; % converting widths to mm
-    halfWidths = widths / 2;
+    widths_fps = widths / fps; % converting widths to seconds
+    halfWidths = widths_fps / 2;
+
+    % slope, half-width
+    % normalized within patient - relative to bl (Off, off)
 
     % Compute timepoints for all indices
     timepoints__fTipAveBlk = (1:length(smoothed_fTipAveBlk))/fps;
@@ -241,9 +247,9 @@ for csv_i = 1:length(moveCSV)
     std_amplitudes(csv_i) = std(amplitudes);
     var_amplitudes(csv_i) = var(amplitudes);
 
-    mean_widths(csv_i) = mean(widths);
-    std_widths(csv_i) = std(widths);
-    var_widths(csv_i) = var(widths);
+    mean_widths(csv_i) = mean(widths_fps);
+    std_widths(csv_i) = std(widths_fps);
+    var_widths(csv_i) = var(widths_fps);
 
     mean_peakDists(csv_i) = mean(peakDists);
     std_peakDists(csv_i) = std(peakDists);
@@ -252,19 +258,19 @@ for csv_i = 1:length(moveCSV)
     % Store the measures to the respective array based on the video index
     if ismember(csv_i, [1, 2]) % L: sessions 1 & 3, R: sessions 2 & 4
         OffOff_data.amplitudes = [OffOff_data.amplitudes; amplitudes];
-        OffOff_data.widths = [OffOff_data.widths; widths];
+        OffOff_data.widths = [OffOff_data.widths; widths_fps];
         OffOff_data.peakDists = [OffOff_data.peakDists; peakDists];
     elseif ismember(csv_i, [4, 5]) % L: sessions 7 & 9, R: sessions 8 & 10
         OffOn_data.amplitudes = [OffOn_data.amplitudes; amplitudes];
-        OffOn_data.widths = [OffOn_data.widths; widths];
+        OffOn_data.widths = [OffOn_data.widths; widths_fps];
         OffOn_data.peakDists = [OffOn_data.peakDists; peakDists];
     elseif ismember(csv_i, [6, 7]) % L: sessions 13 & 15, R: sessions ...
         OnOff_data.amplitudes = [OnOff_data.amplitudes; amplitudes];
-        OnOff_data.widths = [OnOff_data.widths; widths];
+        OnOff_data.widths = [OnOff_data.widths; widths_fps];
         OnOff_data.peakDists = [OnOff_data.peakDists; peakDists];
     elseif ismember(csv_i, [9, 10]) % L: sessions 20 & 22, R: sessions ...
         OnOn_data.amplitudes = [OnOn_data.amplitudes; amplitudes];
-        OnOn_data.widths = [OnOn_data.widths; widths];
+        OnOn_data.widths = [OnOn_data.widths; widths_fps];
         OnOn_data.peakDists = [OnOn_data.peakDists; peakDists];
     end
 
@@ -349,7 +355,7 @@ for csv_i = 1:length(moveCSV)
     results(csv_i).peaks = peaks;
     results(csv_i).amplitudes = amplitudes;
     results(csv_i).prominences = prominences;
-    results(csv_i).widths = widths;
+    results(csv_i).widths = widths_fps;
     results(csv_i).halfWidths = halfWidths;
     results(csv_i).peakDists = peakDists;
 
@@ -370,7 +376,7 @@ for csv_i = 1:length(moveCSV)
     fTipTracking_results_mm = [outputDir filesep 'output_' tmpCSV(1:end-44) '.csv']; % assumes tmpCSV is a string ending in '.csv'
 
     % Create a table to store results based on computed variables
-    T1 = table(timepoints, locs, peaks, amplitudes, prominences, widths, halfWidths, 'VariableNames', {'Timepoints', 'Locations', 'Peaks', 'Amplitudes', 'Prominences', 'Widths', 'HalfWidths'});
+    T1 = table(timepoints, locs, peaks, amplitudes, prominences, widths_fps, halfWidths, 'VariableNames', {'Timepoints', 'Locations', 'Peaks', 'Amplitudes', 'Prominences', 'Widths', 'HalfWidths'});
 
     % Write results table to a CSV file
     writetable(T1, fTipTracking_results_mm);

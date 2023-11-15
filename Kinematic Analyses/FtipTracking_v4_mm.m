@@ -460,8 +460,8 @@ writetable(T7, [outputDir filesep 'fTipTracking_results-per-condition_summary_mm
 %% Computing stat comparisons (between 2 states)
 
 % compare results from OffMed, OffStim sessions to OffMed, OnStim sessions - Hand OC
-ttest_plot_2States('OffMed_OffStim', OffOff_data, 'OffMed_OnStim', OffOn_data, outputDir);
-ttest_plot_2States('OnMed_OffStim', OnOff_data, 'OnMed_OnStim', OnOn_data, outputDir);
+ttest_plot_2States('OffMed, OffStim', OffOff_data, 'OffMed, OnStim', OffOn_data, outputDir);
+ttest_plot_2States('OnMed, OffStim', OnOff_data, 'OnMed, OnStim', OnOn_data, outputDir);
 
 
 %% functions

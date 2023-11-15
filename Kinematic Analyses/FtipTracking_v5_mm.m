@@ -567,6 +567,9 @@ stds = arrayfun(@(x) std(data(strcmp(group_labels, x))), unique_groups);
 boxes = findobj(gca, 'Tag', 'Box');
 positions = arrayfun(@(x) x.XData(2), boxes);
 
+% Reverse order since the boxes appear in reverse
+positions = flip(positions);  % Annotate with means and standard deviations
+
 % Annotate with means and standard deviations
 for i = 1:length(means)
     text_position = [positions(i), y_limits(2) * 0.95];
