@@ -1,4 +1,4 @@
-%% fTip tracking script (v5)
+%% fTip tracking script (v4)
 
 % Goal: analyze fingertip movement timeseries data based on videos that have been anatomically labeled (13pt per frame) and analyzed via a trained DeepLabCut model
 
@@ -62,6 +62,7 @@ mainMAT2 = {mainMat.name};
 % Generate list of Motor Index CSVs (filters for CSVs that contain 'Move' string)
 moveCSV = mainCSV2(contains(mainCSV2,'Move'));
 
+
 %% Main function
 
 % create an outputs directory
@@ -95,22 +96,12 @@ mean_peakDists = zeros(1, length(moveCSV));
 std_peakDists = zeros(1, length(moveCSV));
 var_peakDists = zeros(1, length(moveCSV));
 
-% initialize arrays to store concatenated data for selected videos/conditions:
-OffOff_amplitudes = [];
-OffOff_widths = [];
-OffOff_peakDists = [];
 
-OffOn_amplitudes = [];
-OffOn_widths = [];
-OffOn_peakDists = [];
-
-OnOff_amplitudes = [];
-OnOff_widths = [];
-OnOff_peakDists = [];
-
-OnOn_amplitudes = [];
-OnOn_widths = [];
-OnOn_peakDists = [];
+% Initialize storage structures per condition
+conditionsData = struct('OffOff', struct('amplitudes', [], 'widths', [], 'peakDists', []), ...
+    'OffOn', struct('amplitudes', [], 'widths', [], 'peakDists', []), ...
+    'OnOff', struct('amplitudes', [], 'widths', [], 'peakDists', []), ...
+    'OnOn', struct('amplitudes', [], 'widths', [], 'peakDists', []));
 
 % initialize a figure outside of loop
 figure;
@@ -150,6 +141,8 @@ for csv_i = 1:length(moveCSV)
 
     % Initialize 'euclidall' to store Euclidean distances between successive points
     euclidall = zeros(height(outDATA)-1,length(colNames4));
+
+    % smooth the position data first, then compute euclidean distances
 
     % Iterate over each label and compute Euclidean distance for each frame
     for label_i = 1:length(colNames4)
@@ -197,7 +190,8 @@ for csv_i = 1:length(moveCSV)
     window_Width = 5; % set windowWidth as needed
     smoothed_fTipAveBlk = smoothdata(fTipAveBlk, 'gaussian', window_Width);
 
-    % Find peak amplitudes and compute half-widths -- findpeaks function [review documentation]
+    % Find peak amplitudes and compute widths -- findpeaks function [review documentation]
+    [temp_peaks, temp_locs, temp_widths, temp_prominences] = findpeaks(smoothed_fTipAveBlk, fps, MinPeakHeight=20, MinPeakDistance=0.20, MinPeakProminence=10, Annotate ='extents');
     [peaks, locs, widths, prominences] = findpeaks(smoothed_fTipAveBlk, MinPeakHeight=20, MinPeakDistance=20, MinPeakProminence=10, Annotate ='extents');
 
     % Convert distance variables to mm usng distance conversion factor
@@ -211,8 +205,11 @@ for csv_i = 1:length(moveCSV)
     peakDists = diff(timepoints); % by timepoint (in seconds)
 
     % Convert frame-relative variables to seconds using time conversion factor
-    widths = widths / fps; % converting widths to seconds
-    halfWidths = widths / 2;
+    widths_fps = widths / fps; % converting widths to seconds
+    halfWidths = widths_fps / 2;
+
+    % slope, half-width
+    % normalized within patient - relative to bl (Off, off)
 
     % Compute timepoints for all indices
     timepoints__fTipAveBlk = (1:length(smoothed_fTipAveBlk))/fps;
@@ -228,106 +225,46 @@ for csv_i = 1:length(moveCSV)
     hold off
     title(['Smooth Hand O/C Movement, ', num2str(matName_title)])
 
-
     % Compute the mean and variability for each measurement
-    mean_amplitudes(csv_i) = mean(amplitudes);
-    std_amplitudes(csv_i) = std(amplitudes);
-    var_amplitudes(csv_i) = var(amplitudes);
-
-    mean_widths(csv_i) = mean(widths);
-    std_widths(csv_i) = std(widths);
-    var_widths(csv_i) = var(widths);
-
-    mean_peakDists(csv_i) = mean(peakDists);
-    std_peakDists(csv_i) = std(peakDists);
-    var_peakDists(csv_i) = var(peakDists);
+    statsData(csv_i).amplitudes = struct('mean', mean(amplitudes), 'std', std(amplitudes), 'var', var(amplitudes));
+    statsData(csv_i).widths = struct('mean', mean(widths_fps), 'std', std(widths_fps), 'var', var(widths_fps));
+    statsData(csv_i).peakDists = struct('mean', mean(peakDists), 'std', std(peakDists), 'var', var(peakDists));
+    
 
     % Store the measures to the respective array based on the video index
+    % Off Med conditions
     if ismember(csv_i, [1, 2]) % L: sessions 1 & 3, R: sessions 2 & 4
-        OffOff_amplitudes = [OffOff_amplitudes; amplitudes];
-        OffOff_widths = [OffOff_widths; widths];
-        OffOff_peakDists = [OffOff_peakDists; peakDists];
+        conditionsData.OffOff.amplitudes = [conditionsData.OffOff.amplitudes; amplitudes];
+        conditionsData.OffOff.widths = [conditionsData.OffOff.widths; widths_fps];
+        conditionsData.OffOff.peakDists = [conditionsData.OffOff.peakDists; peakDists];
+    elseif ismember(csv_i, 3) % L, R stim ramping - fingertaps
+        % code for stim ramping - fingertaps
     elseif ismember(csv_i, [4, 5]) % L: sessions 7 & 9, R: sessions 8 & 10
-        OffOn_amplitudes = [OffOn_amplitudes; amplitudes];
-        OffOn_widths = [OffOn_widths; widths];
-        OffOn_peakDists = [OffOn_peakDists; peakDists];
+        conditionsData.OffOn.amplitudes = [conditionsData.OffOn.amplitudes; amplitudes];
+        conditionsData.OffOn.widths = [conditionsData.OffOn.widths; widths_fps];
+        conditionsData.OffOn.peakDists = [conditionsData.OffOn.peakDists; peakDists];
+        % On Med conditions
     elseif ismember(csv_i, [6, 7]) % L: sessions 13 & 15, R: sessions ...
-        OnOff_amplitudes = [OnOff_amplitudes; amplitudes];
-        OnOff_widths = [OnOff_widths; widths];
-        OnOff_peakDists = [OnOff_peakDists; peakDists];
+        conditionsData.OnOff.amplitudes = [conditionsData.OnOff.amplitudes; amplitudes];
+        conditionsData.OnOff.widths = [conditionsData.OnOff.widths; widths_fps];
+        conditionsData.OnOff.peakDists = [conditionsData.OnOff.peakDists; peakDists];
+    elseif ismember(csv_i, 8) % L, R stim ramping - fingertaps
+        % code for stim ramping - fingertaps
     elseif ismember(csv_i, [9, 10]) % L: sessions 20 & 22, R: sessions ...
-        OnOn_amplitudes = [OnOn_amplitudes; amplitudes];
-        OnOn_widths = [OnOn_widths; widths];
-        OnOn_peakDists = [OnOn_peakDists; peakDists];
+        conditionsData.OnOn.amplitudes = [conditionsData.OnOn.amplitudes; amplitudes];
+        conditionsData.OnOn.widths = [conditionsData.OnOn.widths; widths_fps];
+        conditionsData.OnOn.peakDists = [conditionsData.OnOn.peakDists; peakDists];
     end
 
-    % storage condition indep of iterator (~ like while loop)
-    if ismember(csv_i, [1, 2])
-        % Compute the mean and variability for each measurement in the OffMed, OffStim condition
-        mean_OffOff_amplitudes_i(countOffOff) = mean(OffOff_amplitudes,'omitnan');
-        std_OffOff_amplitudes_i(countOffOff) = std(OffOff_amplitudes, 'omitnan');
-        var_OffOff_amplitudes_i(countOffOff) = var(OffOff_amplitudes, 'omitnan');
+    % Loop to compute statistics for each condition
+    conditionKeys = fieldnames(conditionsData); % Get all condition names
+    for k = 1:length(conditionKeys)
+        conditionName = conditionKeys{k};
+        condition = conditionsData.(conditionName);
 
-        mean_OffOff_widths_i(countOffOff) = mean(OffOff_widths, 'omitnan');
-        std_OffOff_widths_i(countOffOff) = std(OffOff_widths, 'omitnan');
-        var_OffOff_widths_i(countOffOff) = var(OffOff_widths, 'omitnan');
-
-        mean_OffOff_peakDists_i(countOffOff) = mean(OffOff_peakDists, 'omitnan');
-        std_OffOff_peakDists_i(countOffOff) = std(OffOff_peakDists, 'omitnan');
-        var_OffOff_peakDists_i(countOffOff) = var(OffOff_peakDists, 'omitnan');
-
-        countOffOff = countOffOff + 1;
-    end
-
-    if ismember(csv_i, [4, 5])
-        % Compute the mean and variability for each measurement in the OffMed, OnStim condition
-        mean_OffOn_amplitudes_i(countOffOn) = mean(OffOn_amplitudes, 'omitnan');
-        std_OffOn_amplitudes_i(countOffOn) = std(OffOn_amplitudes, 'omitnan');
-        var_OffOn_amplitudes_i(countOffOn) = var(OffOn_amplitudes, 'omitnan');
-
-        mean_OffOn_widths_i(countOffOn) = mean(OffOn_widths, 'omitnan');
-        std_OffOn_widths_i(countOffOn) = std(OffOn_widths, 'omitnan');
-        var_OffOn_widths_i(countOffOn) = var(OffOn_widths, 'omitnan');
-
-        mean_OffOn_peakDists_i(countOffOn) = mean(OffOn_peakDists, 'omitnan');
-        std_OffOn_peakDists_i(countOffOn) = std(OffOn_peakDists, 'omitnan');
-        var_OffOn_peakDists_i(countOffOn) = var(OffOn_peakDists, 'omitnan');
-
-        countOffOn = countOffOn + 1;
-    end
-
-    if ismember(csv_i, [6, 7])
-        % Compute the mean and variability for each measurement in the OffMed, OffStim condition
-        mean_OnOff_amplitudes_i(countOnOff) = mean(OnOff_amplitudes,'omitnan');
-        std_OnOff_amplitudes_i(countOnOff) = std(OnOff_amplitudes, 'omitnan');
-        var_OnOff_amplitudes_i(countOnOff) = var(OnOff_amplitudes, 'omitnan');
-
-        mean_OnOff_widths_i(countOnOff) = mean(OnOff_widths, 'omitnan');
-        std_OnOff_widths_i(countOnOff) = std(OnOff_widths, 'omitnan');
-        var_OnOff_widths_i(countOnOff) = var(OnOff_widths, 'omitnan');
-
-        mean_OnOff_peakDists_i(countOnOff) = mean(OnOff_peakDists, 'omitnan');
-        std_OnOff_peakDists_i(countOnOff) = std(OnOff_peakDists, 'omitnan');
-        var_OnOff_peakDists_i(countOnOff) = var(OnOff_peakDists, 'omitnan');
-
-        countOnOff = countOnOff + 1;
-    end
-
-    if ismember(csv_i, [9, 10])
-        % Compute the mean and variability for each measurement in the OffMed, OffStim condition
-        mean_OnOn_amplitudes_i(countOnOn) = mean(OnOn_amplitudes,'omitnan');
-        std_OnOn_amplitudes_i(countOnOn) = std(OnOn_amplitudes, 'omitnan');
-        var_OnOn_amplitudes_i(countOnOn) = var(OnOn_amplitudes, 'omitnan');
-
-        mean_OnOn_widths_i(countOnOn) = mean(OnOn_widths, 'omitnan');
-        std_OnOn_widths_i(countOnOn) = std(OnOn_widths, 'omitnan');
-        var_OnOn_widths_i(countOnOn) = var(OnOn_widths, 'omitnan');
-
-        mean_OnOn_peakDists_i(countOnOn) = mean(OnOn_peakDists, 'omitnan');
-        std_OnOn_peakDists_i(countOnOn) = std(OnOn_peakDists, 'omitnan');
-        var_OnOn_peakDists_i(countOnOn) = var(OnOn_peakDists, 'omitnan');
-
-        countOnOn = countOnOn + 1;
+        conditionsData.(conditionName).stats.amplitudes = computeConditionStats(condition.amplitudes);
+        conditionsData.(conditionName).stats.widths = computeConditionStats(condition.widths);
+        conditionsData.(conditionName).stats.peakDists = computeConditionStats(condition.peakDists);
     end
 
 
@@ -341,7 +278,7 @@ for csv_i = 1:length(moveCSV)
     results(csv_i).peaks = peaks;
     results(csv_i).amplitudes = amplitudes;
     results(csv_i).prominences = prominences;
-    results(csv_i).widths = widths;
+    results(csv_i).widths = widths_fps;
     results(csv_i).halfWidths = halfWidths;
     results(csv_i).peakDists = peakDists;
 
@@ -362,7 +299,7 @@ for csv_i = 1:length(moveCSV)
     fTipTracking_results_mm = [outputDir filesep 'output_' tmpCSV(1:end-44) '.csv']; % assumes tmpCSV is a string ending in '.csv'
 
     % Create a table to store results based on computed variables
-    T1 = table(timepoints, locs, peaks, amplitudes, prominences, widths, halfWidths, 'VariableNames', {'Timepoints', 'Locations', 'Peaks', 'Amplitudes', 'Prominences', 'Widths', 'HalfWidths'});
+    T1 = table(timepoints, locs, peaks, amplitudes, prominences, widths_fps, halfWidths, 'VariableNames', {'Timepoints', 'Locations', 'Peaks', 'Amplitudes', 'Prominences', 'Widths', 'HalfWidths'});
 
     % Write results table to a CSV file
     writetable(T1, fTipTracking_results_mm);
@@ -431,16 +368,16 @@ plot(timepoints_concatenated_OnOn, concatenated_smoothed_OnOn, 'Color', OnOn_col
 
 xlabel('time (s)');
 ylabel('finger movement amplitude');
-legend('Off Med, Off Stim', 'Off Med, On Stim', 'On Med, Off Stim', 'On Med, On Stim');
+legend('Off Med, Off Stim', 'Off Med, On Stim', 'Off Med, On Stim', 'On Med, On Stim');
 
 hold off;
 
 %% Call summarizeCondition_dstats function for each condition
 
-T3 = summarizeCondition_dstats('OffOff', OffOff_amplitudes, OffOff_widths, OffOff_peakDists, outputDir);
-T4 = summarizeCondition_dstats('OffOn', OffOn_amplitudes, OffOn_widths, OffOn_peakDists, outputDir);
-T5 = summarizeCondition_dstats('OnOff', OnOff_amplitudes, OnOff_widths, OnOff_peakDists, outputDir);
-T6 = summarizeCondition_dstats('OnOn', OnOn_amplitudes, OnOn_widths, OnOn_peakDists, outputDir);
+T3 = summarizeCondition_dstats('OffOff', conditionsData.OffOff.amplitudes, conditionsData.OffOff.widths, conditionsData.OffOff.peakDists, outputDir);
+T4 = summarizeCondition_dstats('OffOn', conditionsData.OffOn.amplitudes, conditionsData.OffOn.widths, conditionsData.OffOn.peakDists, outputDir);
+T5 = summarizeCondition_dstats('OnOff', conditionsData.OnOff.amplitudes, conditionsData.OnOff.widths, conditionsData.OnOff.peakDists, outputDir);
+T6 = summarizeCondition_dstats('OnOn', conditionsData.OnOn.amplitudes, conditionsData.OnOn.widths, conditionsData.OnOn.peakDists, outputDir);
 
 % Combine the tables vertically
 T7 = [T3; T4; T5; T6];
@@ -449,42 +386,43 @@ T7 = [T3; T4; T5; T6];
 writetable(T7, [outputDir filesep 'fTipTracking_results-per-condition_summary_mm_v2.csv'], 'WriteRowNames', true);
 
 
+%% Computing stat comparisons (between 2 states)
+
+% Compare results from OffMed to OnMed, OffMed to OffStim vs OnStim sessions - Hand OC
+ttest_plot_2States('OffMed, OffStim', conditionsData.OffOff, 'OffMed, OnStim', conditionsData.OffOn, outputDir);
+ttest_plot_2States('OnMed, OffStim', conditionsData.OnOff, 'OnMed, OnStim', conditionsData.OnOn, outputDir);
+
+% % Compare results from OffMed to OnMed, OffMed to OffStim vs OnStim sessions - Hand OC
+% ttest_plot_2States('OffMed, OffStim', OffOff_data, 'OffMed, OnStim', OffOn_data, outputDir);
+% ttest_plot_2States('OnMed, OffStim', OnOff_data, 'OnMed, OnStim', OnOn_data, outputDir);
+
 %% Computing stat comparisons (between all states) - ANOVA
 
-% Prepare amplitude data for ANOVA
+% Ensure no NaN values
+all_amplitudes = [conditionsData.OffOff.amplitudes; conditionsData.OffOn.amplitudes; conditionsData.OnOff.amplitudes; conditionsData.OnOn.amplitudes];
+all_widths = [conditionsData.OffOff.widths; conditionsData.OffOn.widths; conditionsData.OnOff.widths; conditionsData.OnOn.widths];
+all_peakDists = [conditionsData.OffOff.peakDists; conditionsData.OffOn.peakDists; conditionsData.OnOff.peakDists; conditionsData.OnOn.peakDists];
 
-% Concatenate all amplitude datasets
-all_amplitudes = [OffOff_amplitudes; OffOn_amplitudes; OnOff_amplitudes; OnOn_amplitudes];
+% remove NaN values or replace them
+all_amplitudes = rmmissing(all_amplitudes);
+all_widths = rmmissing(all_widths);
+all_peakDists = rmmissing(all_peakDists);
 
-% Create corresponding group labels - ensure data and group_labels are same length
-group_labels_amplitudes = [repmat({'OffOff'}, length(OffOff_amplitudes), 1);
-    repmat({'OffOn'}, length(OffOn_amplitudes), 1);
-    repmat({'OnOff'}, length(OnOff_amplitudes), 1);
-    repmat({'OnOn'}, length(OnOn_amplitudes), 1)];
+% create corresponding group labels - ensure data and group_labels are same length
+group_labels_amplitudes = [repmat({'OffOff'}, length(conditionsData.OffOff.amplitudes), 1);
+    repmat({'OffOn'}, length(conditionsData.OffOn.amplitudes), 1);
+    repmat({'OnOff'}, length(conditionsData.OnOff.amplitudes), 1);
+    repmat({'OnOn'}, length(conditionsData.OnOn.amplitudes), 1)];
 
+group_labels_widths = [repmat({'OffOff'}, length(conditionsData.OffOff.widths), 1);
+    repmat({'OffOn'}, length(conditionsData.OffOn.widths), 1);
+    repmat({'OnOff'}, length(conditionsData.OnOff.widths), 1);
+    repmat({'OnOn'}, length(conditionsData.OnOn.widths), 1)];
 
-% Prepare peak width data for ANOVA
-
-% Concatenate all peak width datasets
-all_widths = [OffOff_widths; OffOn_widths; OnOff_widths; OnOn_widths];
-
-% Create corresponding group labels - ensure data and group_labels are same length
-group_labels_widths = [repmat({'OffOff'}, length(OffOff_widths), 1);
-    repmat({'OffOn'}, length(OffOn_widths), 1);
-    repmat({'OnOff'}, length(OnOff_widths), 1);
-    repmat({'OnOn'}, length(OnOn_widths), 1)];
-
-
-% Prepare peak distance data for ANOVA
-
-% Concatenate all peak width datasets
-all_peakDists = [OffOff_peakDists; OffOn_peakDists; OnOff_peakDists; OnOn_peakDists];
-
-% Create corresponding group labels - ensure data and group_labels are same length.
-group_labels_peakDists = [repmat({'OffOff'}, length(OffOff_peakDists), 1);
-    repmat({'OffOn'}, length(OffOn_peakDists), 1);
-    repmat({'OnOff'}, length(OnOff_peakDists), 1);
-    repmat({'OnOn'}, length(OnOn_peakDists), 1)];
+group_labels_amplitudes = [repmat({'OffOff'}, length(conditionsData.OffOff.peakDists), 1);
+    repmat({'OffOn'}, length(conditionsData.OffOn.peakDists), 1);
+    repmat({'OnOff'}, length(conditionsData.OnOff.peakDists), 1);
+    repmat({'OnOn'}, length(conditionsData.OnOn.peakDists), 1)];
 
 
 %% Call plotAnovaResults function for each measure
@@ -495,6 +433,13 @@ ANOVA_plot_allStates(all_peakDists, group_labels_peakDists, 'Inter-movement Dura
 
 
 %% functions
+
+function conditionStats = computeConditionStats(data)
+conditionStats.mean = mean(data, 'omitnan');
+conditionStats.std = std(data, 'omitnan');
+conditionStats.var = var(data, 'omitnan');
+end
+
 
 function summaryTable = summarizeCondition_dstats(conditionName, amplitudes, widths, peakDists, outputDir)
 
@@ -529,12 +474,91 @@ writetable(summaryTable, [outputDir filesep fileName],'WriteRowNames', true);
 end
 
 
+function ttest_plot_2States(state1_name, state1_data, state2_name, state2_data, outputDir)
+
+% Perform t-tests
+[~, p_value_amplitude] = ttest2(state1_data.amplitudes, state2_data.amplitudes);
+[~, p_value_width] = ttest2(state1_data.widths, state2_data.widths);
+[~, p_value_peakDists] = ttest2(state1_data.peakDists, state2_data.peakDists);
+
+% Display p-values with condition names
+disp(['p-value for peak amplitude between ' state1_name ' and ' state2_name ': ' num2str(p_value_amplitude)]);
+disp(['p-value for peak width between ' state1_name ' and ' state2_name ': ' num2str(p_value_width)]);
+disp(['p-value for peak distance between ' state1_name ' and ' state2_name ': ' num2str(p_value_peakDists)]);
+
+% Create p-value table
+p_value_table = table(p_value_amplitude, p_value_width, p_value_peakDists, 'VariableNames', {'p_val_Amplitude', 'p_val_Width', 'p_val_PeakDistance'});
+
+% Save the table to a CSV file
+% writetable(p_value_table, [outputDir filesep 'p_values_mm.csv']);
+p_values_filename = sprintf('%sp_values_%s_vs_%s.csv', outputDir, state1_name, state2_name);
+writetable(p_value_table, p_values_filename);
+
+
+% Plotting stat comparisons (between 2 states)
+state1_means = [mean(state1_data.amplitudes), mean(state1_data.widths), mean(state1_data.peakDists)];
+state2_means = [mean(state2_data.amplitudes), mean(state2_data.widths), mean(state2_data.peakDists)];
+
+state1_sd = [std(state1_data.amplitudes), std(state1_data.widths), std(state1_data.peakDists)];
+state2_sd = [std(state2_data.amplitudes), std(state2_data.widths), std(state2_data.peakDists)];
+
+% Data organization for plotting
+means_matrix = [state1_means; state2_means];
+sd_matrix = [state1_sd; state2_sd];
+
+% Labels
+group_labels = {state1_name, state2_name};
+metric_labels = {'Amplitudes', 'Intra-movement Durations', 'Inter-movement Durations'};
+
+% Plotting
+figure;
+colors = [0.4 0.2 0.6; 0.2 0.7 0.8]; % RGB triplet per condition bar
+
+for i = 1:3
+    subplot(1, 3, i);
+    b = bar(means_matrix(:, i), 'FaceColor', 'flat');
+    hold on;
+
+    % Assign colors per condition bar
+    for cond = 1:2
+        b.CData(cond,:) = colors(cond, :);
+    end
+
+    % Add text annotations
+    for cond = 1:2
+        x = b.XEndPoints(cond); % get the x-coordinate of each bar
+        y = b.YEndPoints(cond); % get the y-coordinate of each bar
+        text(x, y + 0.02, sprintf('%.2f (SD=%.2f)', means_matrix(cond,i), sd_matrix(cond,i)),...
+            'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
+    end
+
+    % Use standard deviation (sd_matrix) for the error bars
+    errorbar(1:2, means_matrix(:, i), sd_matrix(:, i), '.k', 'LineWidth', 1.5);
+
+    set(gca, 'XTickLabel', group_labels);
+    title(['Comparison of ', metric_labels{i}]);
+    ylabel(['Mean ', metric_labels{i}]);
+    xlabel('Condition');
+
+    hold off;
+end
+end
+
+
 function ANOVA_plot_allStates(data, group_labels, measureName, yLabel, anovaTitle)
 
 % Check if the lengths of data and group_labels are equal
 if length(data) ~= length(group_labels)
     error('Data and group_labels must be the same length. Data length: %d, Group labels length: %d', length(data), length(group_labels));
 end
+
+% Clean the data to remove NaN values
+validIndices = ~isnan(data);
+data = data(validIndices);
+group_labels = group_labels(validIndices);
+
+% Make sure data and group labels are of the same length
+assert(length(data) == length(group_labels), 'Data and group labels must be of the same length.');
 
 % Perform ANOVA
 [p_value_anova, tbl, stats] = anova1(data, group_labels, 'off');
@@ -560,8 +584,13 @@ text(x_limits(2) * 0.95, y_limits(2) * 0.95, ...
 
 % Calculate means and standard deviations for annotation
 unique_groups = unique(group_labels);
-means = arrayfun(@(x) mean(data(strcmp(group_labels, x))), unique_groups);
-stds = arrayfun(@(x) std(data(strcmp(group_labels, x))), unique_groups);
+for i = 1:length(unique_groups)
+    groupData = data(strcmp(group_labels, unique_groups{i}));
+    means(i) = mean(groupData);
+    stds(i) = std(groupData);
+end
+% means = arrayfun(@(x) mean(data(strcmp(group_labels, x))), unique_groups);
+% stds = arrayfun(@(x) std(data(strcmp(group_labels, x))), unique_groups);
 
 % Get positions for annotations
 boxes = findobj(gca, 'Tag', 'Box');
@@ -570,9 +599,9 @@ positions = arrayfun(@(x) x.XData(2), boxes);
 % Reverse order since the boxes appear in reverse
 positions = flip(positions);  % Annotate with means and standard deviations
 
-% Annotate with means and standard deviations
+
 for i = 1:length(means)
-    text_position = [positions(i), y_limits(2) * 0.95];
+    text_position = [positions(i), y_limits(2) * 0.75];
     text(text_position(1), text_position(2), ...
         sprintf('Mean=%.2f\nSD=%.2f', means(i), stds(i)), ...
         'HorizontalAlignment', 'center', 'VerticalAlignment', 'top', ...
