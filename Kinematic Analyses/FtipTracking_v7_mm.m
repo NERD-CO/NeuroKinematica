@@ -1,4 +1,4 @@
-%% fTip tracking script (v4)
+%% fTip tracking script - visualizing raw and smooth data
 
 % Goal: analyze fingertip movement timeseries data based on videos that have been anatomically labeled (13pt per frame) and analyzed via a trained DeepLabCut model
 
@@ -13,6 +13,7 @@ switch pcname
     case 'DSKTP-JTLAB-EMR'   %%% ER Desktop
 
         mainDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\Kinematic Analyses';
+
     case 'NSG-M-FQBPFK3'     %%% ER PC
 
         mainDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\Kinematic Analyses';
@@ -23,7 +24,7 @@ end
 
 % Define switch case inputs
 casedate = '09_12_2023';
-hemisphere = 'L';
+hemisphere = 'R';
 
 switch casedate
     case '09_12_2023'
@@ -43,7 +44,7 @@ switch hemisphere
 
     case 'R'
 
-        mainDir3 = [mainDir2 , filesep , 'RSTN'];
+        mainDir3 = [mainDir2 , filesep , 'RSTN']; 
 end
 
 cd(mainDir3)
@@ -188,11 +189,14 @@ for csv_i = 1:length(moveCSV)
 
     % Smooth out edges -- smoothdata function w/ 'guassian' method
     window_Width = 5; % set windowWidth as needed
-    smoothed_fTipAveBlk = smoothdata(fTipAveBlk, 'gaussian', window_Width);
+    smoothed_fTipAveBlk = smoothdata(fTipAveBlk, 'gaussian', window_Width); % read documentation, window overlap
 
+
+    % input iterative sanity check
     % Find peak amplitudes and compute widths -- findpeaks function [review documentation]
-    [temp_peaks, temp_locs, temp_widths, temp_prominences] = findpeaks(smoothed_fTipAveBlk, fps, MinPeakHeight=20, MinPeakDistance=0.20, MinPeakProminence=10, Annotate ='extents');
-    [peaks, locs, widths, prominences] = findpeaks(smoothed_fTipAveBlk, MinPeakHeight=20, MinPeakDistance=20, MinPeakProminence=10, Annotate ='extents');
+    % set thresholds based on mean +/- 3xstd 
+    [temp_peaks, temp_locs, temp_widths, temp_prominences] = findpeaks(smoothed_fTipAveBlk, fps, MinPeakHeight=mean(smoothed_fTipAveBlk), MinPeakDistance=0.20, MinPeakProminence=10, Annotate ='extents');
+    [peaks, locs, widths, prominences] = findpeaks(smoothed_fTipAveBlk, MinPeakHeight=mean(smoothed_fTipAveBlk), MinPeakDistance=20, MinPeakProminence=10, Annotate ='extents');
 
     % Convert distance variables to mm usng distance conversion factor
     amplitudes = peaks * pixels_to_mm; % converting amplitudes to mm
@@ -218,7 +222,7 @@ for csv_i = 1:length(moveCSV)
     subplot(length(moveCSV), 1, csv_i);
     hold on
     % Adjust the parameters in findpeaks
-    findpeaks(smoothed_fTipAveBlk, timepoints__fTipAveBlk, MinPeakHeight=20, MinPeakDistance=0.20, MinPeakProminence=10, Annotate ='extents');
+    findpeaks(smoothed_fTipAveBlk, timepoints__fTipAveBlk, MinPeakHeight=mean(smoothed_fTipAveBlk), MinPeakDistance=0.20, MinPeakProminence=10, Annotate ='extents');
     % define axes labels and subplot titles
     xlabel('time (s)');
     ylabel('amplitude');
@@ -294,7 +298,7 @@ for csv_i = 1:length(moveCSV)
     results(csv_i).std_peakDists = std_peakDists(csv_i);
     results(csv_i).var_peakDists = var_peakDists(csv_i);
 
-
+    
     % Define unique name for the results output file based on the current CSV name
     fTipTracking_results_mm = [outputDir filesep 'output_' tmpCSV(1:end-44) '.csv']; % assumes tmpCSV is a string ending in '.csv'
 
@@ -329,14 +333,16 @@ save([outputDir filesep 'fTipTracking_results_mm.mat'], 'results');
 concatenated_smoothed_OffOff = cat(1, results(1).smoothMovement, results(2).smoothMovement);
 
 % Concatenate smoothed fTip movement data for videos [OffMed, OnStim condition]
-concatenated_smoothed_OffOn = cat(1, results(4).smoothMovement, results(5).smoothMovement); % L sessions
-% concatenated_smoothed_OffOn = cat(1, results(3).smoothMovement, results(4).smoothMovement); % R sessions
+% concatenated_smoothed_OffOn = cat(1, results(4).smoothMovement, results(5).smoothMovement); % L sessions
+ concatenated_smoothed_OffOn = cat(1, results(3).smoothMovement, results(4).smoothMovement); % R sessions
 
 % Concatenate smoothed fTip movement data for videos [OnMed, OffStim condition]
-concatenated_smoothed_OnOff = cat(1, results(6).smoothMovement, results(7).smoothMovement); % L sessions
+% concatenated_smoothed_OnOff = cat(1, results(6).smoothMovement, results(7).smoothMovement); % L sessions
+ concatenated_smoothed_OnOff = cat(1, results(5).smoothMovement, results(6).smoothMovement); % R sessions
 
 % Concatenate smoothed fTip movement data for videos [OnMed, OnStim condition]
-concatenated_smoothed_OnOn = cat(1, results(9).smoothMovement, results(10).smoothMovement); % L sessions
+% concatenated_smoothed_OnOn = cat(1, results(9).smoothMovement, results(10).smoothMovement); % L sessions
+ concatenated_smoothed_OnOn = cat(1, results(7).smoothMovement, results(8).smoothMovement); % R sessions
 
 % Create a new time vector for concatenated data
 timepoints_concatenated_OffOff = (1:length(concatenated_smoothed_OffOff))/fps;
@@ -392,6 +398,8 @@ writetable(T7, [outputDir filesep 'fTipTracking_results-per-condition_summary_mm
 ttest_plot_2States('OffMed, OffStim', conditionsData.OffOff, 'OffMed, OnStim', conditionsData.OffOn, outputDir);
 ttest_plot_2States('OnMed, OffStim', conditionsData.OnOff, 'OnMed, OnStim', conditionsData.OnOn, outputDir);
 
+% trim all datasets by lowest length of data - trim the rows randomly AFTER cleaning
+
 
 %% Computing stat comparisons (between all states) - ANOVA
 
@@ -430,6 +438,26 @@ ANOVA_plot_allStates(all_peakDists, group_labels_peakDists, 'Inter-movement Dura
 
 
 %% functions
+
+% artifact rejection function
+% input table: 
+%   1. o.g. data: outDATA
+    % plot
+% method
+    % loop through each marker
+    % per dlc label, plot raw data
+    % output fraction of frames that fall below CT
+    % confidence threshhold ~0.75
+    % if frame loss% < 5-10%, 
+    % elseif ~~~~, increase/decrease CT
+    % replace values in rejected frames with interp value
+        % finder border accepted frame valuse --> insert interp value b/t
+% output tables
+    % 2. decision per frame - binary status (accept/reject): outData Index
+    % 3. interpolated / cleaned data: outData interp
+    % plot
+% save(current file, index, interp, '-append')
+
 
 function conditionStats = computeConditionStats(data)
 conditionStats.mean = mean(data, 'omitnan');
@@ -487,9 +515,9 @@ disp(['p-value for peak distance between ' state1_name ' and ' state2_name ': ' 
 p_value_table = table(p_value_amplitude, p_value_width, p_value_peakDists, 'VariableNames', {'p_val_Amplitude', 'p_val_Width', 'p_val_PeakDistance'});
 
 % Save the table to a CSV file
-% writetable(p_value_table, [outputDir filesep 'p_values_mm.csv']);
 p_values_filename = sprintf('%sp_values_%s_vs_%s.csv', outputDir, state1_name, state2_name);
 writetable(p_value_table, p_values_filename);
+% writetable(p_value_table, [outputDir filesep p_values_filename]);
 
 
 % Plotting stat comparisons (between 2 states)
