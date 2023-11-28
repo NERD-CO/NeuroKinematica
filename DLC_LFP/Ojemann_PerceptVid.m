@@ -124,7 +124,7 @@ for coli = 1:width(dlc_lab2use)
 end
 
 
-%%
+%% Kinematic and LFP plot
 close all
 
 tiledlayout(2,1,"TileSpacing","tight")
@@ -146,6 +146,16 @@ plot(xTime,ecg.cleandata);
 xlim([0 round(max(ts_LFP))])
 ylabel('uV')
 xlabel('Time in seconds')
+
+
+
+%% 
+close all
+for di = 1:height(dlcTab_vid)
+     imshow(dlcTab_vid.cdata{di})
+     pause
+
+end
 
 
 %%
@@ -185,6 +195,44 @@ disp('Video1 done!')
 
 
 dlc_lablab2use = dlcLabTab_vid(206:3010,:);
+
+
+%% Animated plot
+
+plotXaxis = xTime;
+kinematicY = elbowXsm;
+lfpY = ecg.cleandata;
+
+% dlc_lablab2use
+
+
+% 4.1 samples per frame
+stePS = round(linspace(1,11688,2805));
+
+for fi = 1:height(dlc_lablab2use)
+    subplot(4,1,1:2)
+
+    imshow(dlc_lablab2use.cdata{fi})
+
+    subplot(4,1,3)
+    plot(plotXaxis(1:stePS(fi)),kinematicY(1:stePS(fi)))
+    ylim([min(kinematicY) max(kinematicY)])
+    xlim([0 max(plotXaxis)])
+
+    subplot(4,1,4)
+    plot(plotXaxis(1:stePS(fi)),lfpY(1:stePS(fi)))
+    ylim([min(lfpY) max(lfpY)])
+    xlim([0 max(plotXaxis)])
+
+    if fi == 1
+        pause
+    end
+
+    pause(0.01)
+
+end
+
+
 
 
 %%
