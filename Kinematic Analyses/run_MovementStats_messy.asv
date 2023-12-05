@@ -24,7 +24,7 @@ end
 
 % Define switch case inputs
 casedate = '09_12_2023';
-hemisphere = 'R';
+hemisphere = 'L';
 
 switch casedate
     case '09_12_2023'
@@ -175,4 +175,26 @@ group_labels_peakDists = [repmat({'OffOff'}, minSize_peakDists, 1); ...
 ANOVA_plot_allStates(all_amplitudes, group_labels_amplitudes, 'Amplitudes', 'Amplitude (mm)', 'Amplitude Comparison Across Conditions');
 ANOVA_plot_allStates(all_widths, group_labels_widths, 'Intra-movement Durations', 'Intra-movement Durations (s)', 'Intra-movement Duration Comparison Across Conditions');
 ANOVA_plot_allStates(all_peakDists, group_labels_peakDists, 'Inter-movement Durations', 'Inter-movement Durations (s)', 'Inter-movement Duration Comparison Across Conditions');
+
+
+%% functions
+
+% artifact rejection function
+% input table:
+%   1. o.g. data: outDATA
+% plot
+% method
+% loop through each marker
+% per dlc label, plot raw data
+% output fraction of frames that fall below CT
+% confidence threshhold ~0.75
+% if frame loss% < 5-10%,
+% elseif ~~~~, increase/decrease CT
+% replace values in rejected frames with interp value
+% finder border accepted frame valuse --> insert interp value b/t
+% output tables
+% 2. decision per frame - binary status (accept/reject): outData Index
+% 3. interpolated / cleaned data: outData interp
+% plot
+% save(current file, index, interp, '-append')
 

@@ -234,30 +234,48 @@ for csv_i = 1:length(moveCSV)
     statsData(csv_i).widths = struct('mean', mean(widths_fps), 'std', std(widths_fps), 'var', var(widths_fps));
     statsData(csv_i).peakDists = struct('mean', mean(peakDists), 'std', std(peakDists), 'var', var(peakDists));
 
+    if hemisphere == 'L'
+    % Concatenate smoothed fTip movement data for left hemisphere conditions
+    concatenated_smoothed_OffOff = cat(1, results(1).smoothMovement, results(2).smoothMovement); % [OffMed, OffStim condition]
+    concatenated_smoothed_OffOn = cat(1, results(4).smoothMovement, results(5).smoothMovement); % [OffMed, OnStim condition]
+    concatenated_smoothed_OnOff = cat(1, results(6).smoothMovement, results(7).smoothMovement); % [OnMed, OffStim condition]
+    concatenated_smoothed_OnOn = cat(1, results(9).smoothMovement, results(10).smoothMovement); % [OnMed, OnStim condition]
+    elseif hemisphere == 'R'
+    % Concatenate smoothed fTip movement data for right hemisphere conditions
+    concatenated_smoothed_OffOff = cat(1, results(1).smoothMovement, results(2).smoothMovement); % [OffMed, OffStim condition]
+    concatenated_smoothed_OffOn = cat(1, results(3).smoothMovement, results(4).smoothMovement); % [OffMed, OnStim condition]
+    concatenated_smoothed_OnOff = cat(1, results(5).smoothMovement, results(6).smoothMovement); % [OnMed, OffStim condition]
+    concatenated_smoothed_OnOn = cat(1, results(7).smoothMovement, results(8).smoothMovement); % [OnMed, OnStim condition]
+    end
+
 
     % Store the measures to the respective array based on the video index
+    if hemisphere == 'L'
     % Off Med conditions
     if ismember(csv_i, [1, 2]) % L: sessions 1 & 3, R: sessions 2 & 4
         conditionsData.OffOff.amplitudes = [conditionsData.OffOff.amplitudes; amplitudes];
         conditionsData.OffOff.widths = [conditionsData.OffOff.widths; widths_fps];
         conditionsData.OffOff.peakDists = [conditionsData.OffOff.peakDists; peakDists];
-    elseif ismember(csv_i, 3) % L, R stim ramping - fingertaps
+    elseif ismember(csv_i, 3) % L: session 5, R: session 6 (stim ramping - fingertaps)
         % code for stim ramping - fingertaps
     elseif ismember(csv_i, [4, 5]) % L: sessions 7 & 9, R: sessions 8 & 10
         conditionsData.OffOn.amplitudes = [conditionsData.OffOn.amplitudes; amplitudes];
         conditionsData.OffOn.widths = [conditionsData.OffOn.widths; widths_fps];
         conditionsData.OffOn.peakDists = [conditionsData.OffOn.peakDists; peakDists];
-        % On Med conditions
+    % On Med conditions
     elseif ismember(csv_i, [6, 7]) % L: sessions 13 & 15, R: sessions ...
         conditionsData.OnOff.amplitudes = [conditionsData.OnOff.amplitudes; amplitudes];
         conditionsData.OnOff.widths = [conditionsData.OnOff.widths; widths_fps];
         conditionsData.OnOff.peakDists = [conditionsData.OnOff.peakDists; peakDists];
-    elseif ismember(csv_i, 8) % L, R stim ramping - fingertaps
+    elseif ismember(csv_i, 8) % L: session 18, R: session  (stim ramping - fingertaps)
         % code for stim ramping - fingertaps
     elseif ismember(csv_i, [9, 10]) % L: sessions 20 & 22, R: sessions ...
         conditionsData.OnOn.amplitudes = [conditionsData.OnOn.amplitudes; amplitudes];
         conditionsData.OnOn.widths = [conditionsData.OnOn.widths; widths_fps];
         conditionsData.OnOn.peakDists = [conditionsData.OnOn.peakDists; peakDists];
+    end
+    elseif hemisphere == 'R'
+    
     end
 
     % Loop to compute statistics for each condition
@@ -329,20 +347,20 @@ save([outputDir filesep 'fTipTracking_results_mm.mat'], 'results');
 
 %% Plotting smooth movement comparisions
 
-% Concatenate smoothed fTip movement data for [OffMed, OffStim condition]
-concatenated_smoothed_OffOff = cat(1, results(1).smoothMovement, results(2).smoothMovement);
+if hemisphere == 'L'
+    % Concatenate smoothed fTip movement data for left hemisphere conditions
+    concatenated_smoothed_OffOff = cat(1, results(1).smoothMovement, results(2).smoothMovement); % [OffMed, OffStim condition]
+    concatenated_smoothed_OffOn = cat(1, results(4).smoothMovement, results(5).smoothMovement); % [OffMed, OnStim condition]
+    concatenated_smoothed_OnOff = cat(1, results(6).smoothMovement, results(7).smoothMovement); % [OnMed, OffStim condition]
+    concatenated_smoothed_OnOn = cat(1, results(9).smoothMovement, results(10).smoothMovement); % [OnMed, OnStim condition]
+elseif hemisphere == 'R'
+    % Concatenate smoothed fTip movement data for right hemisphere conditions
+    concatenated_smoothed_OffOff = cat(1, results(1).smoothMovement, results(2).smoothMovement); % [OffMed, OffStim condition]
+    concatenated_smoothed_OffOn = cat(1, results(3).smoothMovement, results(4).smoothMovement); % [OffMed, OnStim condition]
+    concatenated_smoothed_OnOff = cat(1, results(5).smoothMovement, results(6).smoothMovement); % [OnMed, OffStim condition]
+    concatenated_smoothed_OnOn = cat(1, results(7).smoothMovement, results(8).smoothMovement); % [OnMed, OnStim condition]
+end
 
-% Concatenate smoothed fTip movement data for videos [OffMed, OnStim condition]
-% concatenated_smoothed_OffOn = cat(1, results(4).smoothMovement, results(5).smoothMovement); % L sessions
-concatenated_smoothed_OffOn = cat(1, results(3).smoothMovement, results(4).smoothMovement); % R sessions
-
-% Concatenate smoothed fTip movement data for videos [OnMed, OffStim condition]
-% concatenated_smoothed_OnOff = cat(1, results(6).smoothMovement, results(7).smoothMovement); % L sessions
-concatenated_smoothed_OnOff = cat(1, results(5).smoothMovement, results(6).smoothMovement); % R sessions
-
-% Concatenate smoothed fTip movement data for videos [OnMed, OnStim condition]
-% concatenated_smoothed_OnOn = cat(1, results(9).smoothMovement, results(10).smoothMovement); % L sessions
-concatenated_smoothed_OnOn = cat(1, results(7).smoothMovement, results(8).smoothMovement); % R sessions
 
 % Create a new time vector for concatenated data
 timepoints_concatenated_OffOff = (1:length(concatenated_smoothed_OffOff))/fps;
@@ -395,11 +413,10 @@ writetable(T7, [outputDir filesep 'fTipTracking_results-per-condition_summary_mm
 %% Computing stat comparisons (between 2 states)
 
 % Compare results from OffMed to OnMed, OffMed to OffStim vs OnStim sessions - Hand OC
-ttest_plot_2States('OffMed, OffStim', conditionsData.OffOff, 'OffMed, OnStim', conditionsData.OffOn, outputDir);
-ttest_plot_2States('OnMed, OffStim', conditionsData.OnOff, 'OnMed, OnStim', conditionsData.OnOn, outputDir);
+ttest_plot_2States_RandTrim('OffMed, OffStim', conditionsData.OffOff, 'OffMed, OnStim', conditionsData.OffOn, outputDir);
+ttest_plot_2States_RandTrim('OnMed, OffStim', conditionsData.OnOff, 'OnMed, OnStim', conditionsData.OnOn, outputDir);
 
 % trim all datasets by lowest length of data - trim the rows randomly AFTER cleaning
-
 
 %% Computing stat comparisons (between all states) - ANOVA
 
@@ -412,6 +429,91 @@ all_peakDists = [conditionsData.OffOff.peakDists; conditionsData.OffOn.peakDists
 all_amplitudes = rmmissing(all_amplitudes);
 all_widths = rmmissing(all_widths);
 all_peakDists = rmmissing(all_peakDists);
+
+% Determine minimum dataset size for amplitudes, widths, peakDists
+minSize_amplitudes = min([length(conditionsData.OffOff.amplitudes), length(conditionsData.OffOn.amplitudes), length(conditionsData.OnOff.amplitudes), length(conditionsData.OnOn.amplitudes)]);
+minSize_widths = min([length(conditionsData.OffOff.widths), length(conditionsData.OffOn.widths), length(conditionsData.OnOff.widths), length(conditionsData.OnOn.widths)]);
+minSize_peakDists = min([length(conditionsData.OffOff.peakDists), length(conditionsData.OffOn.peakDists), length(conditionsData.OnOff.peakDists), length(conditionsData.OnOn.peakDists)]);
+
+
+% % Trim and combine amplitude data
+% trimmed_amplitudes = arrayfun(@(x) rand_trim_dataset(conditionsData.(char(x)).amplitudes, minSize_amplitudes), {'OffOff', 'OffOn', 'OnOff', 'OnOn'}, 'UniformOutput', false);
+% all_amplitudes = vertcat(trimmed_amplitudes{:});
+% 
+% % Trim and combine width data
+% trimmed_widths = arrayfun(@(x) rand_trim_dataset(conditionsData.(char(x)).widths, minSize_widths), {'OffOff', 'OffOn', 'OnOff', 'OnOn'}, 'UniformOutput', false);
+% all_widths = vertcat(trimmed_widths{:});
+% 
+% % Trim and combine peakDist data
+% trimmed_peakDists = arrayfun(@(x) rand_trim_dataset(conditionsData.(char(x)).peakDists, minSize_peakDists), {'OffOff', 'OffOn', 'OnOff', 'OnOn'}, 'UniformOutput', false);
+% all_peakDists = vertcat(trimmed_peakDists{:});
+% 
+% 
+% % Create corresponding group labels
+% group_labels_amplitudes = arrayfun(@(x) repmat({x}, size(trimmed_amplitudes{strcmp({'OffOff', 'OffOn', 'OnOff', 'OnOn'}, x)})), {'OffOff', 'OffOn', 'OnOff', 'OnOn'}, 'UniformOutput', false);
+% group_labels_amplitudes = vertcat(group_labels_amplitudes{:});
+% 
+% group_labels_widths = arrayfun(@(x) repmat({x}, size(trimmed_widths{strcmp({'OffOff', 'OffOn', 'OnOff', 'OnOn'}, x)})), {'OffOff', 'OffOn', 'OnOff', 'OnOn'}, 'UniformOutput', false);
+% group_labels_widths = vertcat(group_labels_widths{:});
+% 
+% group_labels_peakDists = arrayfun(@(x) repmat({x}, size(trimmed_peakDists{strcmp({'OffOff', 'OffOn', 'OnOff', 'OnOn'}, x)})), {'OffOff', 'OffOn', 'OnOff', 'OnOn'}, 'UniformOutput', false);
+% group_labels_peakDists = vertcat(group_labels_peakDists{:});
+
+
+
+
+% % amplitudes
+% % Randomly sample from each group to match the minimum group size
+% trimmed_OffOff_amplitudes = randsample(conditionsData.OffOff.amplitudes, minSize_amplitudes);
+% trimmed_OffOn_amplitudes = randsample(conditionsData.OffOn.amplitudes, minSize_amplitudes);
+% trimmed_OnOff_amplitudes = randsample(conditionsData.OnOff.amplitudes, minSize_amplitudes);
+% trimmed_OnOn_amplitudes = randsample(conditionsData.OnOn.amplitudes, minSize_amplitudes);
+% 
+% % Combine the trimmed groups
+% all_amplitudes = [trimmed_OffOff_amplitudes; trimmed_OffOn_amplitudes; ...
+%     trimmed_OnOff_amplitudes; trimmed_OnOn_amplitudes];
+% 
+% % Create corresponding group labels (ensure data and group_labels are same length)
+% group_labels_amplitudes = [repmat({'OffOff'}, minSize_amplitudes, 1); ...
+%     repmat({'OffOn'}, minSize_amplitudes, 1); ...
+%     repmat({'OnOff'}, minSize_amplitudes, 1); ...
+%     repmat({'OnOn'}, minSize_amplitudes, 1)];
+% 
+% % widths
+% % Randomly sample from each group to match the minimum group size
+% trimmed_OffOff_widths = randsample(conditionsData.OffOff.widths, minSize_widths);
+% trimmed_OffOn_widths = randsample(conditionsData.OffOn.widths, minSize_widths);
+% trimmed_OnOff_widths = randsample(conditionsData.OnOff.widths, minSize_widths);
+% trimmed_OnOn_widths = randsample(conditionsData.OnOn.widths, minSize_widths);
+% 
+% % Combine the trimmed groups
+% all_widths = [trimmed_OffOff_widths; trimmed_OffOn_widths; ...
+%     trimmed_OnOff_widths; trimmed_OnOn_widths];
+% 
+% % Create corresponding group labels (ensure data and group_labels are same length)
+% group_labels_widths = [repmat({'OffOff'}, minSize_widths, 1); ...
+%     repmat({'OffOn'}, minSize_widths, 1); ...
+%     repmat({'OnOff'}, minSize_widths, 1); ...
+%     repmat({'OnOn'}, minSize_widths, 1)];
+% 
+% % peakDists
+% % Randomly sample from each group to match the minimum group size
+% trimmed_OffOff_peakDists = randsample(conditionsData.OffOff.peakDists, minSize_peakDists);
+% trimmed_OffOn_peakDists = randsample(conditionsData.OffOn.peakDists, minSize_peakDists);
+% trimmed_OnOff_peakDists = randsample(conditionsData.OnOff.peakDists, minSize_peakDists);
+% trimmed_OnOn_peakDists = randsample(conditionsData.OnOn.peakDists, minSize_peakDists);
+% 
+% % Combine the trimmed groups
+% all_peakDists = [trimmed_OffOff_peakDists; trimmed_OffOn_peakDists; ...
+%     trimmed_OnOff_peakDists; trimmed_OnOn_peakDists];
+% 
+% % Create corresponding group labels (ensure data and group_labels are same length)
+% group_labels_peakDists = [repmat({'OffOff'}, minSize_peakDists, 1); ...
+%     repmat({'OffOn'}, minSize_peakDists, 1); ...
+%     repmat({'OnOff'}, minSize_peakDists, 1); ...
+%     repmat({'OnOn'}, minSize_peakDists, 1)];
+
+
 
 % create corresponding group labels - ensure data and group_labels are same length
 group_labels_amplitudes = [repmat({'OffOff'}, length(conditionsData.OffOff.amplitudes), 1);
@@ -459,8 +561,6 @@ ANOVA_plot_allStates(all_peakDists, group_labels_peakDists, 'Inter-movement Dura
 % save(current file, index, interp, '-append')
 
 
-%%
-
 function conditionStats = compute_ConditionStats(data)
 conditionStats.mean = mean(data, 'omitnan');
 conditionStats.std = std(data, 'omitnan');
@@ -501,7 +601,7 @@ writetable(summaryTable, [outputDir filesep fileName],'WriteRowNames', true);
 end
 
 
-function ttest_plot_2States(state1_name, state1_data, state2_name, state2_data, outputDir)
+function ttest_plot_2States_RandTrim(state1_name, state1_data, state2_name, state2_data, outputDir)
 
 % Check for NaN values and remove them
 state1_data.amplitudes = state1_data.amplitudes(~isnan(state1_data.amplitudes));
@@ -513,102 +613,190 @@ state2_data.widths = state2_data.widths(~isnan(state2_data.widths));
 state1_data.peakDists = state1_data.peakDists(~isnan(state1_data.peakDists));
 state2_data.peakDists = state2_data.peakDists(~isnan(state2_data.peakDists));
 
-% Ensure both datasets have the same length
+% Check if any dataset is empty after NaN removal
+if isempty(state1_data.amplitudes) || isempty(state2_data.amplitudes) || ...
+        isempty(state1_data.widths) || isempty(state2_data.widths) || ...
+        isempty(state1_data.peakDists) || isempty(state2_data.peakDists)
+    disp(['Skipping t-test for ', state1_name, ' vs. ', state2_name, ' due to missing data.']);
+    return;  % Exit the function early
+end
+
+
 % Ensure both datasets have the same length by random trimming
-    minLength_amplitudes = min(length(state1_data.amplitudes), length(state2_data.amplitudes));
+minLength_amplitudes = min(length(state1_data.amplitudes), length(state2_data.amplitudes));
+%state1_data.amplitudes = state1_data.amplitudes(1:minLength_amplitudes);
+%state2_data.amplitudes = state2_data.amplitudes(1:minLength_amplitudes);
+
+% Check for numeric and non-empty data before proceeding
+if all(isnumeric([state1_data.amplitudes; state2_data.amplitudes])) && ...
+        ~isempty(state1_data.amplitudes) && ~isempty(state2_data.amplitudes)
+
     if length(state1_data.amplitudes) > minLength_amplitudes
         state1_data.amplitudes = randsample(state1_data.amplitudes, minLength_amplitudes);
     end
     if length(state2_data.amplitudes) > minLength_amplitudes
         state2_data.amplitudes = randsample(state2_data.amplitudes, minLength_amplitudes);
     end
+end
 
-    minLength_widths = min(length(state1_data.widths), length(state2_data.widths));
+minLength_widths = min(length(state1_data.widths), length(state2_data.widths));
+%state1_data.widths = state1_data.widths(1:minLength_widths);
+%state2_data.widths = state2_data.widths(1:minLength_widths);
+
+% Check for numeric and non-empty data before proceeding
+if all(isnumeric([state1_data.widths; state2_data.widths])) && ...
+        ~isempty(state1_data.widths) && ~isempty(state2_data.widths)
     if length(state1_data.widths) > minLength_widths
         state1_data.widths = randsample(state1_data.widths, minLength_widths);
     end
     if length(state2_data.widths) > minLength_widths
         state2_data.widths = randsample(state2_data.widths, minLength_widths);
     end
+end
 
-    minLength_peakDists = min(length(state1_data.peakDists), length(state2_data.peakDists));
+minLength_peakDists = min(length(state1_data.peakDists), length(state2_data.peakDists));
+%state1_data.peakDists = state1_data.peakDists(1:minLength_peakDists);
+%state2_data.peakDists = state2_data.peakDists(1:minLength_peakDists);
+
+% Check for numeric and non-empty data before proceeding
+if all(isnumeric([state1_data.peakDists; state2_data.peakDists])) && ...
+        ~isempty(state1_data.peakDists) && ~isempty(state2_data.peakDists)
     if length(state1_data.peakDists) > minLength_peakDists
         state1_data.peakDists = randsample(state1_data.peakDists, minLength_peakDists);
     end
     if length(state2_data.peakDists) > minLength_peakDists
         state2_data.peakDists = randsample(state2_data.peakDists, minLength_peakDists);
     end
+end
 
-% Perform t-tests
-[~, p_value_amplitude] = ttest2(state1_data.amplitudes, state2_data.amplitudes);
-[~, p_value_width] = ttest2(state1_data.widths, state2_data.widths);
-[~, p_value_peakDists] = ttest2(state1_data.peakDists, state2_data.peakDists);
+% Check if lengths are equal
+if length(state1_data.amplitudes) == length(state2_data.amplitudes) && ...
+        length(state1_data.widths) == length(state2_data.widths) && ...
+        length(state1_data.peakDists) == length(state2_data.peakDists)
 
-% Display p-values with condition names
-disp(['p-value for peak amplitude between ' state1_name ' and ' state2_name ': ' num2str(p_value_amplitude)]);
-disp(['p-value for peak width between ' state1_name ' and ' state2_name ': ' num2str(p_value_width)]);
-disp(['p-value for peak distance between ' state1_name ' and ' state2_name ': ' num2str(p_value_peakDists)]);
+    % Perform t-tests
+    [~, p_value_amplitude] = ttest2(state1_data.amplitudes, state2_data.amplitudes);
+    [~, p_value_width] = ttest2(state1_data.widths, state2_data.widths);
+    [~, p_value_peakDists] = ttest2(state1_data.peakDists, state2_data.peakDists);
 
-% Create p-value table
-p_value_table = table(p_value_amplitude, p_value_width, p_value_peakDists, 'VariableNames', {'p_val_Amplitude', 'p_val_Width', 'p_val_PeakDistance'});
+    % Display p-values with condition names
+    disp(['p-value for peak amplitude between ' state1_name ' and ' state2_name ': ' num2str(p_value_amplitude)]);
+    disp(['p-value for peak width between ' state1_name ' and ' state2_name ': ' num2str(p_value_width)]);
+    disp(['p-value for peak distance between ' state1_name ' and ' state2_name ': ' num2str(p_value_peakDists)]);
 
-% Save the table to a CSV file
-p_values_filename = sprintf('%sp_values_%s_vs_%s.csv', outputDir, state1_name, state2_name);
-writetable(p_value_table, p_values_filename);
-% writetable(p_value_table, [outputDir filesep p_values_filename]);
+    % Create p-value table
+    p_value_table = table(p_value_amplitude, p_value_width, p_value_peakDists, 'VariableNames', {'p_val_Amplitude', 'p_val_Width', 'p_val_PeakDistance'});
+
+    % Save the table to a CSV file
+    p_values_filename = sprintf('%sp_values_%s_vs_%s.csv', outputDir, state1_name, state2_name);
+    writetable(p_value_table, p_values_filename);
+    % writetable(p_value_table, [outputDir filesep p_values_filename]);
 
 
-% Plotting stat comparisons (between 2 states)
-state1_means = [mean(state1_data.amplitudes), mean(state1_data.widths), mean(state1_data.peakDists)];
-state2_means = [mean(state2_data.amplitudes), mean(state2_data.widths), mean(state2_data.peakDists)];
+    % Plotting stat comparisons (between 2 states)
+    state1_means = [mean(state1_data.amplitudes), mean(state1_data.widths), mean(state1_data.peakDists)];
+    state2_means = [mean(state2_data.amplitudes), mean(state2_data.widths), mean(state2_data.peakDists)];
 
-state1_sd = [std(state1_data.amplitudes), std(state1_data.widths), std(state1_data.peakDists)];
-state2_sd = [std(state2_data.amplitudes), std(state2_data.widths), std(state2_data.peakDists)];
+    state1_sd = [std(state1_data.amplitudes), std(state1_data.widths), std(state1_data.peakDists)];
+    state2_sd = [std(state2_data.amplitudes), std(state2_data.widths), std(state2_data.peakDists)];
 
-% Data organization for plotting
-means_matrix = [state1_means; state2_means];
-sd_matrix = [state1_sd; state2_sd];
+    % Data organization for plotting
+    means_matrix = [state1_means; state2_means];
+    sd_matrix = [state1_sd; state2_sd];
 
-% Labels
-group_labels = {state1_name, state2_name};
-metric_labels = {'Amplitudes', 'Intra-movement Durations', 'Inter-movement Durations'};
+    % Labels
+    group_labels = {state1_name, state2_name};
+    metric_labels = {'Amplitudes', 'Intra-movement Durations', 'Inter-movement Durations'};
 
-% Plotting
-figure;
-colors = [0.4 0.2 0.6; 0.2 0.7 0.8]; % RGB triplet per condition bar
+    % Plotting
+    figure;
+    colors = [0.4 0.2 0.6; 0.2 0.7 0.8]; % RGB triplet per condition bar
 
-for i = 1:3
-    subplot(1, 3, i);
-    b = bar(means_matrix(:, i), 'FaceColor', 'flat');
-    hold on;
+    for i = 1:3
+        subplot(1, 3, i);
+        b = bar(means_matrix(:, i), 'FaceColor', 'flat');
+        hold on;
 
-    % Assign colors per condition bar
-    for cond = 1:2
-        b.CData(cond,:) = colors(cond, :);
+        % Assign colors per condition bar
+        for cond = 1:2
+            b.CData(cond,:) = colors(cond, :);
+        end
+
+        % Add text annotations
+        for cond = 1:2
+            x = b.XEndPoints(cond); % get the x-coordinate of each bar
+            y = b.YEndPoints(cond); % get the y-coordinate of each bar
+            text(x, y + 0.02, sprintf('%.2f (SD=%.2f)', means_matrix(cond,i), sd_matrix(cond,i)),...
+                'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
+        end
+
+        % Use standard deviation (sd_matrix) for the error bars
+        errorbar(1:2, means_matrix(:, i), sd_matrix(:, i), '.k', 'LineWidth', 1.5);
+
+        set(gca, 'XTickLabel', group_labels);
+        title(['Comparison of ', metric_labels{i}]);
+        ylabel(['Mean ', metric_labels{i}]);
+        xlabel('Condition');
+
+        hold off;
     end
 
-    % Add text annotations
-    for cond = 1:2
-        x = b.XEndPoints(cond); % get the x-coordinate of each bar
-        y = b.YEndPoints(cond); % get the y-coordinate of each bar
-        text(x, y + 0.02, sprintf('%.2f (SD=%.2f)', means_matrix(cond,i), sd_matrix(cond,i)),...
-            'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
-    end
-
-    % Use standard deviation (sd_matrix) for the error bars
-    errorbar(1:2, means_matrix(:, i), sd_matrix(:, i), '.k', 'LineWidth', 1.5);
-
-    set(gca, 'XTickLabel', group_labels);
-    title(['Comparison of ', metric_labels{i}]);
-    ylabel(['Mean ', metric_labels{i}]);
-    xlabel('Condition');
-
-    hold off;
+else
+    error('Datasets are either non-numeric or empty.');
 end
 end
 
 
-function ANOVA_plot_allStates(data, group_labels, measureName, yLabel, anovaTitle)
+% Function to randomly trim datasets
+function rand_trimmed_data = rand_trim_dataset(data, min_size)
+if isempty(data) || ~isnumeric(data)
+    rand_trimmed_data = [];
+elseif length(data) > min_size
+    rand_trimmed_data = randsample(data, min_size);
+else
+    rand_trimmed_data = data;
+end
+end
+
+
+function ANOVA_plot_allStates_v2(data, group_labels, measureName, yLabel, anovaTitle)
+
+% % Ensure group_labels is a cell array of character vectors
+% if ~iscellstr(group_labels) && iscell(group_labels)
+%     % Convert cell array of strings to categorical directly
+%     group_labels = categorical(group_labels);
+% elseif isstring(group_labels)
+%     % Convert string array to cell array of character vectors
+%     group_labels = cellstr(group_labels);
+%     group_labels = categorical(group_labels);
+% else
+%     error('Group labels must be a cell array of character vectors or a string array.');
+% end
+
+% % If group_labels is a string array, convert to cell array of character vectors
+% if isstring(group_labels)
+%     group_labels = cellstr(group_labels);
+% end
+% 
+% % Check that group_labels is a cell array of character vectors
+% if ~iscellstr(group_labels)
+%     error('Group labels must be a cell array of character vectors.');
+% end
+% 
+% % Print the first few elements of group_labels for debugging
+% disp('First few group labels:');
+% disp(group_labels(1:min(end,5)));
+% 
+% % Check for empty elements or non-character vectors and remove them
+% nonCharOrEmptyMask = cellfun(@(x) ~(ischar(x) && ~isempty(x)), group_labels);
+% if any(nonCharOrEmptyMask)
+%     warning('Non-character or empty elements found in group_labels, removing them.');
+%     group_labels(nonCharOrEmptyMask) = [];
+%     data(nonCharOrEmptyMask) = [];
+% end
+% 
+% % Convert group labels to categorical
+% group_labels = categorical(group_labels);
 
 % Check if the lengths of data and group_labels are equal
 if length(data) ~= length(group_labels)
@@ -647,6 +835,8 @@ text(x_limits(2) * 0.95, y_limits(2) * 0.95, ...
 
 % Calculate means and standard deviations for annotation
 unique_groups = unique(group_labels);
+means = zeros(1, length(unique_groups));
+stds = zeros(1, length(unique_groups));
 for i = 1:length(unique_groups)
     groupData = data(strcmp(group_labels, unique_groups{i}));
     means(i) = mean(groupData);

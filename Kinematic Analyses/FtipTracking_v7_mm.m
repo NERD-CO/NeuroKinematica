@@ -24,7 +24,7 @@ end
 
 % Define switch case inputs
 casedate = '09_12_2023';
-hemisphere = 'R';
+hemisphere = 'L';
 
 switch casedate
     case '09_12_2023'
@@ -500,6 +500,31 @@ end
 
 
 function ttest_plot_2States(state1_name, state1_data, state2_name, state2_data, outputDir)
+
+% Check for NaN values and remove them
+state1_data.amplitudes = state1_data.amplitudes(~isnan(state1_data.amplitudes));
+state2_data.amplitudes = state2_data.amplitudes(~isnan(state2_data.amplitudes));
+
+state1_data.widths = state1_data.widths(~isnan(state1_data.widths));
+state2_data.widths = state2_data.widths(~isnan(state2_data.widths));
+
+state1_data.peakDists = state1_data.peakDists(~isnan(state1_data.peakDists));
+state2_data.peakDists = state2_data.peakDists(~isnan(state2_data.peakDists));
+
+% Ensure both datasets have the same length
+minLength_amplitudes = min(length(state1_data.amplitudes), length(state2_data.amplitudes));
+state1_data.amplitudes = state1_data.amplitudes(1:minLength_amplitudes);
+state2_data.amplitudes = state2_data.amplitudes(1:minLength_amplitudes);
+
+minLength_widths = min(length(state1_data.widths), length(state2_data.widths));
+state1_data.widths = state1_data.widths(1:minLength_widths);
+state2_data.widths = state2_data.widths(1:minLength_widths);
+
+minLength_peakDists = min(length(state1_data.peakDists), length(state2_data.peakDists));
+state1_data.peakDists = state1_data.peakDists(1:minLength_peakDists);
+state2_data.peakDists = state2_data.peakDists(1:minLength_peakDists);
+
+% update to trim randomly rather than via truncation
 
 % Perform t-tests
 [~, p_value_amplitude] = ttest2(state1_data.amplitudes, state2_data.amplitudes);
