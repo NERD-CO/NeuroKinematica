@@ -1,4 +1,4 @@
-%% Movement processing and vizualization script
+%% Clin Movement processing and vizualization script
 
 % Goal: Process and visualize raw and smooth movement timeseries data based on videos that have been anatomically labeled (13pt per frame) and analyzed via a trained DeepLabCut model
 

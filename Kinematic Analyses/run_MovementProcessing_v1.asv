@@ -12,37 +12,18 @@
     % raw dlc label data - csv or mat (outDATA)
 
 % outputs:
-    % plot of raw data
+    % plot of raw data per dlc marker of interest
     % plot of interpolated / cleaned data: outData interp
     % decision per frame table - binary status per marker per frame (accept/reject): outData Index
     % interpolated / cleaned data table: outData interp
 
-% Hand Movement: area of the convex hull (ACH) of the four finger tips key-points and the palm key-point, measured in units of estimated-standing-height squared (H2).	ACH(Ph(i):i∈(0,8,12,16,20))H2ACH(Ph(i):i∈(0,8,12,16,20))H2
-% Finger Tapping: Euclidean distance between the thumb-tip key-point and the index finger tip key-point, measured in units of estimated-standing height.	∣∣(Ph(4)Ph(8))∣∣−→−−−−−−−−−H
 
-
-
-
-
-% artifact rejection function
-% input table:
-%   1. o.g. data: outDATA
-% plot
-% method
-% loop through each marker
-% per dlc label, plot raw data
-% output fraction of frames that fall below CT
-% confidence threshhold ~0.75
-% if frame loss% < 5-10%,
-% elseif ~~~~, increase/decrease CT
-% replace values in rejected frames with interp value
-% finder border accepted frame valuse --> insert interp value b/t
-% output tables
-% 2. decision per frame - binary status (accept/reject): outData Index
-% 3. interpolated / cleaned data: outData interp
-% plot
-% save(current file, index, interp, '-append')
-
+% Develop functions based on movment type and dlc-labelled markers of interest
+    % https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9883391/
+        % Hand Movement (Hand O/C): area of the convex hull (ACH) of the four finger tips key-points and the palm key-point, measured in units of estimated-standing-height squared (H2).
+        % Pronation-Supination (Pron/Sup): angular velocity of the vector from the thumb-tip key-point to the little-finger-tip key-points, measured in degrees per frame.
+        % Finger Tapping (Finger Tap): Euclidean distance between the thumb-tip key-point and the index finger tip key-point, measured in units of estimated-standing height.
+        % Find/develop definition/method/algorthm for Elbow Flex/Extend (Elbow F/E)
 
 
 %% Directory set-up - Navigate b/t machines

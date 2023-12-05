@@ -1,65 +1,23 @@
-> compress raw videos
+lab meeting notes 12/04/2023
 
-create case video folder for dlc model
-* label case videos in dlc
-train dlc model
-create dlc-labelled videos
-
-> run_dlc_processCSV2 - convert dlc outputs in csv to mat
-create casedate folder in outer post_DLCproc folder (contains vid loc, csv loc, mat loc; 'Converted for dual GUI' folder in vid loc)
-
-> convert videos for dual movecheck gui
-* movement index videos via dual movecheck gui
-
-> run_MovementProcessing_v1 (Processing + Viz)
-o	artifactRejection
-o	Iterative sanity checking per trial
-
-> run_MovementStats_v1
-o	Random data trimming for t-test and ANOVA - does that make sense for video / kinematic data?
-o   Descriptive stats: mean, stdev, variance
-o   kruskalwallis vs. anova1 - non-parametric comparison
-functions
-- compute_ConditionStats
-- summarize_ConditionStats
-- ttest_plot_2States_nonRandTrim
-- ttest_plot_2States_RandTrim
-- rand_trim_dataset
-- ANOVA_plot_allStates (multiple variations - which is appropriate?)
-
-
-For 12/18:
--   Clinical Movement analysis - Hand Open/Close
-o	'Clin_2023-09-12_LSTN'
-o	'Clin_2023-09-12_RSTN'
-
--	Clinical LFP analysis
-o	'Clin_2023-09-12_LSTN'
-o	'Clin_2023-09-12_RSTN'
-
--	IO Movement analysis - Hand Open/Close
-o	'IO_2023-03-09' (RSTN): 3 depths
-o	'IO_2023-05-11' (LSTN): 2 depths
-
--	IO LFP/MER analysis
-o	'IO_2023-03-09' (RSTN): 3 depths
-o	'IO_2023-05-11' (LSTN): 2 depths
-
-
+mean
+variance
+envelope
+kruskalwallis
+anova1
+- non-parametric stat test
+waveform shape
 lfp power
-beta filter
-- Hilbert Transform
+
+
 bursting detection
 bursting threshold
 burst frequency
 burst duration
-
-spike/MER data
-envelope function?
-waveform shape
 
 artifact/outlier rejection
 smoothing
 filter
 
 naive bayes classifier, labels
+
