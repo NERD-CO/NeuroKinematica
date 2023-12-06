@@ -1,8 +1,8 @@
-function [] = run_MovementStats_v1(casedate, hemisphere)
+function [] = run_MovementStats_Clin_v1(casedate, hemisphere)
 
 %% STATS functions - run on processed movement data
 
-% Goal: Statistically assess movement timeseries data based on videos that have been anatomically labeled (13pt per frame) and analyzed via a trained DeepLabCut model
+% Goal: Statistically summarize & compare movement timeseries data based on videos that have been anatomically labeled (13pt per frame) and analyzed via a trained DeepLabCut model
 
 %% Directory set-up - Navigate b/t machines
 pcname = getenv('COMPUTERNAME');
@@ -275,6 +275,7 @@ for csv_i = 1:length(moveCSV)
         conditionName = conditionKeys{k};
         condition = conditionsData.(conditionName);
 
+        % call compute_ConditionStats function
         conditionsData.(conditionName).stats.amplitudes = compute_ConditionStats(condition.amplitudes);
         conditionsData.(conditionName).stats.widths = compute_ConditionStats(condition.widths);
         conditionsData.(conditionName).stats.peakDists = compute_ConditionStats(condition.peakDists);

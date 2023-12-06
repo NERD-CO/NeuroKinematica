@@ -1,33 +1,6 @@
-function [] = run_MovementProcessing_v1(casedate, hemisphere)
+%% function [] = run_MovementProcessing_IO_v1(casedate, hemisphere)
 
 % Goal: Process and visualize movement timeseries data based on videos that have been anatomically labeled (13pt per frame) and analyzed via a trained DeepLabCut model
-
-%% generic function goal
-
-% inputs:
-% case date
-% hemisphere
-% movement type (Hand O/C, Pron/Sup, Elbow F/E, Finger Tap)
-% other variables: conditiion (clinical) or depth (IO)
-% raw dlc label data - csv or mat (outDATA)
-% artifact flag: use or don't use artifactRejection function
-
-% outputs:
-% plot of raw data per dlc marker of interest
-% plot of interpolated / cleaned data: outData interp
-% decision per frame table - binary status per marker per frame (accept/reject): outData Index
-% interpolated / cleaned data table: outData interp
-% movement analyses based on function inputs
-
-
-% Develop functions based on movment type and dlc-labelled markers of interest
-% https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9883391/
-% Hand Movement (Hand O/C): area of the convex hull (ACH) of the four finger tips key-points and the palm key-point, measured in units of estimated-standing-height squared (H2).
-% Pronation-Supination (Pron/Sup): angular velocity of the vector from the thumb-tip key-point to the little-finger-tip key-points, measured in degrees per frame.
-% Finger Tapping (Finger Tap): Euclidean distance between the thumb-tip key-point and the index finger tip key-point, measured in units of estimated-standing height.
-% Find/develop definition/method/algorthm for Elbow Flex/Extend (Elbow F/E)
-
-
 
 %% Directory set-up - Navigate b/t machines
 pcname = getenv('COMPUTERNAME');
@@ -270,6 +243,3 @@ for markerIdx = 1:numMarkers
 end
 
 end
-
-
-
