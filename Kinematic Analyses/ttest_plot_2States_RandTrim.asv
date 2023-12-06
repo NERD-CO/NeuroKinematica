@@ -85,8 +85,7 @@ if length(state1_data.amplitudes) == length(state2_data.amplitudes) && ...
     p_value_table = table(p_value_amplitude, p_value_width, p_value_peakDists, 'VariableNames', {'p_val_Amplitude', 'p_val_Width', 'p_val_PeakDistance'});
 
     % Save the table to a CSV file
-    % p_values_filename = [outputDir filesep sprintf('%s_p_values_%s_vs_%s.csv', outputDir, state1_name, state2_name)];
-    p_values_filename = sprintf('%sp_values_%s_vs_%s.csv', outputDir, state1_name, state2_name);
+    p_values_filename = sprintf('%sp_values_%s_vs_%s.csv', outputDir_, state1_name, state2_name);
     writetable(p_value_table, p_values_filename);
     % writetable(p_value_table, [outputDir filesep p_values_filename]);
 

@@ -61,7 +61,7 @@ o	artifactRejection
 o	Iterative sanity checking per trial
 
 > run_MovementStats_v1
-o	Random data trimming for t-test and ANOVA - does that make sense for video / kinematic data?
+o	Random data trimming for t-test and ANOVA 
 o   Descriptive stats: mean, stdev, variance
 o   kruskalwallis vs. anova1 - non-parametric comparison
 functions

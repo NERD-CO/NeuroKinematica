@@ -1,33 +1,6 @@
-function [] = run_MovementProcessing_v1(casedate, hemisphere)
+function [] = run_MovementProcessing_artifactRejection(casedate, hemisphere)
 
 % Goal: Process and visualize movement timeseries data based on videos that have been anatomically labeled (13pt per frame) and analyzed via a trained DeepLabCut model
-
-%% generic function goal
-
-% inputs:
-% case date
-% hemisphere
-% movement type (Hand O/C, Pron/Sup, Elbow F/E, Finger Tap)
-% other variables: conditiion (clinical) or depth (IO)
-% raw dlc label data - csv or mat (outDATA)
-% artifact flag: use or don't use artifactRejection function
-
-% outputs:
-% plot of raw data per dlc marker of interest
-% plot of interpolated / cleaned data: outData interp
-% decision per frame table - binary status per marker per frame (accept/reject): outData Index
-% interpolated / cleaned data table: outData interp
-% movement analyses based on function inputs
-
-
-% Develop functions based on movment type and dlc-labelled markers of interest
-% https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9883391/
-% Hand Movement (Hand O/C): area of the convex hull (ACH) of the four finger tips key-points and the palm key-point, measured in units of estimated-standing-height squared (H2).
-% Pronation-Supination (Pron/Sup): angular velocity of the vector from the thumb-tip key-point to the little-finger-tip key-points, measured in degrees per frame.
-% Finger Tapping (Finger Tap): Euclidean distance between the thumb-tip key-point and the index finger tip key-point, measured in units of estimated-standing height.
-% Find/develop definition/method/algorthm for Elbow Flex/Extend (Elbow F/E)
-
-
 
 %% Directory set-up - Navigate b/t machines
 pcname = getenv('COMPUTERNAME');
@@ -86,7 +59,7 @@ moveCSV = mainCSV2(contains(mainCSV2,'Move'));
 %% Main function
 
 % create an outputs directory
-outputDir = [mainDir3 filesep 'processedMovement'];
+outputDir = [mainDir3 filesep 'processedMovement' filesep 'cleaned_processedMovement_aR'];
 if ~exist(outputDir, 'dir')
     mkdir(outputDir);
 end
@@ -119,16 +92,21 @@ for csv_i = 1:length(moveCSV)
     matName = mainMAT2{matInd};
     load(matName)
 
+    % Set confidence threshold (CT) for accepting/rejecting frames (default CT = 0.5) 
+    CT = 0.5; % adjust
+
+    % Call artifact rejection function
+    [outDATA_NaN] = artifactRejection(outDATA, CT);
+    % Use outDATA_NaN instead of outDATA for further processing
+
     % Process dlcDAT MAT file (all points, all frames) per vid first (Split column names of outDATA)
-    colNames = outDATA.Properties.VariableNames; % outDATA should be a table containing labeled coordinate data from DeepLabCut
-    colNames2 = cellfun(@(x) split(x,'_'), colNames,...
-        'UniformOutput',false);
-    colNames3 = unique(cellfun(@(x) x{1}, colNames2,...
-        'UniformOutput',false));
+    colNames = outDATA_NaN.Properties.VariableNames; % outDATA_NaN should be a table containing labeled coordinate data from DeepLabCut w/ x,y, values replaced by NaN for marker likelihood values < CT (processed)
+    colNames2 = cellfun(@(x) split(x,'_'), colNames, 'UniformOutput',false);
+    colNames3 = unique(cellfun(@(x) x{1}, colNames2, 'UniformOutput',false));
     colNames4 = colNames3(~matches(colNames3,'frames'));
 
     % Initialize 'euclidall' to store Euclidean distances between successive points
-    euclidall = zeros(height(outDATA)-1,length(colNames4));
+    euclidall = zeros(height(outDATA_NaN)-1,length(colNames4));
 
     % Iterate over each label and compute Euclidean distance for each frame
     for label_i = 1:length(colNames4)
@@ -136,8 +114,8 @@ for csv_i = 1:length(moveCSV)
         tmpLabel_x = [colNames4{label_i} , '_x'];
         tmpLabel_y = [colNames4{label_i} , '_y'];
 
-        tmpXdata = outDATA.(tmpLabel_x);
-        tmpYdata = outDATA.(tmpLabel_y);
+        tmpXdata = outDATA_NaN.(tmpLabel_x);
+        tmpYdata = outDATA_NaN.(tmpLabel_y);
 
         labelData = [tmpXdata , tmpYdata];
 
@@ -219,28 +197,21 @@ for csv_i = 1:length(moveCSV)
     xlabel('time (s)');
     ylabel('amplitude');
     hold off
-    title(['Smooth Hand O/C Movement, ', num2str(matName_title)])
+    title(['Cleaned Smooth Hand O/C Movement, ', num2str(matName_title)])
 
     % Define unique name for the findpeaks results based on the current CSV name
-    findpeaks_output = [outputDir filesep 'findpeaks_output_' tmpCSV(1:end-44) '.csv']; % assumes tmpCSV is a string ending in '.csv'
+    cleaned_findpeaks_output = [outputDir filesep 'cleaned_findpeaks_output_' tmpCSV(1:end-44) '.csv']; % assumes tmpCSV is a string ending in '.csv'
 
     % Create a table to store results based on computed variables
     T1 = table(timepoints, locs, peaks, amplitudes, prominences, widths_fps, halfWidths, 'VariableNames', {'Timepoints', 'Locations', 'Peaks', 'Amplitudes', 'Prominences', 'Widths', 'HalfWidths'});
 
     % Write results table to a CSV file
-    writetable(T1, findpeaks_output);
+    writetable(T1, cleaned_findpeaks_output);
 
-    % Define unique name for the outDATA_NaN output file based on the current CSV/MAT filename
-    outDATA_NaN_filename = [outputDir filesep 'cleaned_dlcDAT_NaN_' tmpCSV(1:end-44) '.csv']; % Removes '.csv' from tmpCSV and appends 'outDATA_NaN_'
-    % outDATA_NaN_filename = [outputDir filesep 'outDATA_NaN_' tmpCSV(1:end-44) '.csv']; % Removes '.csv' from tmpCSV and appends 'outDATA_NaN_'
-
-    % Write outDATA_NaN table to a CSV file in the specified output directory
-    writetable(outDATA_NaN, outDATA_NaN_filename);
 
 end
 
 cd(outputDir)
-% save([outputDir filesep 'outDATA_NaN.csv']);
 
 
 end
