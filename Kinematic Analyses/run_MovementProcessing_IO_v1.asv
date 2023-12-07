@@ -1,4 +1,4 @@
-function [] = run_MovementProcessing_Clin_v1(casedate, hemisphere)
+%% function [] = run_MovementProcessing_IO_v1(casedate, hemisphere)
 
 % Goal: Process and visualize movement timeseries data based on videos that have been anatomically labeled (13pt per frame) and analyzed via a trained DeepLabCut model
 
@@ -12,20 +12,19 @@ switch pcname
 
     case 'DSKTP-JTLAB-EMR'   %%% ER Desktop
 
-        mainDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\Kinematic Analyses';
+        mainDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\Kinematic Analyses';
 
     case 'NSG-M-FQBPFK3'     %%% ER PC
 
-        mainDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\Kinematic Analyses';
+        mainDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\Kinematic Analyses';
 end
 
 
 %% Analyze data isolated by casedate and hemisphere
 
 % Define casedate and hemisphere
-% casedate = '09_12_2023';
-% hemisphere = 'L';
-
+casedate = '03_09_2023';
+hemisphere = 'R';
 
 mainDir2 = [mainDir , filesep , casedate];
 
@@ -55,7 +54,8 @@ mainMAT2 = {mainMat.name};
 % Generate list of Motor Index CSVs (filters for CSVs that contain 'Move' string)
 moveCSV = mainCSV2(contains(mainCSV2,'Move'));
 
-%% Define time conversion factor and distance conversion factor
+
+%% Main function
 
 % Define framerate of videos (time conversion factor)
 fps = 60; % frames per second
@@ -66,20 +66,10 @@ pixels_to_mm = 2.109; % 232 mm / 110 pxl = 2.1091 mm per pixel
 % US adult male, 50th percentile: Avg. = 23.2 cm, 9.1 inches
 % Subject in video frames: Avg. = 110 pixels
 
-% *** define distance conversion factor on standardized calibration measure 
-% moving forward
-
-
-%% Define/initialize variables for recording conditions
-
-% Recording Conditions (ideally 6)
-% 1) Off Med, Off Stim:    2 sessions
-% 2) Off Med, Ramp Stim:   1 session
-% 3) Off Med, On Stim:     2 sessions
-% ~ medication break ~
-% 4) On Med, Off Stim:    2 sessions
-% 5) On Med, Ramp Stim:   1 session
-% 6) On Med, On Stim:     2 sessions
+% STN depth (ideally 3)
+% t1, t2, t3: 
+% c1, c2, c3:
+% b1, b2, b3:
 
 %% Main function
 
@@ -235,7 +225,7 @@ cd(outputDir)
 % save([outputDir filesep 'outDATA_NaN.csv']);
 
 
-end
+% end
 
 %% sub-functions
 
@@ -260,6 +250,3 @@ for markerIdx = 1:numMarkers
 end
 
 end
-
-
-

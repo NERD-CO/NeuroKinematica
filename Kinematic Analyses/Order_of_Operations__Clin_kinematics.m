@@ -13,7 +13,7 @@ hemisphere = 'L';
     % hemisphere = 'L';
     % hemisphere = 'R'
 
-    
+
 
 %% 2) Process and visualize movement timeseries data
 
@@ -22,7 +22,7 @@ run_MovementProcessing_Clin_v1(casedate, hemisphere)
 
 %% Optional: Process and visualize movement timeseries data cleaned by artifact rejection function
 
-run_MovementProcessing_Clin_artifactRejection(casedate, hemisphere)
+% run_MovementProcessing_Clin_artifactRejection(casedate, hemisphere)
 
 
 %% 3) stats

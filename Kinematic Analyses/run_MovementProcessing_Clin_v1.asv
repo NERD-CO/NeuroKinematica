@@ -66,12 +66,7 @@ pixels_to_mm = 2.109; % 232 mm / 110 pxl = 2.1091 mm per pixel
 % US adult male, 50th percentile: Avg. = 23.2 cm, 9.1 inches
 % Subject in video frames: Avg. = 110 pixels
 
-% *** define distance conversion factor on standardized calibration measure 
-% moving forward
-
-
-%% Define/initialize variables for recording conditions
-
+%% Initial 
 % Recording Conditions (ideally 6)
 % 1) Off Med, Off Stim:    2 sessions
 % 2) Off Med, Ramp Stim:   1 session
@@ -88,6 +83,7 @@ outputDir = [mainDir3 filesep 'processedMovement'];
 if ~exist(outputDir, 'dir')
     mkdir(outputDir);
 end
+
 
 % Loop through CSV files - Raw Data Processing
 for csv_i = 1:length(moveCSV)

@@ -26,7 +26,6 @@ end
 casedate = '03_09_2023';
 hemisphere = 'R';
 
-
 mainDir2 = [mainDir , filesep , casedate];
 
 switch hemisphere
@@ -56,13 +55,7 @@ mainMAT2 = {mainMat.name};
 moveCSV = mainCSV2(contains(mainCSV2,'Move'));
 
 
-%% Main function
-
-% create an outputs directory
-outputDir = [mainDir3 filesep 'processedMovement'];
-if ~exist(outputDir, 'dir')
-    mkdir(outputDir);
-end
+%% Define time conversion factor and distance conversion factor
 
 % Define framerate of videos (time conversion factor)
 fps = 60; % frames per second
@@ -73,6 +66,24 @@ pixels_to_mm = 2.109; % 232 mm / 110 pxl = 2.1091 mm per pixel
 % US adult male, 50th percentile: Avg. = 23.2 cm, 9.1 inches
 % Subject in video frames: Avg. = 110 pixels
 
+% *** define distance conversion factor on standardized calibration measure 
+% moving forward
+
+
+%% Define/initialize variables for recording conditions
+
+% STN depths (ideally 3)
+% 1) dorsal STN (t1, t2, t3):  3 sessions
+% 2) central STN (c1, c2, c3): 3 sessions
+% 3) ventral STN (b1, b2, b3): 3 sessions
+
+%% Main function
+
+% create an outputs directory
+outputDir = [mainDir3 filesep 'processedMovement'];
+if ~exist(outputDir, 'dir')
+    mkdir(outputDir);
+end
 
 % Loop through CSV files - Raw Data Processing
 for csv_i = 1:length(moveCSV)
@@ -196,7 +207,7 @@ for csv_i = 1:length(moveCSV)
     xlabel('time (s)');
     ylabel('amplitude');
     hold off
-    title(['Smooth Hand O/C Movement, ', num2str(matName_title)])
+    title(['Smooth Fingertip Movement, ', num2str(matName_title)])
 
     % Define unique name for the findpeaks results based on the current CSV name
     findpeaks_output = [outputDir filesep 'findpeaks_output_' tmpCSV(1:end-44) '.csv']; % assumes tmpCSV is a string ending in '.csv'
