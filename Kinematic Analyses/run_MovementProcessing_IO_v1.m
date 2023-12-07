@@ -12,19 +12,19 @@ switch pcname
 
     case 'DSKTP-JTLAB-EMR'   %%% ER Desktop
 
-        mainDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\Kinematic Analyses';
+        mainDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\Kinematic Analyses';
 
     case 'NSG-M-FQBPFK3'     %%% ER PC
 
-        mainDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\Kinematic Analyses';
+        mainDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\Kinematic Analyses';
 end
 
 
 %% Analyze data isolated by casedate and hemisphere
 
 % Define casedate and hemisphere
-% casedate = '09_12_2023';
-% hemisphere = 'L';
+casedate = '03_09_2023';
+hemisphere = 'R';
 
 
 mainDir2 = [mainDir , filesep , casedate];
@@ -220,7 +220,9 @@ cd(outputDir)
 % save([outputDir filesep 'outDATA_NaN.csv']);
 
 
-end
+% end
+
+%% sub-functions
 
 function [outDATA_NaN] = artifactRejection(outDATA, CT)
 % Inputs:

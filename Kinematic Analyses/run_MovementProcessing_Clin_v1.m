@@ -222,6 +222,8 @@ cd(outputDir)
 
 end
 
+%% sub-functions
+
 function [outDATA_NaN] = artifactRejection(outDATA, CT)
 % Inputs:
 % - outDATA: labeled timeseries data from DLC (original)
