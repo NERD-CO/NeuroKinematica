@@ -1,21 +1,12 @@
 function [] = run_MovementProcessing_IO_jatv1(mainDir)
 
-% Goal: Process and visualize movement timeseries data based on videos that have been anatomically labeled (13pt per frame) and analyzed via a trained DeepLabCut model
-
-
-%% Analyze data isolated by casedate and hemisphere
-
-
+% Analyze data isolated by casedate and hemisphere
 
 mainDirVID = [mainDir , filesep , 'video folder'];
 mainDirMAT = [mainDir , filesep , 'mat folder'];
 mainDirCSV = [mainDir , filesep , 'csv folder'];
 
-
-
-
-
-%% Isolate dlc outputs of interest
+% Isolate dlc outputs of interest
 cd(mainDirCSV)
 % Generate list of dlc-video-labeled CSV files
 % mainCSV = dir('*.csv');
@@ -48,10 +39,6 @@ pixels_to_mm = 2.109; % 232 mm / 110 pxl = 2.1091 mm per pixel
 % Anthropometry: vertical distance from the bottom of the chin (menton) to the top of the head: https://upload.wikimedia.org/wikipedia/commons/0/06/AvgHeadSizes.png
 % US adult male, 50th percentile: Avg. = 23.2 cm, 9.1 inches
 % Subject in video frames: Avg. = 110 pixels
-
-% *** define distance conversion factor on standardized calibration measure 
-% moving forward
-
 
 %% Define/initialize variables for recording conditions
 
