@@ -1,23 +1,6 @@
-function [] = run_MovementProcessing_IO_v1(mainDir)
+function [] = run_MovementProcessing_IO_jatv1(mainDir)
 
 % Goal: Process and visualize movement timeseries data based on videos that have been anatomically labeled (13pt per frame) and analyzed via a trained DeepLabCut model
-
-%% Directory set-up - Navigate b/t machines
-% pcname = getenv('COMPUTERNAME');
-%
-% switch pcname
-%     case 'DESKTOP-I5CPDO7'   %%% JAT Desktop
-%
-%         % mainDir = '';
-%
-%     case 'DSKTP-JTLAB-EMR'   %%% ER Desktop
-%
-%         mainDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\Kinematic Analyses';
-%
-%     case 'NSG-M-FQBPFK3'     %%% ER PC
-%
-%         mainDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\Kinematic Analyses';
-% end
 
 
 %% Analyze data isolated by casedate and hemisphere
@@ -51,19 +34,12 @@ moveCSV = mainCSVb2(contains(mainCSVb2,'Move'));
 cd(mainDir)
 eucINDICIES = readtable("EUC_Indicies.xlsx");
 
-
-<<<<<<< Updated upstream
-%% Define time conversion factor and distance conversion factor
-=======
 %% Main function
-
 % create an outputs directory
 outputDir = [mainDir , filesep , 'processedMovement'];
 if ~exist(outputDir, 'dir')
     mkdir(outputDir);
 end
->>>>>>> Stashed changes
-
 % Define framerate of videos (time conversion factor)
 fps = 60; % frames per second
 
@@ -213,19 +189,6 @@ for csv_i = 1:length(moveCSV)
         % window_Width = 5; % set windowWidth as needed
         smoothed_moveAveBlk = smoothdata(moveAveBlk, 'gaussian', window_Width); % read documentation, window overlap
 
-        % set thresholds based on mean +/- 3xStd
-        % MinPeakHeight = mean(smoothed_fTipAveBlk);
-        % MinPeakProminence = mean(smoothed_fTipAveBlk)*2;
-
-        % Rubric for movement type -OR- iterative algorthmic approach
-        % MinPeakDistance_HandMov =
-        % MinPeakDistance_PronSup =
-        % MinPeakDistance_FlexExtend =
-        % MinPeakDistance_FingerTap =
-
-        % Find peak amplitudes and compute widths -- findpeaks function [review documentation]
-        % [peaks_tmp, locs_tmp, widths_tmp, prominences_tmp] = findpeaks(smoothed_fTipAveBlk, fps, MinPeakHeight=mean(smoothed_fTipAveBlk), MinPeakDistance=0.15, MinPeakProminence=mean(smoothed_fTipAveBlk)*2, Annotate ='extents');
-
         switch moveTypeIDs{mmi}
             case 'HAND OC'
 
@@ -247,23 +210,9 @@ for csv_i = 1:length(moveCSV)
             case 'HAND PS'
 
 
-<<<<<<< Updated upstream
-    % Plot smooth movement for each CSV iteration
-    subplot(length(moveCSV), 1, csv_i);
-    hold on
-    % Adjust the parameters in findpeaks
-    findpeaks(smoothed_fTipAveBlk, timepoints__fTipAveBlk, MinPeakHeight=mean(smoothed_fTipAveBlk), MinPeakDistance=0.15, MinPeakProminence=mean(smoothed_fTipAveBlk)*2, Annotate ='extents');
-    % define axes labels and subplot titles
-    xlabel('time (s)');
-    ylabel('amplitude');
-    hold off
-    title(['Smooth Fingertip Movement, ', num2str(matName_title)])
-=======
                 ampMEAN = mean(smoothed_moveAveBlk,'omitnan');
                 ampSTD = std(smoothed_moveAveBlk,'omitnan');
                 ampThresh = (ampMEAN + (ampSTD/2))*0.3;
->>>>>>> Stashed changes
-
 
                 [peaks, locs, widths, prominences] = findpeaks(smoothed_moveAveBlk,...
                     MinPeakHeight=mean(smoothed_moveAveBlk), MinPeakDistance=10,...
@@ -300,40 +249,16 @@ for csv_i = 1:length(moveCSV)
         saveas(gcf,fileNAME,'png')
 
 
-        % close all
-        % findpeaks(smoothed_moveAveBlk,...
-        %     MinPeakHeight=mean(smoothed_moveAveBlk), MinPeakDistance=15,...
-        %     MinPeakProminence=mean(smoothed_moveAveBlk)*2, Annotate ='extents');
-
         % Convert distance variables to mm usng distance conversion factor
         amplitudes = peaks * pixels_to_mm; % converting amplitudes to mm
 
         % Compute timepoints from locs (vector of integer indices corresponding to video frame number)
         timepoints = locs / fps; % Convert frame numbers to time (in seconds) using video sampling rate (Fs) conversion factor
 
-        % Compute distances between consecutive peaks
-        % peakDists_frames = diff(locs); % by frame indice
-        % peakDists_p = diff(timepoints); % by timepoint (in seconds)
-
         % Convert frame-relative variables to seconds using time conversion factor
         widths_fps = widths / fps; % converting widths to seconds
         halfWidths = widths_fps / 2;
         % slope
-
-        % normalize within patient - relative to bl (Off, off)
-
-        % Compute timepoints for all indices
-        % timepoints__moveAveBlk = (1:length(smoothed_moveAveBlk))/fps;
-
-        % % Plot smooth movement for each CSV iteration
-
-        % % Adjust the parameters in findpeaks
-        % findpeaks(smoothed_moveAveBlk, timepoints__moveAveBlk, MinPeakHeight=mean(smoothed_moveAveBlk), MinPeakDistance=0.15, MinPeakProminence=mean(smoothed_moveAveBlk)*2, Annotate ='extents');
-        % % define axes labels and subplot titles
-        % xlabel('time (s)');
-        % ylabel('amplitude');
-        % hold off
-        % title(['Smooth Hand O/C Movement, ', num2str(matName_title)])
 
         % Define unique name for the findpeaks results based on the current CSV name
         findpeaks_output = [outputDir , filesep , 'findpeaks_output_' ,...
@@ -365,7 +290,7 @@ end
 
 end
 
-%% sub-functions
+%sub-functions
 
 function [outDATA_NaN] = artifactRejection(outDATA, CT)
 % Inputs:
