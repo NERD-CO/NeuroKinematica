@@ -50,7 +50,7 @@ pixels_to_mm = 2.109; % 232 mm / 110 pxl = 2.1091 mm per pixel
 %% Main function
 
 % create an outputs directory
-outputDir = [mainDir3 filesep 'processedMovement'];
+outputDir = [mainDir filesep 'processedMovement'];
 if ~exist(outputDir, 'dir')
     mkdir(outputDir);
 end
@@ -128,7 +128,7 @@ for csv_i = 1:length(moveCSV)
     % tIME = transpose(seconds(0:1/60:(length(euclidall)-1)/60));
 
     % euclidTT = array2timetable(euclidall,'RowTimes',tIME)
-    %  stackedplot(euclidTT)
+    % stackedplot(euclidTT)
 
     % Average the computed distances related to fingertip movements
     % fTipAverage = mean(fTipEuclid,2);
