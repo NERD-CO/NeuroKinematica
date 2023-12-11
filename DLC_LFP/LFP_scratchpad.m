@@ -268,7 +268,7 @@ mainMAT2 = {mainMat.name};
 
 % Generate list of Motor Index CSVs (filters for CSVs that contain 'Move' string)
 moveCSV = mainCSV2(contains(mainCSV2,'Move'));
-%%
+
 
 %% Main function
 

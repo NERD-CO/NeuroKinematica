@@ -1,10 +1,12 @@
-function [] = run_MovementProcessing_IO_jatv1(mainDir)
+function [] = run_MovementProcessing_IO_jatv1(mainDir, casedate_hem)
 
 % Analyze data isolated by casedate and hemisphere
+mainDir2 = [mainDir , filesep , casedate_hem];
 
-mainDirVID = [mainDir , filesep , 'video folder'];
-mainDirMAT = [mainDir , filesep , 'mat folder'];
-mainDirCSV = [mainDir , filesep , 'csv folder'];
+
+mainDirVID = [mainDir , filesep , casedate_hem, filesep , 'video folder'];
+mainDirMAT = [mainDir , filesep , casedate_hem, filesep , 'mat folder'];
+mainDirCSV = [mainDir , filesep , casedate_hem, filesep , 'csv folder'];
 
 % Isolate dlc outputs of interest
 cd(mainDirCSV)
@@ -21,16 +23,13 @@ mainCSVb2 = {mainCSVb.name};
 % Generate list of Motor Index CSVs (filters for CSVs that contain 'Move' string)
 moveCSV = mainCSVb2(contains(mainCSVb2,'Move'));
 
+ 
 % EUC indicies
-cd(mainDir)
+cd(mainDir2)
 eucINDICIES = readtable("EUC_Indicies.xlsx");
 
-%% Main function
-% create an outputs directory
-outputDir = [mainDir , filesep , 'processedMovement'];
-if ~exist(outputDir, 'dir')
-    mkdir(outputDir);
-end
+%% Define time conversion factor and distance conversion factor
+
 % Define framerate of videos (time conversion factor)
 fps = 60; % frames per second
 
@@ -50,7 +49,7 @@ pixels_to_mm = 2.109; % 232 mm / 110 pxl = 2.1091 mm per pixel
 %% Main function
 
 % create an outputs directory
-outputDir = [mainDir filesep 'processedMovement'];
+outputDir = [mainDir2, filesep, 'processedMovement'];
 if ~exist(outputDir, 'dir')
     mkdir(outputDir);
 end
@@ -264,9 +263,6 @@ for csv_i = 1:length(moveCSV)
         cd(outputDir)
         % Write outDATA_NaN table to a CSV file in the specified output directory
         writetable(outDATA_NaN, outDATA_NaN_filename);
-
-
-        % save([outputDir filesep 'outDATA_NaN.csv']);
 
     end
 
