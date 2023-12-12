@@ -247,19 +247,20 @@ RIGHT_sessDurations_seconds_1 = stream_RIGHT_1_times.Duration;
 
 %% 9/12/2023 BrainSense LFP streams (12) in JSON Session Report 1 - Off Med
 
-% JsessRow	sessDur(s)	DLC_sessID	DLC_sessDur(s) 	Hemisphere	Notes
-% 1	        32	        NA	            NA	        L	        % • baseline_L, (Off Med, Off Stim @ 0 mA)
-% 2	        32	        NA		        NA          R	        % • baseline_R, (Off Med, Off Stim @ 0 mA)
-% 3	        47	        session001	    56	        L	        % • session001, set1 (Off Med, Off Stim @ 0 mA)
-% 4	        41	        session002		            R	        % • session002, set1 (Off Med, Off Stim @ 0 mA)
-% 5	        38	        session003	    48	        L	        % • session003, set2 (Off Med, Off Stim @ 0 mA)
-% 6	        34	        session004		            R	        % • session004, set2 (Off Med, Off Stim @ 0 mA)
-% 7	        322	        session005	    336	        L	        % • session005 (Off Med, Stim Ramping)
-% 8	        251	        session006		            R	        % • session006 (Off Med, Stim Ramping)
-% 9	        36	        session007	    45	        L	        % • session007, set1 (Off Med, On Stim @ max mA)
-% 10	    29	        session008		            R	        % • session008, set1 (Off Med, On Stim @ max mA)
-% 11	    28	        session009	    35	        L	        % • session009, set2 (Off Med, On Stim @ max mA)
-% 12	    26	        session010		            R       	% • session010, set2 (Off Med, On Stim @ max mA)
+sessRow	sessDur(s)	DLC_sessID	DLC_sessDur(s) 	Hemisphere	Notes
+1	    32	        NA	        NA	                    L	        % • baseline_L, (Off Med, Off Stim @ 0 mA)
+2	    32	        NA		                    R	        % • baseline_R, (Off Med, Off Stim @ 0 mA)
+3	    47	        session001	    56	        L	        % • session001, set1 (Off Med, Off Stim @ 0 mA)
+4	    41	        session002		            R	        % • session002, set1 (Off Med, Off Stim @ 0 mA)
+5	    38	        session003	    48	        L	        % • session003, set2 (Off Med, Off Stim @ 0 mA)
+6	    34	        session004		            R	        % • session004, set2 (Off Med, Off Stim @ 0 mA)
+7	    322	        session005	    336	        L	        % • session005 (Off Med, Stim Ramping)
+8	    251	        session006		            R	        % • session006 (Off Med, Stim Ramping)
+9	    36	        session007	    45	        L	        % • session007, set1 (Off Med, On Stim @ max mA)
+10	    29	        session008		            R	        % • session008, set1 (Off Med, On Stim @ max mA)
+11	    28	        session009	    35	        L	        % • session009, set2 (Off Med, On Stim @ max mA)
+12	    26	        session010		            R       	% • session010, set2 (Off Med, On Stim @ max mA)
+
 
 
 %% 9/12/2023 case videos (10) for JSON Session Report 1 - Off Med
