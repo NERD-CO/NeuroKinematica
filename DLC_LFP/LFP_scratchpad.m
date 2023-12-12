@@ -260,7 +260,6 @@ end
 
 
 
-
 R_streamsofInt_OffMed = {R_streamOfInt_bsln, R_streamOfInt_s2, R_streamOfInt_s4, R_streamOfInt_s6, R_streamOfInt_s8, R_streamOfInt_s10}; % w/ baseline
 % R_streamsofInt_OffMed = {R_streamOfInt_s2, R_streamOfInt_s4, R_streamOfInt_s6, R_streamOfInt_s8, R_streamOfInt_s10}; % w/o baseline
 
@@ -284,22 +283,32 @@ for R_i = 1:length(R_streamsofInt_OffMed)
 end
 
 
-%% compute LFP power per session using pspectrum function
+%% compute LFP power / instantaneous LFP beta power and plot PSDs per session (using pspectrum function)
 
-% fs=250;
-% nfft=250;
-% window=250;
-% overlap=150;
-% lfpsamplerate=2;
-% color = turbo(11);
+
+
+
+
+%% spectrograms describing session recordings using Caleb's code
+
+fs = 250;
+nfft = 250;
+window = 250;
+overlap = 150;
+lfpsamplerate = 2;
+color = turbo(11);
+
+addpath 'C:\Users\erinr\OneDrive\Documents\GitHub\NeuroKinematica\DLC_LFP\MDT-SampleCode'
+UCH_PowerSnapTD_short(js_1)
+UCH_PowerSnapLFPCL_short(js_1)
 
 
 %% Align LFP streams w/ movement / video data w/ rlevant marker (e.g., palm or finger tip)
 
-% Original signal at 60 Hz
-ts_DLC = 0:1/60:(height(dlc_lab2use)-1)/60;
-% Target sampling rate at 250 Hz
-ts_LFP = 0:1/250:(height(streamOfInt)-1)/250;
+% % Original signal at 60 Hz
+% ts_DLC = 0:1/60:(height(dlc_lab2use)-1)/60;
+% % Target sampling rate at 250 Hz
+% ts_LFP = 0:1/250:(height(streamOfInt)-1)/250;
 
 
 %% Kinematic and LFP plot
