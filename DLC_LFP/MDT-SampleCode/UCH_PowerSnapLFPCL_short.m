@@ -115,7 +115,7 @@ if not(isempty([LDoutL]))
     hold on
     plot(TDLFP, LDoutL','Linestyle',':','Marker','.',...
         'MarkerSize',3,'color',color{1})
-    ylabel('LFP (LSB)')
+    ylabel('LFP') % (LSB)') % LSB = least significant bit?
     try
     ylim([0, 5*mean(LDoutL,'omitnan')])
     catch
@@ -168,7 +168,7 @@ if not(isempty([LDoutR]))
     hold on
     plot(TDLFP, LDoutR','Linestyle',':','Marker','.',...
         'MarkerSize',3,'color',color{1})
-    ylabel('LFP (LSB)')
+    ylabel('LFP') % (LSB)') % LSB = least significant bit?
     try
     ylim([0, 5*mean(LDoutR,'omitnan')])
     catch
