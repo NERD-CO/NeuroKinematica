@@ -68,7 +68,7 @@ dlcTab_vid = struct2table(dlc_vid);
 disp('Video1 done!')
 
 % session001 
-StartFrame =  206; % 206
+StartFrame =  216; % 206
 StopFrame = 3060;  % 210
 
 %% Trim DLC video by start and stop from Tablet video
@@ -187,6 +187,26 @@ xlabel('Time in seconds')
 %      pause
 % 
 % end
+
+
+%%
+
+for ffi = 1:height(dlcTab_vid2use.cdata)
+    imshow(dlcTab_vid2use.cdata{ffi})
+    hold on
+    plot(dlc_lab2use.PalmBase_x(ffi),dlc_lab2use.PalmBase_y(ffi),'ro')
+    pause(0.01)
+    cla
+end
+
+
+%% To do
+
+% 1. clean up interpolated point of interest
+
+% 2. clean up LFP with artifact removal
+
+% 3. instanteous theta , beta and gamma
 
 
 %% Check DLC labeled video
