@@ -283,9 +283,30 @@ for R_i = 1:length(R_streamsofInt_OffMed)
 end
 
 
+%%
+
+% Load in videos
+% Loaad in MoveIndice CSV file
+% Denote Tablet Start & Stop
+
+
+
+
+
 %% compute LFP power / instantaneous LFP beta power and plot PSDs per session (using pspectrum function)
 
-
+% pspectrum 
+% fxx - freq
+% pxx - power
+% 
+% L_rowfromTab_s1 = 3;
+% L_streamOfInt_s1 = stream_LEFT_1.TimeDomainData{L_rowfromTab_s1}; % L_set1 (Off Med, Off Stim @ 0 mA)
+% 
+% 
+% % bin data  
+% spectrogram 
+% bp filter beta
+% hilbert transform
 
 
 
@@ -309,6 +330,9 @@ UCH_PowerSnapLFPCL_short(js_1)
 % ts_DLC = 0:1/60:(height(dlc_lab2use)-1)/60;
 % % Target sampling rate at 250 Hz
 % ts_LFP = 0:1/250:(height(streamOfInt)-1)/250;
+
+
+
 
 
 %% Kinematic and LFP plot
