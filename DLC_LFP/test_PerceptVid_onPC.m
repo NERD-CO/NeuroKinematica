@@ -2,25 +2,40 @@
 
 % Determine frames for video based on recording start
 
-% mainDIR = 'D:\Dropbox\erin_clinic_video\Clin_2023-09-12_session1_soffoffLi_Lcam-emr-2023-09-16\videos';
-% mainDIR = 'C:\Users\erinr\Downloads\erin_clinic_video\erin_clinic_video\Clin_2023-09-12_session1_soffoffLi_Lcam-emr-2023-09-16\videos';
-
 mainDIR = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\DLC_LFP';
+
 casedate_hem = '09_12_2023_LSTN';
 mainDIR2 = [mainDIR, filesep , casedate_hem];
 cd(mainDIR2)
 
-%% Tablet video
-
-% tab_vidLoc = [mainDIR, filesep , 'TabletVideo'];
-% cd(tab_vidLoc)
+%% Converted left and right cam case videos
 
 vidLoc = [mainDIR2, filesep , 'ConvertedVideos'];
 cd(vidLoc)
 
-% 09_12_2023_LSTN - Tablets are in Right Cam 
+%% Tablet video
+
+% Assuming 9_12_2023 LSTN, R body Tablet Frames were captured via Right Cam
+TabletVideos = {'20230912_idea08_session001_rightCam-0000DLC_resnet50_Clin_2023-09-12_LSTN_v3Oct3shuffle1_100000_labeled-converted.mp4',
+                '20230912_idea08_session003_rightCam-0000DLC_resnet50_Clin_2023-09-12_LSTN_v3Oct3shuffle1_100000_labeled-converted.mp4',
+                '20230912_idea08_session005_rightCam-0000DLC_resnet50_Clin_2023-09-12_LSTN_v3Oct3shuffle1_100000_labeled-converted.mp4',
+                '20230912_idea08_session007_rightCam-0000DLC_resnet50_Clin_2023-09-12_LSTN_v3Oct3shuffle1_100000_labeled-converted.mp4',
+                '20230912_idea08_session009_rightCam-0000DLC_resnet50_Clin_2023-09-12_LSTN_v3Oct3shuffle1_100000_labeled-converted.mp4',
+                '20230912_idea08_session013_rightCam-0000DLC_resnet50_Clin_2023-09-12_LSTN_v3Oct3shuffle1_100000_labeled-converted.mp4',
+                '20230912_idea08_session015_rightCam-0000DLC_resnet50_Clin_2023-09-12_LSTN_v3Oct3shuffle1_100000_labeled-converted.mp4',
+                '20230912_idea08_session018_rightCam-0000DLC_resnet50_Clin_2023-09-12_LSTN_v3Oct3shuffle1_100000_labeled-converted.mp4',
+                '20230912_idea08_session020_rightCam-0000DLC_resnet50_Clin_2023-09-12_LSTN_v3Oct3shuffle1_100000_labeled-converted.mp4',
+                '20230912_idea08_session022_rightCam-0000DLC_resnet50_Clin_2023-09-12_LSTN_v3Oct3shuffle1_100000_labeled-converted.mp4'};
+
+% for tab_vid_i = 1:length(TabletVideos)
+%     tab_vidObj = VideoReader(TabletVideos{tab_vid_i});
+%     tab_vid = struct('cdata',zeros(tab_vidObj.Height,tab_vidObj.Width,3,'uint8'),'colormap',[]);
+% end
+
+
 tab_vidObj = VideoReader('20230912_idea08_session001_rightCam-0000DLC_resnet50_Clin_2023-09-12_LSTN_v3Oct3shuffle1_100000_labeled-converted.mp4');
 tab_vid = struct('cdata',zeros(tab_vidObj.Height,tab_vidObj.Width,3,'uint8'),'colormap',[]);
+
 
 %% Convert Tablet Video to dataframe
 
