@@ -1,93 +1,50 @@
-function [] = run_MovementProcessing_IO_v1(mainDir)
+function [] = run_MovementProcessing_IO_v1(mainDir, casedate_hem)
 
 % Goal: Process and visualize movement timeseries data based on videos that have been anatomically labeled (13pt per frame) and analyzed via a trained DeepLabCut model
 
 %% Directory set-up - Navigate b/t machines
-% pcname = getenv('COMPUTERNAME');
-%
-% switch pcname
-%     case 'DESKTOP-I5CPDO7'   %%% JAT Desktop
-%
-%         % mainDir = '';
-%
-%     case 'DSKTP-JTLAB-EMR'   %%% ER Desktop
-%
-%         mainDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\Kinematic Analyses';
-%
-%     case 'NSG-M-FQBPFK3'     %%% ER PC
-%
-%         mainDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\Kinematic Analyses';
-% end
+pcname = getenv('COMPUTERNAME');
+
+switch pcname
+    case 'DESKTOP-I5CPDO7'   %%% JAT Desktop
+
+        % mainDir = '';
+
+    case 'DSKTP-JTLAB-EMR'   %%% ER Desktop
+
+        mainDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\Kinematic Analyses';
+
+    case 'NSG-M-FQBPFK3'     %%% ER PC
+
+        mainDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\Kinematic Analyses';
+end
 
 
 %% Analyze data isolated by casedate and hemisphere
 
 % Define casedate and hemisphere
-<<<<<<< Updated upstream
-casedate = '03_09_2023';
-hemisphere = 'R';
 
-mainDir2 = [mainDir , filesep , casedate];
+% casedate_hem = '03_09_2023_RSTN';
 
-switch hemisphere
-    case 'L'
-
-        mainDir3 = [mainDir2 , filesep , 'LSTN'];
-
-    case 'R'
-=======
-% casedate = '03_09_2023';
-% hemisphere = 'R';
-
-
-mainDirVID = [mainDir , filesep , 'video folder'];
-mainDirMAT = [mainDir , filesep , 'mat folder'];
-mainDirCSV = [mainDir , filesep , 'csv folder'];
-% switch hemisphere
-%     case 'L'
-%
-%         mainDir3 = [mainDir2 , filesep , 'LSTN'];
-%
-%     case 'R'
-%
-%         mainDir3 = [mainDir2 , filesep , 'RSTN'];
-% end
->>>>>>> Stashed changes
-
-
+mainDir2 = [mainDir , filesep , casedate_hem];
+cd(mainDir2)
 
 
 %% Isolate dlc outputs of interest
-cd(mainDirCSV)
+
 % Generate list of dlc-video-labeled CSV files
-% mainCSV = dir('*.csv');
-% mainCSV2 = {mainCSV.name};
-cd(mainDirMAT)
+mainCSV = dir('*.csv');
+mainCSV2 = {mainCSV.name};
+
 % Generate list of dlc-video-labeled MAT files
 mainMat = dir('*.mat');
 mainMAT2 = {mainMat.name};
-cd(mainDirVID)
-mainCSVb = dir('*.csv');
-mainCSVb2 = {mainCSVb.name};
+
 % Generate list of Motor Index CSVs (filters for CSVs that contain 'Move' string)
-moveCSV = mainCSVb2(contains(mainCSVb2,'Move'));
-
-% EUC indicies
-cd(mainDir)
-eucINDICIES = readtable("EUC_Indicies.xlsx");
+moveCSV = mainCSV2(contains(mainCSV2,'Move'));
 
 
-<<<<<<< Updated upstream
 %% Define time conversion factor and distance conversion factor
-=======
-%% Main function
-
-% create an outputs directory
-outputDir = [mainDir , filesep , 'processedMovement'];
-if ~exist(outputDir, 'dir')
-    mkdir(outputDir);
-end
->>>>>>> Stashed changes
 
 % Define framerate of videos (time conversion factor)
 fps = 60; % frames per second
@@ -112,7 +69,7 @@ pixels_to_mm = 2.109; % 232 mm / 110 pxl = 2.1091 mm per pixel
 %% Main function
 
 % create an outputs directory
-outputDir = [mainDir3 filesep 'processedMovement'];
+outputDir = [mainDir2 filesep 'processedMovement_v1'];
 if ~exist(outputDir, 'dir')
     mkdir(outputDir);
 end
@@ -126,19 +83,16 @@ for csv_i = 1:length(moveCSV)
     nameParts = split(tmpCSV,'_');
     dateID = nameParts{1};
     sessID = nameParts{3};
-    camID = nameParts{5};
-    runID = nameParts{2};
-    % hemID = nameParts{8};
-    % matName_title = [dateID , '-' , sessID, '-', hemID];
+    hemID = nameParts{8};
+    matName_title = [dateID , '-' , sessID, '-', hemID]
 
     % Find and load corresponding dlcDAT MAT file
-    matTempfind = [dateID , '_' , sessID,'_',runID,'_',camID];
+    matTempfind = [dateID , '_' , sessID];
     matInd = contains(mainMAT2 , matTempfind);
     matName = mainMAT2{matInd};
-    cd(mainDirMAT)
-    load(matName , 'outDATA')
+    load(matName)
 
-    % Call artifact rejection function
+    % Call artifact rejection function 
     CT = 0.5; % Set confidence threshold (CT) for accepting/rejecting frames (default CT = 0.5), adjust
     [outDATA_NaN] = artifactRejection(outDATA, CT); % Use outDATA_NaN instead of outDATA for further processing
 
@@ -177,102 +131,62 @@ for csv_i = 1:length(moveCSV)
     euclidall = euclidall * pixels_to_mm; % converting euclidean distances to mm
 
     % Filter the computed distances related to fingertip movements
-
-    curVID = eucINDICIES(matches(eucINDICIES.videoID,tmpCSV),:);
-   
-    handOCindsT = curVID(matches(curVID.moveID,'HAND OC'),:);
-    handOCinds = mean(euclidall(:,handOCindsT.eucID),2);
-    handPSindsT = curVID(matches(curVID.moveID,'HAND PS'),:);
-    handPSinds = mean(euclidall(:,handPSindsT.eucID),2);
-    armEFindsT = curVID(matches(curVID.moveID,'ARM EF'),:);
-    armEFinds = mean(euclidall(:,armEFindsT.eucID),2);
-
-    % tIME = transpose(seconds(0:1/60:(length(euclidall)-1)/60));
-
-    % euclidTT = array2timetable(euclidall,'RowTimes',tIME)
-    %  stackedplot(euclidTT)
+    fTipInds = contains(colNames4,'fTip');
+    fTipEuclid = euclidall(:,fTipInds);
 
     % Average the computed distances related to fingertip movements
-    % fTipAverage = mean(fTipEuclid,2);
-    % elbowAverage = mean(elBlowEuclid,2);
+    fTipAverage = mean(fTipEuclid,2);
 
     % Process dlcDAT MAT files using MoveIndex CSV files to select specific portions of the averaged fingertip distances
-    cd(mainDirVID)
     moveINDtab = readtable(tmpCSV);
     moveINDtab = moveINDtab(~moveINDtab.BeginF == 0,:); % clean up - filters out rows in moveINDtab where the BeginF field is zero.
     moveINDtab = moveINDtab(~moveINDtab.EndF == 0,:); % clean up - filters out rows in moveINDtab where the EndF field is zero.
 
+    % Align with Euclidean distance frames
+    firstBegin = moveINDtab.BeginF(1) - 1; % assigned to value of the first element in the BeginF column of moveINDtab - 1 (because MATLAB uses 1-based indexing)
+    lastEnd = moveINDtab.EndF(height(moveINDtab)) - 1; % assigned to value of the last element in the EndF column of moveINDtab - 1
 
-    % LOOP THROUGH MOVE TYPES
-    moveTypeIDs = unique(moveINDtab.MoveType);
-    moveTypeNum = numel(moveTypeIDs);
+    % Extract and store the average fingertip distance for specified frames (in fTip Average Block)
+    fTipAveBlk = fTipAverage(firstBegin:lastEnd); % extracts subset of fTipAverage w/in frame range from firstBegin to lastEnd (represents specific portion of data where specified movement is detected, as indicated in MoveIndex CSV file)
 
-    for mmi = 1:moveTypeNum
+    % Smooth out edges -- smoothdata function w/ 'guassian' method
+    window_Width = 5; % set windowWidth as needed
+    smoothed_fTipAveBlk = smoothdata(fTipAveBlk, 'gaussian', window_Width); % read documentation, window overlap
 
-        moveTypeTab = moveINDtab(matches(moveINDtab.MoveType,moveTypeIDs{mmi}),:);
+    % set thresholds based on mean +/- 3xStd
+    MinPeakHeight = mean(smoothed_fTipAveBlk);
+    MinPeakProminence = mean(smoothed_fTipAveBlk)*2;
 
-        % Align with Euclidean distance frames
-        firstBegin = moveTypeTab.BeginF(1) - 30; % assigned to value of the first element in the BeginF column of moveINDtab - 1 (because MATLAB uses 1-based indexing)
-        lastEnd = moveTypeTab.EndF(height(moveTypeTab)) + 30; % assigned to value of the last element in the EndF column of moveINDtab - 1
+    % Rubric for movement type -OR- iterative algorthmic approach
+    % MinPeakDistance_HandMov =
+    % MinPeakDistance_PronSup =
+    % MinPeakDistance_FlexExtend =
+    % MinPeakDistance_FingerTap =
 
-        switch moveTypeIDs{mmi}
-            case 'HAND OC'
-                moveEUC2use = handOCinds;
-                window_Width = 15;
-            case 'HAND PS'
-                moveEUC2use = handPSinds;
-                window_Width = 15;
-            case 'ARM EF'
-                moveEUC2use = armEFinds;
-                window_Width = 25;
-        end
-       
-        if lastEnd > height(moveEUC2use)
-            lastEnd = height(moveEUC2use);
-        end
+    % Find peak amplitudes and compute widths -- findpeaks function [review documentation]
+    [peaks_tmp, locs_tmp, widths_tmp, prominences_tmp] = findpeaks(smoothed_fTipAveBlk, fps, MinPeakHeight=mean(smoothed_fTipAveBlk), MinPeakDistance=0.15, MinPeakProminence=mean(smoothed_fTipAveBlk)*2, Annotate ='extents');
+    [peaks, locs, widths, prominences] = findpeaks(smoothed_fTipAveBlk, MinPeakHeight=mean(smoothed_fTipAveBlk), MinPeakDistance=15, MinPeakProminence=mean(smoothed_fTipAveBlk)*2, Annotate ='extents');
 
-        % Extract and store the average fingertip distance for specified frames (in fTip Average Block)
-        moveAveBlk = moveEUC2use(firstBegin:lastEnd); % extracts subset of fTipAverage w/in frame range from firstBegin to lastEnd (represents specific portion of data where specified movement is detected, as indicated in MoveIndex CSV file)
+    % Convert distance variables to mm usng distance conversion factor
+    amplitudes = peaks * pixels_to_mm; % converting amplitudes to mm
 
-        % Smooth out edges -- smoothdata function w/ 'guassian' method
-        % window_Width = 5; % set windowWidth as needed
-        smoothed_moveAveBlk = smoothdata(moveAveBlk, 'gaussian', window_Width); % read documentation, window overlap
+    % Compute timepoints from locs (vector of integer indices corresponding to video frame number)
+    timepoints = locs / fps; % Convert frame numbers to time (in seconds) using video sampling rate (Fs) conversion factor
 
-        % set thresholds based on mean +/- 3xStd
-        % MinPeakHeight = mean(smoothed_fTipAveBlk);
-        % MinPeakProminence = mean(smoothed_fTipAveBlk)*2;
+    % Compute distances between consecutive peaks
+    peakDists_frames = diff(locs); % by frame indice
+    peakDists_p = diff(timepoints); % by timepoint (in seconds)
 
-        % Rubric for movement type -OR- iterative algorthmic approach
-        % MinPeakDistance_HandMov =
-        % MinPeakDistance_PronSup =
-        % MinPeakDistance_FlexExtend =
-        % MinPeakDistance_FingerTap =
+    % Convert frame-relative variables to seconds using time conversion factor
+    widths_fps = widths / fps; % converting widths to seconds
+    halfWidths = widths_fps / 2;
+    % slope
 
-        % Find peak amplitudes and compute widths -- findpeaks function [review documentation]
-        % [peaks_tmp, locs_tmp, widths_tmp, prominences_tmp] = findpeaks(smoothed_fTipAveBlk, fps, MinPeakHeight=mean(smoothed_fTipAveBlk), MinPeakDistance=0.15, MinPeakProminence=mean(smoothed_fTipAveBlk)*2, Annotate ='extents');
+    % normalize within patient - relative to bl (Off, off)
 
-        switch moveTypeIDs{mmi}
-            case 'HAND OC'
+    % Compute timepoints for all indices
+    timepoints__fTipAveBlk = (1:length(smoothed_fTipAveBlk))/fps;
 
-                ampMEAN = mean(smoothed_moveAveBlk,'omitnan');
-                ampSTD = std(smoothed_moveAveBlk,'omitnan');
-                ampThresh = (ampMEAN + (ampSTD/2))*0.4; % 0.75
-
-                [peaks, locs, widths, prominences] = findpeaks(smoothed_moveAveBlk,...
-                    MinPeakHeight=mean(smoothed_moveAveBlk), MinPeakDistance=15,...
-                    MinPeakProminence=ampThresh, Annotate ='extents');
-
-                close all
-                figure;
-
-                findpeaks(smoothed_moveAveBlk,...
-                    MinPeakHeight=mean(smoothed_moveAveBlk), MinPeakDistance=15,...
-                    MinPeakProminence=ampThresh, Annotate ='extents')
-
-            case 'HAND PS'
-
-
-<<<<<<< Updated upstream
     % Plot smooth movement for each CSV iteration
     subplot(length(moveCSV), 1, csv_i);
     hold on
@@ -283,109 +197,26 @@ for csv_i = 1:length(moveCSV)
     ylabel('amplitude');
     hold off
     title(['Smooth Fingertip Movement, ', num2str(matName_title)])
-=======
-                ampMEAN = mean(smoothed_moveAveBlk,'omitnan');
-                ampSTD = std(smoothed_moveAveBlk,'omitnan');
-                ampThresh = (ampMEAN + (ampSTD/2))*0.3;
->>>>>>> Stashed changes
 
+    % Define unique name for the findpeaks results based on the current CSV name
+    findpeaks_output = [outputDir filesep 'findpeaks_output_' tmpCSV(1:end-44) '.csv']; % assumes tmpCSV is a string ending in '.csv'
 
-                [peaks, locs, widths, prominences] = findpeaks(smoothed_moveAveBlk,...
-                    MinPeakHeight=mean(smoothed_moveAveBlk), MinPeakDistance=10,...
-                    MinPeakProminence=ampThresh, Annotate ='extents');
+    % Create a table to store results based on computed variables
+    T1 = table(timepoints, locs, peaks, amplitudes, prominences, widths_fps, halfWidths, 'VariableNames', {'Timepoints', 'Locations', 'Peaks', 'Amplitudes', 'Prominences', 'Widths', 'HalfWidths'});
 
-                close all
-                figure;
+    % Write results table to a CSV file
+    writetable(T1, findpeaks_output);
 
-                findpeaks(smoothed_moveAveBlk,...
-                    MinPeakHeight=mean(smoothed_moveAveBlk), MinPeakDistance=5,...
-                    MinPeakProminence=ampThresh, Annotate ='extents')
+    % Define unique name for the outDATA_NaN output file based on the current CSV/MAT filename
+    outDATA_NaN_filename = [outputDir filesep 'cleaned_dlcDAT_NaN_' tmpCSV(1:end-44) '.csv']; % Removes '.csv' from tmpCSV and appends 'outDATA_NaN_'
+    % outDATA_NaN_filename = [outputDir filesep 'outDATA_NaN_' tmpCSV(1:end-44) '.csv']; % Removes '.csv' from tmpCSV and appends 'outDATA_NaN_'
 
-
-            case 'ARM EF'
-                [peaks, locs, widths, prominences] = findpeaks(smoothed_moveAveBlk,...
-                    MinPeakHeight=mean(smoothed_moveAveBlk)*1.2, MinPeakDistance=20, Annotate ='extents');
-
-                close all
-                figure;
-
-                findpeaks(smoothed_moveAveBlk,...
-                    MinPeakHeight=mean(smoothed_moveAveBlk)*1.2, MinPeakDistance=20, Annotate ='extents')
-
-        end
-
-        xlabel('time (s)');
-        ylabel('amplitude');
-        hold off
-        fileNAME = [moveTypeIDs{mmi}, ' ', sessID , ' ' , runID];
-        title(fileNAME)
-        cd(outputDir)
-        legend('none')
-
-        saveas(gcf,fileNAME,'png')
-
-
-        % close all
-        % findpeaks(smoothed_moveAveBlk,...
-        %     MinPeakHeight=mean(smoothed_moveAveBlk), MinPeakDistance=15,...
-        %     MinPeakProminence=mean(smoothed_moveAveBlk)*2, Annotate ='extents');
-
-        % Convert distance variables to mm usng distance conversion factor
-        amplitudes = peaks * pixels_to_mm; % converting amplitudes to mm
-
-        % Compute timepoints from locs (vector of integer indices corresponding to video frame number)
-        timepoints = locs / fps; % Convert frame numbers to time (in seconds) using video sampling rate (Fs) conversion factor
-
-        % Compute distances between consecutive peaks
-        % peakDists_frames = diff(locs); % by frame indice
-        % peakDists_p = diff(timepoints); % by timepoint (in seconds)
-
-        % Convert frame-relative variables to seconds using time conversion factor
-        widths_fps = widths / fps; % converting widths to seconds
-        halfWidths = widths_fps / 2;
-        % slope
-
-        % normalize within patient - relative to bl (Off, off)
-
-        % Compute timepoints for all indices
-        % timepoints__moveAveBlk = (1:length(smoothed_moveAveBlk))/fps;
-
-        % % Plot smooth movement for each CSV iteration
-
-        % % Adjust the parameters in findpeaks
-        % findpeaks(smoothed_moveAveBlk, timepoints__moveAveBlk, MinPeakHeight=mean(smoothed_moveAveBlk), MinPeakDistance=0.15, MinPeakProminence=mean(smoothed_moveAveBlk)*2, Annotate ='extents');
-        % % define axes labels and subplot titles
-        % xlabel('time (s)');
-        % ylabel('amplitude');
-        % hold off
-        % title(['Smooth Hand O/C Movement, ', num2str(matName_title)])
-
-        % Define unique name for the findpeaks results based on the current CSV name
-        findpeaks_output = [outputDir , filesep , 'findpeaks_output_' ,...
-            moveTypeIDs{mmi}, '_', tmpCSV(1:end-44) '.csv']; % assumes tmpCSV is a string ending in '.csv'
-
-        % Create a table to store results based on computed variables
-        T1 = table(timepoints, locs, peaks, amplitudes, prominences, widths_fps, halfWidths, 'VariableNames', {'Timepoints', 'Locations', 'Peaks', 'Amplitudes', 'Prominences', 'Widths', 'HalfWidths'});
-
-        % Write results table to a CSV file
-        writetable(T1, findpeaks_output);
-
-        % Define unique name for the outDATA_NaN output file based on the current CSV/MAT filename
-        outDATA_NaN_filename = [outputDir filesep 'cleaned_dlcDAT_NaN_' tmpCSV(1:end-44) '.csv']; % Removes '.csv' from tmpCSV and appends 'outDATA_NaN_'
-        % outDATA_NaN_filename = [outputDir filesep 'outDATA_NaN_' tmpCSV(1:end-44) '.csv']; % Removes '.csv' from tmpCSV and appends 'outDATA_NaN_'
-
-        cd(outputDir)
-        % Write outDATA_NaN table to a CSV file in the specified output directory
-        writetable(outDATA_NaN, outDATA_NaN_filename);
-
-
-        % save([outputDir filesep 'outDATA_NaN.csv']);
-
-    end
+    % Write outDATA_NaN table to a CSV file in the specified output directory
+    writetable(outDATA_NaN, outDATA_NaN_filename);
 
 end
 
-
+cd(outputDir)
 
 
 end

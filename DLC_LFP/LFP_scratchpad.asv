@@ -37,8 +37,8 @@ cd(mainDir2)
 %% Navigate to LFP time domain data in JSON Session Reports
 
 % Load JSON Session Reports
-JSON_name1 = 'Report_Json_Session_Report_20230912T115956.json'; 
-JSON_name2 = 'Report_Json_Session_Report_20230912T115939.json'; 
+JSON_name1 = 'Report_Json_Session_Report_20230912T115956.json';
+JSON_name2 = 'Report_Json_Session_Report_20230912T115939.json';
 % JSON_name3 = ...
 % etc.
 
@@ -46,14 +46,14 @@ JSON_name2 = 'Report_Json_Session_Report_20230912T115939.json';
 JSON_filenames = {JSON_name1, JSON_name2};
 
 % Initialize structure to store the first row of outTAB for each JSON file
-session_StartTimes = struct(); 
+session_StartTimes = struct();
 
 % Define perceive_ecg function params and add function paths
 fs = 250;
 plotit = 0; % 0 = don't plot, 1 = plot
 addpath 'C:\Users\erinr\OneDrive\Documents\GitHub\NeuroKinematica\perceive-master'
 
-% loop through each JSON file 
+% loop through each JSON file
 for json_i = 1:length(JSON_filenames)
 
     % load current JSON Session Report
@@ -81,17 +81,17 @@ for json_i = 1:length(JSON_filenames)
     BSTD_1_table = struct2table(BSTD_1);
 
     % % plot raw and ecg-filtered time domain data for each row of current JSON file
-    % for BSTD_i = 1:size(temp_BSTD_1_table, 1) % Loop through each row in current JSON 
-    % 
+    % for BSTD_i = 1:size(temp_BSTD_1_table, 1) % Loop through each row in current JSON
+    %
     %     % % Optional: plot unfiltered data
     %     % figure; % Create new figure for each plot
     %     % plot(temp_BSTD_table.TimeDomainData{BSTD_i}); % blue
     %     % title(sprintf('File %d, Row %d', json_i, BSTD_i));
-    % 
+    %
     %     % filter out ECG for each row of time domain data in current JSON
     %     tempData_1 = transpose(temp_BSTD_1_table.TimeDomainData{BSTD_i}); % Transpose raw data for current row
     %     ecg = perceive_ecg(tempData_1, fs, plotit);
-    % 
+    %
     %     % % Optional: plot ecg-filtered data
     %     % hold on;
     %     % plot(ecg.cleandata); % orange
@@ -114,7 +114,7 @@ end
 % JSON_name2 (...5939.json), FullNAT {'12-Sep-2023 11:31:25'},  On Med
 
 
-%% Process Off Med Session Report 1st
+%% Process OFF Med JSON Session Report 1st
 
 % load JSON Session Report
 js_1_name = 'Report_Json_Session_Report_20230912T115956.json'
@@ -141,323 +141,248 @@ BSTD_1_table = struct2table(BSTD_1); % table
 
 % navigate to time domain data
 BSLFP_times_1 = getBSLFPtimes(BSTD_1_table.FirstPacketDateTime);
+BSLFP_times_1_table = cell2table(BSLFP_times_1.FullNAT);
 disp(BSLFP_times_1(1,3)); % ensure correct file by start-time info
 
+%% filter out ecg
+plot(BSTD_1_table.TimeDomainData{1}); % plot raw time domain data for row 1
 
-% %% filter out ecg
-% plot(BSTD_1_table.TimeDomainData{1}); % plot raw time domain data for row 1
-% 
-% tempData_1 = transpose(BSTD_1_table.TimeDomainData{1}); % transpose raw data for row 1
-% ecg = perceive_ecg(tempData_1,fs,plotit); % run perceive_ecg function
-% 
-% hold on
-% plot(ecg.cleandata) % plot ecg-filtered time domain data for row 1 
-% hold off
+tempData_1 = transpose(BSTD_1_table.TimeDomainData{1}); % transpose raw data for row 1
+ecg = perceive_ecg(tempData_1,fs,plotit); % run perceive_ecg function
+
+hold on
+plot(ecg.cleandata) % plot ecg-filtered time domain data for row 1
+hold off
 
 
-%% Load and find first streaming from LFP
+%% Load Left & Right STN BrainSense LFP streaming sessions in OFF Med JSON Session Report
 
 % BrainSense timedomain data table
-streaming_TAB = BSTD_1_table; 
+streaming_TAB_1 = BSTD_1_table;
 
-% Trim by STN of interest
-stream_LEFT = streaming_TAB(contains(streaming_TAB.Channel,'LEFT'),:); % L STN, R body
-stream_RIGHT = streaming_TAB(contains(streaming_TAB.Channel,'RIGHT'),:); % R STN, L body
+% Trim by STN of interest - LSTN, RSTN
+stream_LEFT_1 = streaming_TAB_1(contains(streaming_TAB_1.Channel,'LEFT'),:); % L STN, R body
+stream_RIGHT_1 = streaming_TAB_1(contains(streaming_TAB_1.Channel,'RIGHT'),:); % R STN, L body
+
+% Determine duration (in seconds) of each stream
+stream_LEFT_1_times = getDAYtimes(stream_LEFT_1.FirstPacketDateTime, stream_LEFT_1.TimeDomainData);
+LEFT_sessDurations_seconds_1 = stream_LEFT_1_times.Duration;
+
+stream_RIGHT_1_times = getDAYtimes(stream_RIGHT_1.FirstPacketDateTime, stream_RIGHT_1.TimeDomainData);
+RIGHT_sessDurations_seconds_1 = stream_RIGHT_1_times.Duration;
+
+
+%% 9/12/2023 BrainSense LFP streams (12) in JSON Session Report 1 - Off Med
+
+% JsessRow	sessDur(s)	DLC_sessID	DLC_sessDur(s) 	Hemisphere	Notes: case videos (10) for JSON Session Report 1 - Off Med
+% 1	        32	        NA	            NA	        L	        % • L_baseline, (Off Med, Off Stim @ 0 mA)
+% 2	        32	        NA		        NA          R	        % • R_baseline, (Off Med, Off Stim @ 0 mA)
+% 3	        47	        session001	    56	        L	        % • session001, set1 (Off Med, Off Stim @ 0 mA)
+% 4	        41	        session002		            R	        % • session002, set1 (Off Med, Off Stim @ 0 mA)
+% 5	        38	        session003	    48	        L	        % • session003, set2 (Off Med, Off Stim @ 0 mA)
+% 6	        34	        session004		            R	        % • session004, set2 (Off Med, Off Stim @ 0 mA)
+% 7	        322	        session005	    336	        L	        % • session005 (Off Med, Stim Ramping)
+% 8	        251	        session006		            R	        % • session006 (Off Med, Stim Ramping)
+% 9	        36	        session007	    45	        L	        % • session007, set1 (Off Med, On Stim @ max mA)
+% 10	    29	        session008		            R	        % • session008, set1 (Off Med, On Stim @ max mA)
+% 11	    28	        session009	    35	        L	        % • session009, set2 (Off Med, On Stim @ max mA)
+% 12	    26	        session010		            R       	% • session010, set2 (Off Med, On Stim @ max mA)
+
+
+%% Isolate specific rows of interest in JSON Session Report 1 - Off Med
 
 % Left STN, Right body
-% Specific Row of interest
-rowfromTab = 3;
-streamOfInt = stream_LEFT.TimeDomainData{rowfromTab};
+% Specific Rows of interest
+L_rowfromTab_bsln = 1;
+L_streamOfInt_bsln = stream_LEFT_1.TimeDomainData{L_rowfromTab_bsln}; % L_baseline (Off Med, Off Stim @ 0 mA)
+
+L_rowfromTab_s1 = 3;
+L_streamOfInt_s1 = stream_LEFT_1.TimeDomainData{L_rowfromTab_s1}; % L_set1 (Off Med, Off Stim @ 0 mA)
+
+L_rowfromTab_s3 = 5;
+L_streamOfInt_s3 = stream_LEFT_1.TimeDomainData{L_rowfromTab_s3}; % L_set2 (Off Med, Off Stim @ 0 mA)
+
+L_rowfromTab_s5 = 7;
+L_streamOfInt_s5 = stream_LEFT_1.TimeDomainData{L_rowfromTab_s5}; % L_ramp (Off Med, Stim Ramping)
+
+L_rowfromTab_s7 = 9;
+L_streamOfInt_s7 = stream_LEFT_1.TimeDomainData{L_rowfromTab_s7}; % L_set1 (Off Med, On Stim @ max mA)
+
+L_rowfromTab_s9 = 11;
+L_streamOfInt_s9 = stream_LEFT_1.TimeDomainData{L_rowfromTab_s9}; % L_set2 (Off Med, On Stim @ max mA)
+
+
+% Right STN, Left body
+% Specific Rows of interest
+R_rowfromTab_bsln = 2;
+R_streamOfInt_bsln = stream_RIGHT_1.TimeDomainData{R_rowfromTab_bsln}; % R_baseline, (Off Med, Off Stim @ 0 mA)
+
+R_rowfromTab_s2 = 4;
+R_streamOfInt_s2 = stream_RIGHT_1.TimeDomainData{R_rowfromTab_s2}; % R_set1 (Off Med, Off Stim @ 0 mA)
+
+R_rowfromTab_s4 = 6;
+R_streamOfInt_s4 = stream_RIGHT_1.TimeDomainData{R_rowfromTab_s4}; % R_set2 (Off Med, Off Stim @ 0 mA)
+
+R_rowfromTab_s6 = 8;
+R_streamOfInt_s6 = stream_LEFT_1.TimeDomainData{R_rowfromTab_s6}; % R_ramp (Off Med, Stim Ramping)
+
+R_rowfromTab_s8 = 10;
+R_streamOfInt_s8 = stream_LEFT_1.TimeDomainData{R_rowfromTab_s8}; % R_set1 (Off Med, On Stim @ max mA)
+
+R_rowfromTab_s10 = 12;
+R_streamOfInt_s10 = stream_LEFT_1.TimeDomainData{R_rowfromTab_s10}; % R_set2 (Off Med, On Stim @ max mA)
+
+
+%% Sanity Check Plotting
+
+L_streamsofInt_OffMed = {L_streamOfInt_bsln, L_streamOfInt_s1, L_streamOfInt_s3, L_streamOfInt_s5, L_streamOfInt_s7, L_streamOfInt_s9}; % w/ baseline
+% L_streamsofInt_OffMed = {L_streamOfInt_s1, L_streamOfInt_s3, L_streamOfInt_s5, L_streamOfInt_s7, L_streamOfInt_s9}; % w/o baseline
+
+% Titles for each plot in L_streamsofInt_OffMed
+plotTitles = {
+    'LSTN baseline (Off Med, Off Stim @ 0 mA)', 
+    'LSTN set1 (Off Med, Off Stim @ 0 mA)', 
+    'LSTN set2 (Off Med, Off Stim @ 0 mA)', 
+    'LSTN ramp (Off Med, Stim Ramping)', 
+    'LSTN set1 (Off Med, On Stim @ max mA)', 
+    'LSTN set2 (Off Med, On Stim @ max mA)'};
+
+figure
+for L_i = 1:length(L_streamsofInt_OffMed)
+   
+    subplot(6,1,L_i)
+    plot(L_streamsofInt_OffMed{L_i})
+    title(plotTitles{L_i}) 
+    xlabel('Time (ms)') 
+    ylabel('LFP Amplitude (uV)') 
+    grid on 
+end
 
 
 
-%% Initial method for determining frames for video based on recording start
+R_streamsofInt_OffMed = {R_streamOfInt_bsln, R_streamOfInt_s2, R_streamOfInt_s4, R_streamOfInt_s6, R_streamOfInt_s8, R_streamOfInt_s10}; % w/ baseline
+% R_streamsofInt_OffMed = {R_streamOfInt_s2, R_streamOfInt_s4, R_streamOfInt_s6, R_streamOfInt_s8, R_streamOfInt_s10}; % w/o baseline
 
-% % Tablet video
-%
-% tab_vidLoc = [mainDIR, filesep , 'TabletVideo'];
-% cd(tab_vidLoc)
-%
-% tab_vidObj = VideoReader('20230912_idea08_session001_rightCam-0000.mp4');
-% tab_vid = struct('cdata',zeros(tab_vidObj.Height,tab_vidObj.Width,3,'uint8'),'colormap',[]);
-%
-% %% Convert Tablet Video to dataframe
-%
-% frami = 1;
-% while hasFrame(tab_vidObj)
-%    tab_vid(frami).cdata = readFrame(tab_vidObj);
-% %    imshow(frame)
-%    frami = frami+1;
-% end
-% whos tab_vid
-% v1who = whos('tab_vid');
-% round(v1who.bytes/1000000/1000,2)
-% disp('Video1 done!')
-%
-% %% Determine which frames to trim on based presence of tablet
-% % Loop through / Plot / Title with Frame #
-%
-% tabTab_vid = struct2table(tab_vid);
-%
-% for fi = 2900:height(tabTab_vid)
-%     imshow(tabTab_vid.cdata{fi})
-%     title(num2str(fi))
-%     pause
-% end
-%
-% % Start 196
-% % Stop 3059
+% Titles for each plot in L_streamsofInt_OffMed
+plotTitles = {
+    'RSTN baseline (Off Med, Off Stim @ 0 mA)', 
+    'RSTN set1 (Off Med, Off Stim @ 0 mA)', 
+    'RSTN set2 (Off Med, Off Stim @ 0 mA)', 
+    'RSTN ramp (Off Med, Stim Ramping)', 
+    'RSTN set1 (Off Med, On Stim @ max mA)', 
+    'RSTN set2 (Off Med, On Stim @ max mA)'};
+
+figure
+for R_i = 1:length(R_streamsofInt_OffMed)
+    subplot(6,1,R_i)
+    plot(R_streamsofInt_OffMed{R_i})
+    title(plotTitles{R_i}) 
+    xlabel('Time (ms)') 
+    ylabel('LFP Amplitude (uV)') 
+    grid on 
+end
 
 
+%% compute LFP power per session using pspectrum function
 
-% %% Load in experimental camera
-% dlc_vidLoc = [mainDIR, filesep , 'DLCVideo'];
-% cd(dlc_vidLoc)
-%
-% dlc_vidObj = VideoReader('20230912_idea08_session001_leftCam-0000.mp4');
-% dlc_vid = struct('cdata',zeros(dlc_vidObj.Height,dlc_vidObj.Width,3,'uint8'),'colormap',[]);
-%
-% frami = 1;
-% while hasFrame(dlc_vidObj)
-%     dlc_vid(frami).cdata = readFrame(dlc_vidObj);
-%     %    imshow(frame)
-%     frami = frami+1;
-% end
-% dlcTab_vid = struct2table(dlc_vid);
-% disp('Video1 done!')
-%
-% %% Trim DLC video by start and stop from Tablet video
-% dlcTab_vid2use = dlcTab_vid(206:3010,:);
-%
-% %% Load and Process CSV file
-% csv_vidLoc  = [mainDIR , filesep , 'CSVdata'];
-% save_matLoc = [mainDIR , filesep , 'MATdata'];
-% cd(csv_vidLoc)
-%
-% dlcIO_processCSV('dirLOC',1,'userLOC',csv_vidLoc,'saveLOC',save_matLoc)
-%
-% %% Load and Trim MAT file
-% cd(save_matLoc)
-% load('dlcDAT_20230912_idea08_R1.mat','outDATA')
-% d1_labDAT = outDATA.labelTab.leftCam;
+fs = 250;
+nfft = 250;
+window = 250;
+overlap = 150;
+lfpsamplerate = 2;
+color = turbo(11);
+
+addpath 'C:\Users\erinr\OneDrive\Documents\GitHub\NeuroKinematica\DLC_LFP\MDT-SampleCode'
+UCH_PowerSnapTD_short(js_1)
+UCH_PowerSnapLFPCL_short(js_1)
 
 
-% %%
-%
-% dlc_lab2use = d1_labDAT(206:3010,:);
-%
-% % offsetSamples = 195;
-% % offsetSecs = 195/60;
-% totalNumSamplesV = height(dlc_lab2use);
-% totalNumSecs = totalNumSamplesV/60; % 60 fps
-%
-% totalNumSampsLFP = floor(totalNumSecs*250);
-%
-%
-% %% Load and find first streaming from LFP
-% lfpLoc = 'D:\Dropbox\erin_clinic_video';
-% cd(lfpLoc)
-% lfpFname = 'Report_Json_Session_Report_20230912T115956.json';
-%
-% js = jsondecode(fileread(lfpFname));
-% streaming = js.BrainSenseTimeDomain; %% relevant field
-%
-% % Convert to table
-% streamTAB = struct2table(streaming);
-%
-% % Trim by STN of interest
-% streamLEFT = streamTAB(contains(streamTAB.Channel,'LEFT'),:);
-%
-%
-% % Right body / Left STN
-% % Specific Row of interest
-% rowfromTab = 3;
-% streamOfInt = streamLEFT.TimeDomainData{rowfromTab};
-%
-%
-% %%
-% % Original signal at 60 Hz
-% ts_DLC = 0:1/60:(height(dlc_lab2use)-1)/60;
-% % Target sampling rate at 250 Hz
-% ts_LFP = 0:1/250:(height(streamOfInt)-1)/250;
-%
-% allColNs = dlc_lab2use.Properties.VariableNames;
-% dlc_lab2use2int = table;
-% for coli = 1:width(dlc_lab2use)
-%
-%     % Tmp col
-%     tmpCol = allColNs{coli};
-%
-%     % Interpolation
-%     x_250 = interp1(ts_DLC, transpose(dlc_lab2use.(tmpCol)),...
-%         ts_LFP, 'spline');
-%
-%     dlc_lab2use2int.(tmpCol) = transpose(x_250);
-% end
-%
-%
-% %% Kinematic and LFP plot
-% close all
-%
-% tiledlayout(2,1,"TileSpacing","tight")
-% xTime = ts_LFP;
-% % plot(dlc_lab2use2int.Elbow_x)
-% % hold on
-% % yyaxis left
-% elbowXsm = smoothdata(dlc_lab2use2int.Elbow_x,'gaussian',70);
-% nexttile
-% plot(xTime,elbowXsm);
-% xlim([0 round(max(ts_LFP))])
-% ylabel('X deflection')
-% xlabel('Time in seconds')
-% ecg = perceive_ecg(transpose(streamOfInt),250,0);
-% % plot(ecg.cleandata);
-% % yyaxis right
-% nexttile
-% plot(xTime,ecg.cleandata);
-% xlim([0 round(max(ts_LFP))])
-% ylabel('uV')
-% xlabel('Time in seconds')
-%
-%
-%
-% %%
-% close all
-% for di = 1:height(dlcTab_vid)
-%     imshow(dlcTab_vid.cdata{di})
-%     pause
-%
-% end
-%
-%
-% %%
-%
-% for ffi = 1:height(dlcTab_vid2use.cdata)
-%     imshow(dlcTab_vid2use.cdata{ffi})
-%     hold on
-%     plot(dlc_lab2use.PalmBase_x(ffi),dlc_lab2use.PalmBase_y(ffi),'ro')
-%     pause(0.01)
-%     cla
-% end
-%
-% %% To do
-%
-% % 1. clean up interpolated point of interest
-%
-% % 2. clean up LFP with artifact removal
-%
-% % 3. instanteous theta , beta and gamma
-%
-%
-% %% Check DLC labeled video
-% dlcLab_vidLoc = mainDIR;
-% cd(dlcLab_vidLoc)
-%
-% dlc_lab_vidObj = VideoReader('20230912_idea08_session001_leftCam-0000DLC_resnet50_Clin_2023-09-12_session1_labeled.mp4');
-% dlc_lab_vid = struct('cdata',zeros(dlc_lab_vidObj.Height,dlc_lab_vidObj.Width,3,'uint8'),'colormap',[]);
-%
-% frami = 1;
-% while hasFrame(dlc_lab_vidObj)
-%     dlc_lab_vid(frami).cdata = readFrame(dlc_lab_vidObj);
-%     %    imshow(frame)
-%     frami = frami+1;
-% end
-% dlcLabTab_vid = struct2table(dlc_lab_vid);
-% disp('Video1 done!')
-%
-%
-% dlc_lablab2use = dlcLabTab_vid(206:3010,:);
-%
-%
-% %% Animated plot
-%
-% plotXaxis = xTime;
-% kinematicY = elbowXsm;
-% lfpY = ecg.cleandata;
-%
-% % dlc_lablab2use
-%
-%
-% % 4.1 samples per frame
-% stePS = round(linspace(1,11688,2805));
-%
-% for fi = 1:height(dlc_lablab2use)
-%     subplot(4,1,1:2)
-%
-%     imshow(dlc_lablab2use.cdata{fi})
-%
-%     subplot(4,1,3)
-%     plot(plotXaxis(1:stePS(fi)),kinematicY(1:stePS(fi)))
-%     ylim([min(kinematicY) max(kinematicY)])
-%     xlim([0 max(plotXaxis)])
-%
-%     subplot(4,1,4)
-%     plot(plotXaxis(1:stePS(fi)),lfpY(1:stePS(fi)))
-%     ylim([min(lfpY) max(lfpY)])
-%     xlim([0 max(plotXaxis)])
-%
-%     if fi == 1
-%         pause
-%     end
-%
-%     pause(0.01)
-%
-% end
+
+
+%% Align LFP streams w/ movement / video data w/ rlevant marker (e.g., palm or finger tip)
+
+% Original signal at 60 Hz
+ts_DLC = 0:1/60:(height(dlc_lab2use)-1)/60;
+% Target sampling rate at 250 Hz
+ts_LFP = 0:1/250:(height(streamOfInt)-1)/250;
+
+
+%% Kinematic and LFP plot
+
+
+
+
+%% Animate 
+
+
 
 
 %% subfunctions
 
 
-% for ffi = 1:height(dlc_lablab2use.cdata)
-%     imshow(dlc_lablab2use.cdata{ffi})
-%     hold on
-%     % plot(dlc_lab2use.PalmBase_x(ffi),dlc_lab2use.PalmBase_y(ffi),'ro')
-%     pause(0.01)
-%     cla
+function [outTAB] = getDAYtimes(inputTIMES , inputSAMPLES)
+
+dayTIMES = cell(height(inputTIMES),1);
+dayS = cell(height(inputTIMES),1);
+fullDtime = cell(height(inputTIMES),1);
+durations = zeros(height(inputTIMES),1);
+streamOffsets = nan(height(inputTIMES),1);
+for ti = 1:height(inputTIMES)
+
+    inputTi = inputTIMES{ti};
+
+    % The input date-time string
+    % dateTimeStr = '2023-09-08T17:47:31.000Z';
+
+    % Convert the string to a datetime object
+    dateTimeObj = datetime(inputTi, 'InputFormat', 'yyyy-MM-dd''T''HH:mm:ss.SSS''Z');
+
+    % Set the time zone to UTC (Coordinated Universal Time) since the input is in UTC
+    dateTimeObj.TimeZone = 'UTC';
+
+    % Convert to Mountain Time
+    dateTimeObj_Mountain = datetime(dateTimeObj, 'TimeZone', 'America/Denver');
+
+    % Extract the time component in AM/PM format
+    timeComponent_AMPM = datetime(dateTimeObj_Mountain,'Format','hh:mm:ss a z');
+    timeComponent_DATE = datetime(dateTimeObj_Mountain,'Format','dd-MMM-yyyy');
+
+    % Display the time component
+    % disp(['Time in Mountain Time (AM/PM): ', timeComponent_AMPM]);
+    dayTIMES{ti} = timeComponent_AMPM;
+    dayS{ti} = timeComponent_DATE;
+    fullDtime{ti} = dateTimeObj_Mountain;
+    durations(ti) = round(length(inputSAMPLES{ti})/250);
+
+end
+
+
+for di = 1:height(fullDtime)
+
+    if di < height(fullDtime)
+        t1 = fullDtime{di} + seconds(durations(di));
+        t2 = fullDtime{di + 1};
+
+        streamOffsets(di) = seconds(time(between(t1,t2)));
+
+    end
+
+end
+
+dayT2 = cellfun(@(x) char(x), dayTIMES, 'UniformOutput',false);
+dayS2 = cellfun(@(x) char(x), dayS, 'UniformOutput',false);
+fDt = cellfun(@(x) char(x), fullDtime, 'UniformOutput',false);
+
+outTAB = table(dayT2 , dayS2  , fDt , durations , streamOffsets,...
+    'VariableNames',{'TimeOccur','DayOccur','FullNAT','Duration','Offset'});
+
 % end
 
-
-% function [outTAB] = getDAYtimes(inputTIMES , inputSAMPLES) % JAT helper function - MDT2 INS 2024
-%
-% dayTIMES = cell(height(inputTIMES),1);
-% dayS = cell(height(inputTIMES),1);
-% fullDtime = cell(height(inputTIMES),1);
-% durations = zeros(height(inputTIMES),1);
-% streamOffsets = nan(height(inputTIMES),1);
-%
-% for ti = 1:height(inputTIMES)
-%
-%     inputTi = inputTIMES{ti};
-%
-%     % The input date-time string
-%     % dateTimeStr = '2023-09-08T17:47:31.000Z';
-%
-%     % Convert the string to a datetime object
-%     dateTimeObj = datetime(inputTi, 'InputFormat', 'yyyy-MM-dd''T''HH:mm:ss.SSS''Z');
-%
-%     % Set the time zone to UTC (Coordinated Universal Time) since the input is in UTC
-%     dateTimeObj.TimeZone = 'UTC';
-%
-%     % Convert to Mountain Time
-%     dateTimeObj_Mountain = datetime(dateTimeObj, 'TimeZone', 'America/Denver');
-%
-%     % Extract the time component in AM/PM format
-%     timeComponent_AMPM = datetime(dateTimeObj_Mountain,'Format','hh:mm:ss a z');
-%     timeComponent_DATE = datetime(dateTimeObj_Mountain,'Format','dd-MMM-yyyy');
-%
-%     % Display the time component
-%     % disp(['Time in Mountain Time (AM/PM): ', timeComponent_AMPM]);
-%     dayTIMES{ti} = timeComponent_AMPM;
-%     dayS{ti} = timeComponent_DATE;
-%     fullDtime{ti} = dateTimeObj_Mountain;
-%     durations(ti) = round(length(inputSAMPLES{ti})/250);
-%
-% end
-%
-% end
+end
 
 
-function [outTAB] = getBSLFPtimes(inputTIMES) % JAT helper function - MDT2 INS 2024
+
+function [outTAB] = getBSLFPtimes(inputTIMES) % JAT helper function
 
 dayTIMES = cell(height(inputTIMES),1);
 dayS = cell(height(inputTIMES),1);
