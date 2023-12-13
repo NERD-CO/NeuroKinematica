@@ -13,7 +13,7 @@ mainDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperati
 
 % casedate_hem = '03_09_2023_RSTN';     % does not work
 % casedate_hem = 'IO_05_11_2023_LSTN';
-% casedate_hem = 'IO_06_08_2023_LSTN';
+ casedate_hem = 'IO_06_08_2023_LSTN';
 % casedate_hem = 'IO_06_08_2023_RSTN';
 
 
@@ -32,15 +32,13 @@ run_MovementProcessing_IO_v2(mainDir, casedate_hem)
 
 %% Optional: Process and visualize movement timeseries data cleaned by artifact rejection function
 
-% run_MovementProcessing_Clin_artifactRejection(casedate, hemisphere)
+% run_MovementProcessing_IO_artifactRejection(mainDir, casedate_hem)
 
 
 %% 3) stats
 
-% run_MovementStats_Clin_v1(casedate, hemisphere)
+% run_MovementStats_IO_v1(mainDir, casedate_hem)
 
-% fix lines 87-91 in ttest_plot_2States_RandTrim s.t. output files save
-% within specified outDataDir folder (movementStats)
 
 
 

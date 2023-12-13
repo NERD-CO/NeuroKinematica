@@ -30,9 +30,27 @@ end
 mainDir2 = [mainDir , filesep , casedate_hem];
 cd(mainDir2)
 
+
+
+% Isolate dlc outputs of interest
+cd(mainDirCSV)
+% Generate list of dlc-video-labeled CSV files
+% mainCSV = dir('*.csv');
+% mainCSV2 = {mainCSV.name};
+cd(mainDirMAT)
+% Generate list of dlc-video-labeled MAT files
+mainMat = dir('*.mat');
+mainMAT2 = {mainMat.name};
+cd(mainDirVID)
+mainCSVb = dir('*.csv');
+mainCSVb2 = {mainCSVb.name};
+% Generate list of Motor Index CSVs (filters for CSVs that contain 'Move' string)
+moveCSV = mainCSVb2(contains(mainCSVb2,'Move'));
+
  
 % EUC indicies
-% eucINDICIES = readtable("EUC_Indicies.xlsx");
+cd(mainDir2)
+eucINDICIES = readtable("EUC_Indicies.xlsx");
 
 %%
 
