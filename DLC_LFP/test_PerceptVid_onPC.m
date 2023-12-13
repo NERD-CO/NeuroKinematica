@@ -36,6 +36,13 @@ TabletVideos = {'20230912_idea08_session001_rightCam-0000DLC_resnet50_Clin_2023-
 tab_vidObj = VideoReader('20230912_idea08_session001_rightCam-0000DLC_resnet50_Clin_2023-09-12_LSTN_v3Oct3shuffle1_100000_labeled-converted.mp4');
 tab_vid = struct('cdata',zeros(tab_vidObj.Height,tab_vidObj.Width,3,'uint8'),'colormap',[]);
 
+%% Load in experimental camera 2
+
+% dlcVideos 
+
+dlc_vidObj = VideoReader('20230912_idea08_session001_leftCam-0000-converted.mp4');
+dlc_vid = struct('cdata',zeros(dlc_vidObj.Height,dlc_vidObj.Width,3,'uint8'),'colormap',[]);
+
 
 %% Convert Tablet Video to dataframe
 
@@ -53,10 +60,10 @@ disp('Video1 done!')
 %% Determine which frames to trim on based presence of tablet
 % Loop through / Plot / Title with Frame #
 
-tabTab_vid = struct2table(tab_vid);
+tab_vid_table = struct2table(tab_vid);
 
-for fi = 1:height(tabTab_vid)
-    imshow(tabTab_vid.cdata{fi})
+for fi = 1:height(tab_vid_table)
+    imshow(tab_vid_table.cdata{fi})
     title(num2str(fi))
     pause
 end
@@ -65,13 +72,8 @@ end
 % StartFrame =  196; 
 % StopFrame = 3060;
 
-%% Load in experimental camera 2
 
-% dlc_vidLoc = [mainDIR, filesep , 'DLCVideo'];
-% cd(dlc_vidLoc)
-
-dlc_vidObj = VideoReader('20230912_idea08_session001_leftCam-0000-converted.mp4');
-dlc_vid = struct('cdata',zeros(dlc_vidObj.Height,dlc_vidObj.Width,3,'uint8'),'colormap',[]);
+%% Convert Experimental Video 2 to dataframe
 
 frami = 1;
 while hasFrame(dlc_vidObj)

@@ -1,4 +1,4 @@
-function [] = run_MovementProcessing_Clin_artifactRejection(mainDir, casedate_hem)
+function [] = run_MovementProcessing_Clin_v2(mainDir, casedate_hem)
 
 % Goal: Process and visualize movement timeseries data based on videos that have been anatomically labeled (13pt per frame) and analyzed via a trained DeepLabCut model
 
@@ -24,11 +24,25 @@ end
 
 % Define casedate and hemisphere
 
-% casedate_hem = '09_12_2023_LSTN';
+casedate_hem = '09_12_2023_LSTN';
 % casedate_hem = '09_12_2023_RSTN';
 
 mainDir2 = [mainDir , filesep , casedate_hem];
 cd(mainDir2)
+
+%%
+
+% hemisphere = L;
+% 
+% switch hemisphere
+%     case 'L'
+% 
+%         mainDir2 = [mainDir , filesep , '09_12_2023_LSTN'];
+% 
+%     case 'R'
+% 
+%         mainDir2 = [mainDir2 , filesep , '09_12_2023_RSTN'];
+% end
 
 
 %% Isolate dlc outputs of interest
@@ -44,14 +58,7 @@ mainMAT2 = {mainMat.name};
 % Generate list of Motor Index CSVs (filters for CSVs that contain 'Move' string)
 moveCSV = mainCSV2(contains(mainCSV2,'Move'));
 
-
-%% Main function
-
-% create an outputs directory
-outputDir = [mainDir2 filesep 'processedMovement' filesep 'cleaned_processedMovement_aR'];
-if ~exist(outputDir, 'dir')
-    mkdir(outputDir);
-end
+%% Define time conversion factor and distance conversion factor
 
 % Define framerate of videos (time conversion factor)
 fps = 60; % frames per second
@@ -62,6 +69,28 @@ pixels_to_mm = 2.109; % 232 mm / 110 pxl = 2.1091 mm per pixel
 % US adult male, 50th percentile: Avg. = 23.2 cm, 9.1 inches
 % Subject in video frames: Avg. = 110 pixels
 
+% *** define distance conversion factor on standardized calibration measure 
+% moving forward
+
+
+%% Define/initialize variables for recording conditions
+
+% Recording Conditions (ideally 6)
+% 1) Off Med, Off Stim:    2 sessions
+% 2) Off Med, Ramp Stim:   1 session
+% 3) Off Med, On Stim:     2 sessions
+% ~ medication break ~
+% 4) On Med, Off Stim:    2 sessions
+% 5) On Med, Ramp Stim:   1 session
+% 6) On Med, On Stim:     2 sessions
+
+%% Main function
+
+% create an outputs directory
+outputDir = [mainDir2 filesep 'processedMovement'];
+if ~exist(outputDir, 'dir')
+    mkdir(outputDir);
+end
 
 % Loop through CSV files - Raw Data Processing
 for csv_i = 1:length(moveCSV)
@@ -81,21 +110,20 @@ for csv_i = 1:length(moveCSV)
     matName = mainMAT2{matInd};
     load(matName)
 
-    % Set confidence threshold (CT) for accepting/rejecting frames (default CT = 0.5) 
-    CT = 0.5; % adjust
-
-    % Call artifact rejection function
-    [outDATA_NaN] = artifactRejection(outDATA, CT);
-    % Use outDATA_NaN instead of outDATA for further processing
+    % Call artifact rejection function 
+    CT = 0.5; % Set confidence threshold (CT) for accepting/rejecting frames (default CT = 0.5), adjust
+    [outDATA_NaN] = artifactRejection(outDATA, CT); % Use outDATA_NaN instead of outDATA for further processing
 
     % Process dlcDAT MAT file (all points, all frames) per vid first (Split column names of outDATA)
-    colNames = outDATA_NaN.Properties.VariableNames; % outDATA_NaN should be a table containing labeled coordinate data from DeepLabCut w/ x,y, values replaced by NaN for marker likelihood values < CT (processed)
-    colNames2 = cellfun(@(x) split(x,'_'), colNames, 'UniformOutput',false);
-    colNames3 = unique(cellfun(@(x) x{1}, colNames2, 'UniformOutput',false));
+    colNames = outDATA.Properties.VariableNames; % outDATA should be a table containing labeled coordinate data from DeepLabCut
+    colNames2 = cellfun(@(x) split(x,'_'), colNames,...
+        'UniformOutput',false);
+    colNames3 = unique(cellfun(@(x) x{1}, colNames2,...
+        'UniformOutput',false));
     colNames4 = colNames3(~matches(colNames3,'frames'));
 
     % Initialize 'euclidall' to store Euclidean distances between successive points
-    euclidall = zeros(height(outDATA_NaN)-1,length(colNames4));
+    euclidall = zeros(height(outDATA)-1,length(colNames4));
 
     % Iterate over each label and compute Euclidean distance for each frame
     for label_i = 1:length(colNames4)
@@ -103,8 +131,8 @@ for csv_i = 1:length(moveCSV)
         tmpLabel_x = [colNames4{label_i} , '_x'];
         tmpLabel_y = [colNames4{label_i} , '_y'];
 
-        tmpXdata = outDATA_NaN.(tmpLabel_x);
-        tmpYdata = outDATA_NaN.(tmpLabel_y);
+        tmpXdata = outDATA.(tmpLabel_x);
+        tmpYdata = outDATA.(tmpLabel_y);
 
         labelData = [tmpXdata , tmpYdata];
 
@@ -186,24 +214,31 @@ for csv_i = 1:length(moveCSV)
     xlabel('time (s)');
     ylabel('amplitude');
     hold off
-    title(['Cleaned Smooth Hand O/C Movement, ', num2str(matName_title)])
+    title(['Smooth Fingertip Movement, ', num2str(matName_title)])
 
     % Define unique name for the findpeaks results based on the current CSV name
-    cleaned_findpeaks_output = [outputDir filesep 'cleaned_findpeaks_output_' tmpCSV(1:end-44) '.csv']; % assumes tmpCSV is a string ending in '.csv'
+    findpeaks_output = [outputDir filesep 'findpeaks_output_' tmpCSV(1:end-44) '.csv']; % assumes tmpCSV is a string ending in '.csv'
 
     % Create a table to store results based on computed variables
     T1 = table(timepoints, locs, peaks, amplitudes, prominences, widths_fps, halfWidths, 'VariableNames', {'Timepoints', 'Locations', 'Peaks', 'Amplitudes', 'Prominences', 'Widths', 'HalfWidths'});
 
     % Write results table to a CSV file
-    writetable(T1, cleaned_findpeaks_output);
+    writetable(T1, findpeaks_output);
 
+    % Define unique name for the outDATA_NaN output file based on the current CSV/MAT filename
+    outDATA_NaN_filename = [outputDir filesep 'cleaned_dlcDAT_NaN_' tmpCSV(1:end-44) '.csv']; % Removes '.csv' from tmpCSV and appends 'outDATA_NaN_'
+    % outDATA_NaN_filename = [outputDir filesep 'outDATA_NaN_' tmpCSV(1:end-44) '.csv']; % Removes '.csv' from tmpCSV and appends 'outDATA_NaN_'
+
+    % Write outDATA_NaN table to a CSV file in the specified output directory
+    writetable(outDATA_NaN, outDATA_NaN_filename);
 
 end
 
 cd(outputDir)
 
-
 end
+
+%% sub-functions
 
 function [outDATA_NaN] = artifactRejection(outDATA, CT)
 % Inputs:
@@ -226,6 +261,3 @@ for markerIdx = 1:numMarkers
 end
 
 end
-
-
-
