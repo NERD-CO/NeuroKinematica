@@ -39,12 +39,17 @@ function [metrics] = initialQual(normalX, clusID)
 
 nSpikes = size(normalX,1);
 
-IsolDist = zeros(max(clusID),1); % > 20
-Lratio = zeros(max(clusID),1); % < 0.4
+% NEW 11/21/2023
+uniClustIDS = unique(clusID);
 
-for i = 1:max(clusID)
+IsolDist = zeros(numel(uniClustIDS),1); % > 20
+Lratio = zeros(numel(uniClustIDS),1); % < 0.4
+
+for i = 1:length(uniClustIDS)
+
+    tmpCLUSTid = uniClustIDS(i);
     
-    ClusterSpikes = find(clusID == i);
+    ClusterSpikes = find(clusID == tmpCLUSTid);
     
     if length(ClusterSpikes) < size(normalX,2)
         Lratio(i) = 0.8;

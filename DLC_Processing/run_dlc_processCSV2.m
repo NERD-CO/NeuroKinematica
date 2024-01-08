@@ -5,9 +5,9 @@ IO_outer_Loc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraop
 Clin_outer_Loc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\post_DLCproc';
 
 % define case-specific file locations
-vid_Loc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\post_DLCproc\09_12_2023_RSTN_v2\video folder'; % vid_dir 
-csv_Loc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\post_DLCproc\09_12_2023_RSTN_v2\csv folder'; % csv_dir (input)
-mat_Loc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\post_DLCproc\09_12_2023_RSTN_v2\mat folder'; % mat_dir (output)
+vid_Loc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\post_DLCproc\06_08_2023_RSTN\video folder'; % vid_dir 
+csv_Loc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\post_DLCproc\06_08_2023_RSTN\csv folder'; % csv_dir (input)
+mat_Loc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\post_DLCproc\06_08_2023_RSTN\mat folder'; % mat_dir (output)
 
 % change dir to case-specific csv folder
 cd(csv_Loc)
@@ -37,6 +37,14 @@ end
     % vid_Loc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\post_DLCproc\5_11_2023\video folder'; % vid_dir 
     % csv_Loc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\post_DLCproc\5_11_2023\csv folder'; % csv_dir (input)
     % mat_Loc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\post_DLCproc\5_11_2023\mat folder'; % mat_dir (output)
+
+% 06_08_2023 - LSTN
+    % vid_Loc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\post_DLCproc\06_08_2023_LSTN\video folder'; % vid_dir 
+    % csv_Loc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\post_DLCproc\06_08_2023_LSTN\csv folder'; % csv_dir (input)
+    % mat_Loc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\post_DLCproc\06_08_2023_LSTN\mat folder'; % mat_dir (output)
+
+% 06_08_2023 - RSTN
+
 
 %% completed Clin cases 
 
