@@ -122,8 +122,8 @@ disp('Video1 done!')
 % note start frame and stop frame per session
 
 % session001
-StartFrame = 206; % 206
-StopFrame = 3060;  % 210
+StartFrame = 206; 
+StopFrame = 3060;  
 
 
 %% Trim DLC video by start and stop from Tablet video
@@ -264,27 +264,42 @@ disp('Video1 done!')
 dlc_lablab2use = dlcLabTab_vid(StartFrame:StopFrame,:);
 
 
+%%
+
+
+% pspectrum
+
+% outputs
+% time vec
+% freq
+% power
+
+% sig analyzer app in sig proc tb
+
+% how many samples = 4.1 samples in lfp
+
 %% Animated plot 
 
 plotXaxis = xTime;
 kinematicY = fTip1_X_smooth;
 lfpY = ecg.cleandata;
 
-% 4.1 samples per frame
-stePS = round(linspace(1,totalNumSamplesLFP,totalNumSamplesVid));
+% 4.1 samples per frame (60:250)
+stePS = round(linspace(1,totalNumSamplesLFP,totalNumSamplesVid)); % determine chunk of LFP
 
 for fi = 1:height(dlc_lablab2use)
 
     subplot(4,1,1:2)
-    imshow(dlc_lablab2use.cdata{fi})
+    imshow(dlc_lablab2use.cdata{fi}) % plot frame
 
     subplot(4,1,3)
-    plot(plotXaxis(1:stePS(fi)),kinematicY(1:stePS(fi)))
-    ylim([min(kinematicY) max(kinematicY)])
+    plot(plotXaxis(1:stePS(fi)),kinematicY(1:stePS(fi))) % plot upsamp lfp
+    ylim([min(kinematicY) max(kinematicY)]) % % plot upsamp lfp
     xlim([0 max(plotXaxis)])
 
     subplot(4,1,4)
-    plot(plotXaxis(1:stePS(fi)),lfpY(1:stePS(fi)))
+    plot(plotXaxis(1:stePS(fi)),lfpY(1:stePS(fi)))   % plot power  matrix, freq vec, time vec
+    % 1:ste
     ylim([min(lfpY) max(lfpY)])
     xlim([0 max(plotXaxis)])
 
@@ -294,6 +309,10 @@ for fi = 1:height(dlc_lablab2use)
     pause(0.01)
 
 end
+
+% time 
+% freq
+
 
 
 %% Save animated plot as video

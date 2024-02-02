@@ -241,7 +241,7 @@ for csv_i = 1:length(moveCSV)
 
         end
 
-        xlabel('time (s)');
+        xlabel('time (frames), fps=60');
         ylabel('amplitude');
         hold off
         fileNAME = [moveTypeIDs{mmi}, ' ', sessID , ' ' , runID];
@@ -252,51 +252,62 @@ for csv_i = 1:length(moveCSV)
         saveas(gcf,fileNAME,'png')
     end
 
-        % set thresholds based on mean +/- 3xStd
-        % MinPeakHeight = mean(smoothed_fTipAveBlk);
-        % MinPeakProminence = mean(smoothed_fTipAveBlk)*2;
+    % set thresholds based on mean +/- 3xStd
+    % MinPeakHeight = mean(smoothed_fTipAveBlk);
+    % MinPeakProminence = mean(smoothed_fTipAveBlk)*2;
 
-        % Rubric for movement type -OR- iterative algorthmic approach
-        % MinPeakDistance_HandMov =
-        % MinPeakDistance_PronSup =
-        % MinPeakDistance_FlexExtend =
-        % MinPeakDistance_FingerTap =
+    % Rubric for movement type -OR- iterative algorthmic approach
+    % MinPeakDistance_HandMov =
+    % MinPeakDistance_PronSup =
+    % MinPeakDistance_FlexExtend =
+    % MinPeakDistance_FingerTap =
 
-        % Find peak amplitudes and compute widths -- findpeaks function [review documentation]
-        [peaks_fps, locs_fps, widths_fps, prominences_fps] = findpeaks(smoothed_moveAveBlk, fps, MinPeakHeight=mean(smoothed_moveAveBlk), MinPeakDistance=0.15, MinPeakProminence=mean(smoothed_moveAveBlk)*2, Annotate ='extents');
+    % Find peak amplitudes and compute widths -- findpeaks function [review documentation]
+    [peaks_fps, locs_fps, widths_fps, prominences_fps] = findpeaks(smoothed_moveAveBlk, fps, MinPeakHeight=mean(smoothed_moveAveBlk), MinPeakDistance=0.15, MinPeakProminence=mean(smoothed_moveAveBlk)*2, Annotate ='extents');
 
 
-        % Convert distance variables to mm usng distance conversion factor
-        amplitudes = peaks_fps * pixels_to_mm; % converting amplitudes to mm
+    % Convert distance variables to mm usng distance conversion factor
+    amplitudes = peaks_fps * pixels_to_mm; % converting amplitudes to mm
 
-        % Timepoints (in seconds) rather than frame numbers using video sampling rate (Fs) conversion factor
-        timepoints_fps = locs_fps; 
+    % Timepoints (in seconds) rather than frame numbers using video sampling rate (Fs) conversion factor
+    timepoints_fps = locs_fps;
 
-        % Compute distances between consecutive peaks
-        peakDists_fps = diff(timepoints_fps); % by timepoint (in seconds)
+    % Compute distances between consecutive peaks
+    peakDists_fps = diff(timepoints_fps); % by timepoint (in seconds)
 
-        halfWidths_fps = widths_fps / 2;
-        % slope
+    halfWidths_fps = widths_fps / 2;
+    % slope
 
-        % Define unique name for the findpeaks results based on the current CSV name
-        findpeaks_output = [outputDir , filesep , 'findpeaks_output_' ,...
-            moveTypeIDs{mmi}, '_', tmpCSV(1:end-44) '.csv']; % assumes tmpCSV is a string ending in '.csv'
+    % % Plot smooth movement for each CSV iteration
+    % subplot(length(moveCSV), 1, csv_i);
+    % hold on
+    % % Adjust the parameters in findpeaks
+    % findpeaks(smoothed_moveAveBlk, fps, MinPeakHeight=mean(smoothed_moveAveBlk), MinPeakDistance=0.15, MinPeakProminence=mean(smoothed_moveAveBlk)*2, Annotate ='extents');
+    % % define axes labels and subplot titles
+    % xlabel('time (s)');
+    % ylabel('amplitude');
+    % hold off
+    % title(['Smooth Movement, ', num2str(matName_title)])
 
-        % Create a table to store results based on computed variables
-        T1 = table(timepoints_fps, locs_fps, peaks_fps, amplitudes, prominences_fps, widths_fps, halfWidths_fps, 'VariableNames', {'Timepoints', 'Locations', 'Peaks', 'Amplitudes', 'Prominences', 'Widths', 'HalfWidths'});
+    % Define unique name for the findpeaks results based on the current CSV name
+    findpeaks_output = [outputDir , filesep , 'findpeaks_output_' ,...
+        moveTypeIDs{mmi}, '_', tmpCSV(1:end-44) '.csv']; % assumes tmpCSV is a string ending in '.csv'
 
-        % Write results table to a CSV file
-        writetable(T1, findpeaks_output);
+    % Create a table to store results based on computed variables
+    T1 = table(timepoints_fps, locs_fps, peaks_fps, amplitudes, prominences_fps, widths_fps, halfWidths_fps, 'VariableNames', {'Timepoints', 'Locations', 'Peaks', 'Amplitudes', 'Prominences', 'Widths', 'HalfWidths'});
 
-        % Define unique name for the outDATA_NaN output file based on the current CSV/MAT filename
-        outDATA_NaN_filename = [outputDir filesep 'cleaned_dlcDAT_NaN_' tmpCSV(1:end-44) '.csv']; % Removes '.csv' from tmpCSV and appends 'outDATA_NaN_'
-        % outDATA_NaN_filename = [outputDir filesep 'outDATA_NaN_' tmpCSV(1:end-44) '.csv']; % Removes '.csv' from tmpCSV and appends 'outDATA_NaN_'
+    % Write results table to a CSV file
+    writetable(T1, findpeaks_output);
 
-        cd(outputDir)
-        % Write outDATA_NaN table to a CSV file in the specified output directory
-        writetable(outDATA_NaN, outDATA_NaN_filename);
+    % Define unique name for the outDATA_NaN output file based on the current CSV/MAT filename
+    outDATA_NaN_filename = [outputDir filesep 'cleaned_dlcDAT_NaN_' tmpCSV(1:end-44) '.csv']; % Removes '.csv' from tmpCSV and appends 'outDATA_NaN_'
+    % outDATA_NaN_filename = [outputDir filesep 'outDATA_NaN_' tmpCSV(1:end-44) '.csv']; % Removes '.csv' from tmpCSV and appends 'outDATA_NaN_'
 
-    end
+    cd(outputDir)
+    % Write outDATA_NaN table to a CSV file in the specified output directory
+    writetable(outDATA_NaN, outDATA_NaN_filename);
+
+end
 
 end
 

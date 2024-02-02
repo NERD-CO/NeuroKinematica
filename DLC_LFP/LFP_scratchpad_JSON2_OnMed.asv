@@ -451,8 +451,8 @@ disp('Video1 done!')
 % Tablet_StopFrame
 
 % session001
-s1_Tablet_StartFrame = 180;
-s1_Tablet_StopFrame = 2340;
+s1_Tablet_StartFrame = 206;
+s1_Tablet_StopFrame = 3060;
 
 
 %% Trim DLC video by start and stop frame of Tablet video
@@ -555,8 +555,8 @@ lfpsamplerate = 2;
 color = turbo(11);
 
 addpath 'C:\Users\erinr\OneDrive\Documents\GitHub\NeuroKinematica\DLC_LFP\MDT-SampleCode'
-UCH_PowerSnapTD_short(js_2)
-UCH_PowerSnapLFPCL_short(js_2)
+UCH_PowerSnapTD_short(js_1)
+UCH_PowerSnapLFPCL_short(js_1)
 
 
 %% Kinematics and LFP plot
@@ -680,9 +680,9 @@ end
 
 
 % Store maxBetaPower (μV) results per condition in CSV File
-conditions = {'baseline_OnOff', 'OnOff_s1', 'OnOff_s2', 'OnOn_s1', 'OnOn_s2'};
+conditions = {'baseline_OnOff', 'OnOff_s1', 'OnOff_s2', 'On_ramp', 'OnOn_s1', 'OnOn_s2'};
 T = table(conditions', maxBetaPower_L', maxBetaPower_R', 'VariableNames', {'Condition', 'maxBetaPower_L', 'maxBetaPower_R'});
-writetable(T, 'maxBetaPower_per_Condition_OnMed.csv');
+writetable(T, 'maxBetaPower_per_Condition_OffMed.csv');
 
 
 %% Align LFP streams w/ movement / video data w/ rlevant marker (e.g., palm or finger tip)

@@ -22,23 +22,17 @@ end
 
 %% Analyze data isolated by casedate and hemisphere
 
-% Define casedate and hemisphere
-
-% casedate_hem = '09_12_2023_LSTN';
-% casedate_hem = '09_12_2023_RSTN';
-
 mainDir2 = [mainDir , filesep , casedate_hem];
 cd(mainDir2)
 
- 
 % EUC indicies
 % eucINDICIES = readtable("EUC_Indicies.xlsx");
 
-%%
 
-mainDir_VID = [mainDir2 , filesep , 'video folder'];
-mainDir_MAT = [mainDir2 , filesep , 'mat folder'];
-mainDir_CSV = [mainDir2 , filesep , 'csv folder'];
+% mainDir_VID = [mainDir2 , filesep , 'video folder'];
+% mainDir_MAT = [mainDir2 , filesep , 'mat folder'];
+% mainDir_CSV = [mainDir2 , filesep , 'csv folder'];
+
 
 
 %% Isolate dlc outputs of interest
@@ -167,19 +161,24 @@ for csv_i = 1:length(moveCSV)
     window_Width = 5; % set windowWidth as needed
     smoothed_fTipAveBlk = smoothdata(fTipAveBlk, 'gaussian', window_Width); % read documentation, window overlap
 
-    % set thresholds based on mean +/- 3xStd
+    % set thresholds based on mean +/- #xStd
     MinPeakHeight = mean(smoothed_fTipAveBlk);
     MinPeakProminence = mean(smoothed_fTipAveBlk)*2;
-
+                
+   
     % Rubric for movement type -OR- iterative algorthmic approach
     % MinPeakDistance_HandMov =
+    ampMEAN = mean(smoothed_fTipAveBlk,'omitnan');
+    ampSTD = std(smoothed_fTipAveBlk,'omitnan');
+    ampThresh = (ampMEAN + (ampSTD/2))*0.4; % 0.75
+
     % MinPeakDistance_PronSup =
     % MinPeakDistance_FlexExtend =
     % MinPeakDistance_FingerTap =
 
     % Find peak amplitudes and compute widths -- findpeaks function [review documentation]
-    [peaks_fs, locs_fs, widths_fs, prominences_fs] = findpeaks(smoothed_fTipAveBlk, fps, MinPeakHeight=mean(smoothed_fTipAveBlk), MinPeakDistance=0.15, MinPeakProminence=mean(smoothed_fTipAveBlk)*2, Annotate ='extents');
-    [peaks, locs, widths, prominences] = findpeaks(smoothed_fTipAveBlk, MinPeakHeight=mean(smoothed_fTipAveBlk), MinPeakDistance=15, MinPeakProminence=mean(smoothed_fTipAveBlk)*2, Annotate ='extents');
+    [peaks_fs, locs_fs, widths_fs, prominences_fs] = findpeaks(smoothed_fTipAveBlk, fps, MinPeakHeight=mean(smoothed_fTipAveBlk), MinPeakDistance=0.20, MinPeakProminence=ampThresh, Annotate ='extents');
+    [peaks, locs, widths, prominences] = findpeaks(smoothed_fTipAveBlk, MinPeakHeight=mean(smoothed_fTipAveBlk), MinPeakDistance=20, MinPeakProminence=ampThresh, Annotate ='extents');
 
     % Convert distance variables to mm usng distance conversion factor
     amplitudes = peaks * pixels_to_mm; % converting amplitudes to mm
@@ -189,7 +188,7 @@ for csv_i = 1:length(moveCSV)
 
     % Compute distances between consecutive peaks
     peakDists_frames = diff(locs); % by frame indice
-    peakDists_fps = diff(timepoints); % by timepoint (in seconds)
+    peakDists_seconds = diff(timepoints); % by timepoint (in seconds)
 
     % Convert frame-relative variables to seconds using time conversion factor
     widths_fps = widths / fps; % converting widths to seconds
@@ -199,13 +198,13 @@ for csv_i = 1:length(moveCSV)
     % normalize within patient - relative to bl (Off, off)
 
     % Compute timepoints for all indices
-    timepoints_fTipAveBlk = (1:length(smoothed_fTipAveBlk))/fps;
+    timepoints__fTipAveBlk = (1:length(smoothed_fTipAveBlk))/fps;
 
     % Plot smooth movement for each CSV iteration
     subplot(length(moveCSV), 1, csv_i);
     hold on
     % Adjust the parameters in findpeaks
-    findpeaks(smoothed_fTipAveBlk, timepoints_fTipAveBlk, MinPeakHeight=mean(smoothed_fTipAveBlk), MinPeakDistance=0.15, MinPeakProminence=mean(smoothed_fTipAveBlk)*2, Annotate ='extents');
+    findpeaks(smoothed_fTipAveBlk, timepoints__fTipAveBlk, MinPeakHeight=mean(smoothed_fTipAveBlk), MinPeakDistance=0.20, MinPeakProminence=ampThresh, Annotate ='extents');
     % define axes labels and subplot titles
     xlabel('time (s)');
     ylabel('amplitude');
@@ -232,6 +231,7 @@ end
 
 cd(outputDir)
 
+
 end
 
 %% sub-functions
@@ -257,3 +257,6 @@ for markerIdx = 1:numMarkers
 end
 
 end
+
+
+
