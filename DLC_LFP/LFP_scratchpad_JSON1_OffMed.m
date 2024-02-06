@@ -575,16 +575,21 @@ ylabel('LFP (uV)')
 % L_streamOfInt_s1 = stream_LEFT_1.TimeDomainData{L_rowfromTab_s1}; % L_set1 (Off Med, Off Stim @ 0 mA)
 % streamOfInt = L_streamOfInt_s1;
 
+% input arguments 
+
+
 %[px,fx,tx] = pspectrum(streamOfInt, fs, 'spectrogram');
 [pxx,fxx,txx] = pspectrum(ecg.cleandata, fs, 'spectrogram');
 % outputs: power matrix, frequency vec, time vec
+
+
+%% beta filtering
 
 % Isolate power spectrum in the 13-35 Hz range
 betaIdx = fxx >= 13 & fxx <= 35;
 betaPower = pxx(betaIdx, :);
 betaFrequency = fxx(betaIdx);
 % outputs: power (betaPower) in beta frequency range (13-30 Hz) over time (t).
-
 
 % Spectrogram - time-frequency-power plot
 nexttile
@@ -596,6 +601,9 @@ xlabel('Time (s)');
 ylabel('Frequency (Hz)');
 title('Beta Band Power');
 colorbar;
+
+
+%% Average across power (beta power line)
 
 
 %% compute LFP power / instantaneous LFP beta power and plot PSDs per session (using pspectrum function)
@@ -615,12 +623,12 @@ betaBand = [13 35]; % Beta frequency range
 % bpFiltered_LFP = bandpass(streamOfInt, betaBand, fs);
 bpFiltered_LFP = bandpass(ecg.cleandata, betaBand, fs);
 
-% plot PSD to vizualize strength of the variations (energy) as a function of frequency
-[pxx, fxx] = pspectrum(bpFiltered_LFP, fs);
-plot(fxx, pxx);
-xlabel('Frequency (Hz)');
-ylabel('Power');
-title('Power Spectral Density');
+% % plot PSD to vizualize strength of the variations (energy) as a function of frequency
+% [pxx, fxx] = pspectrum(bpFiltered_LFP, fs);
+% plot(fxx, pxx);
+% xlabel('Frequency (Hz)');
+% ylabel('Power');
+% title('Power Spectral Density');
 
 
 % Hilbert transform - obtain the amplitude envelope of LFP in the beta band.
@@ -645,6 +653,10 @@ nexttile;
 plot(ts_LFP, betaEnvelope);
 xlabel('Time (s)'); ylabel('Amplitude');
 title('Beta Band Amplitude Envelope');
+
+
+%% review beta bursting algorthms
+
 
 
 
