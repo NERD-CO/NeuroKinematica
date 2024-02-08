@@ -25,39 +25,8 @@ mainDir2 = 'C:\Users\radclier\OneDrive\Documents\CU Denver - Anschutz Medical Bi
 % createFolderStructure_mdt2();
 
 
-%% load Structured output (.mat file) in Current Folder
-
-% pt_ID = 'MPR8';
-% hemisphere = 'L';
-% 
-% % define pattern for structured .mat filename
-% filename_pattern = sprintf('%s_%s_*.mat', pt_ID, hemisphere);
-% 
-% % list all files in the current directory that match the pattern
-% pattern_match = dir(fullfile(mainDir2, filename_pattern));
-% 
-% % load Structured output (.mat file) in Current folder
-% mat_filename = fullfile(pattern_match.folder, pattern_match.name);
-% load(mat_filename);
-% 
-% % ii.	Tab-based structure
-% struct_mat = outStruct; % 1x1 struct with 4 fields (that are also 1x1 structs)
-
-
-%% unpack Structured output (.mat file) - 15 total contact configs per pt. hem
-
-% % isoloate by sensing config (each contains 3-4 sub-stucts with fields)
-% bipol_lev = struct2table(struct_mat.BL);
-% bipol_seg = struct2table(struct_mat.BS);
-% mono_lev = struct2table(struct_mat.ML);
-% mono_seg = struct2table(struct_mat.MS);
-% 
-% % S1, Info, S2, S3 (each sub-struct field contains doubles (LFP stream per contact))
-% ex_stream1 = mono_seg.S1.E1;
-% plot(ex_stream1)
-
-
-%% Analyze data isolated by patient ID and hemisphere via nested for loop
+%% Assess sensing data isolated by patient ID and hemisphere via nested for loop
+% Structured output (.mat file) contains 15 total contact configs per pt. hem
 
 cd(mainDir2)
 
@@ -86,7 +55,8 @@ for f_i = 1:length(mat_dir2)
 
     load(filename)
 
-    struct_mat = outStruct; 
+    % ii. Tab-based structure (.mat file)
+    struct_mat = outStruct; % 1x1 struct with 3-4 fields (that are also 1x1 structs)
 
     % iterate through each LFP recording condition
     conditionNames = fieldnames(struct_mat); % 4x1 cell
@@ -178,12 +148,14 @@ writetable(summaryTable, 'summaryTable.csv');
 
 
 %%
+
 % load (50 second recordings)
 % Run PSD
 % Use MDT variation of PSD computation
 
 
 %% 3. PD symptom scores – get from Dr. Kern notes (choose clinPref)
+
 % bsln hemibody symptoms
 % optimal stim improvement
 

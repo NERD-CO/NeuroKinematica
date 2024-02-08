@@ -1,12 +1,10 @@
 %% PD beta peak feature heterogeneity
 
-% Define data directory
+% Define data directories
 
 mainDir = 'C:\Users\radclier\OneDrive\Documents\CU Denver - Anschutz Medical BioE PhD\Neuro_ThompsonLab\PD beta peak feature heterogeneity';
 
 mainDir2 = 'C:\Users\radclier\OneDrive\Documents\CU Denver - Anschutz Medical BioE PhD\Neuro_ThompsonLab\PD beta peak feature heterogeneity\Subject Data';
-
-cd(mainDir2)
 
 
 %% Sensing Session Data (15 streams per hemisphere, 30 streams per pt)
@@ -27,39 +25,11 @@ cd(mainDir2)
 % createFolderStructure_mdt2();
 
 
-%% load Structured output (.mat file) in Current Folder
-
-pt_ID = 'MPR8';
-hemisphere = 'L';
-
-% define pattern for structured .mat filename
-filename_pattern = sprintf('%s_%s_*.mat', pt_ID, hemisphere);
-
-% list all files in the current directory that match the pattern
-pattern_match = dir(fullfile(mainDir2, filename_pattern));
-
-% load Structured output (.mat file) in Current folder
-mat_filename = fullfile(pattern_match.folder, pattern_match.name);
-load(mat_filename);
-
-% ii.	Tab-based structure
-struct_mat = outStruct; % 1x1 struct with 4 fields (that are also 1x1 structs)
-
-
 %% unpack Structured output (.mat file) - 15 total contact configs per pt. hem
 
-% % isoloate by sensing config (each contains 3-4 sub-stucts with fields)
-% bipol_lev = struct2table(struct_mat.BL);
-% bipol_seg = struct2table(struct_mat.BS);
-% mono_lev = struct2table(struct_mat.ML);
-% mono_seg = struct2table(struct_mat.MS);
-% 
-% % S1, Info, S2, S3 (each sub-struct field contains doubles (LFP stream per contact))
-% ex_stream1 = mono_seg.S1.E1;
-% plot(ex_stream1)
+% Analyze sensiong data isolated by patient ID and hemisphere via nested for loop
 
-
-%% Analyze data isolated by patient ID and hemisphere via nested for loop
+cd(mainDir2)
 
 % initialize a summary table 'VariableNames'
 
@@ -86,7 +56,8 @@ for f_i = 1:length(mat_dir2)
 
     load(filename)
 
-    struct_mat = outStruct; 
+    % ii. Tab-based structure (.mat file)
+    struct_mat = outStruct; % 1x1 struct with 3-4 fields (that are also 1x1 structs)
 
     % iterate through each LFP recording condition
     conditionNames = fieldnames(struct_mat); % 4x1 cell
@@ -133,6 +104,7 @@ for f_i = 1:length(mat_dir2)
 
             conditionName_all{row_counter} = conditionName;
             contactName_all{row_counter} = contactName;
+            fxx_all{row_counter} = fxx;
             uVp_t_all{row_counter} = uVp_t;
             PxxP_all{row_counter} = PxxP;
             pt_ID_all{row_counter} = pt_ID;
