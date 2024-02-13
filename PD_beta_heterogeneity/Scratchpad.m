@@ -31,7 +31,6 @@ mainDir2 = 'C:\Users\radclier\OneDrive\Documents\CU Denver - Anschutz Medical Bi
 cd(mainDir2)
 
 % initialize a summary table 'VariableNames'
-
 pt_ID_all = cell(2000,1);
 hem_all = cell(2000,1);
 conditionName_all = cell(2000,1);
@@ -64,7 +63,7 @@ for f_i = 1:length(mat_dir2)
         conditionName = conditionNames{condition_i};
         sensingSessions = struct_mat.(conditionName); % 1x1 struct with 3 fields
 
-        % iterate through each field (session) within the condition             
+        % iterate through each field (session) within the condition
         sessionNames = fieldnames(sensingSessions); % 3x1 cell
 
         % Skip 'INFO' session names
@@ -72,7 +71,7 @@ for f_i = 1:length(mat_dir2)
 
         % extract each contact configuration from the sensing configs struct
         contactConfigs = fieldnames(sensingSessions.S1);
-        
+
         % iterate through each contact configuration within the condition
         for contact_i = 1:numel(contactConfigs)                             % Layer 2: contact per condition
             contactName = contactConfigs{contact_i};
@@ -111,7 +110,6 @@ for f_i = 1:length(mat_dir2)
 
             row_counter = row_counter + 1;
 
-
         end
     end
 
@@ -130,7 +128,7 @@ uVp_t_all2 = uVp_t_all(trim_vec);
 PxxP_all2 = PxxP_all(trim_vec);
 
 % create a summary table with the following columns: pt_ID, hem, condition, contact, fxx, uVp_t, PxxP
-summaryTable = table(pt_ID_all2, hem_all2, condition_all2, contactName_all2, fxx_all2, uVp_t_all2, PxxP_all2, 'VariableNames', {'Patient ID', 'Hemisphere', 'Conditions', 'Contacts', 'fxx', 'uVp', 'PxxP'});
+summaryTable = table(pt_ID_all2, hem_all2, condition_all2, contactName_all2, fxx_all2, uVp_t_all2, PxxP_all2, 'VariableNames', {'Participant ID', 'Hemisphere', 'Condition', 'Contact(s)', 'fxx', 'uVp', 'PxxP'});
 
 % save summaryTable as both a .mat and .csv
 cd(mainDir)
@@ -149,7 +147,68 @@ writetable(summaryTable, 'summaryTable.csv');
 
 %%
 
-% load (50 second recordings)
+% load summaryTable
+load("summaryTable.mat");
+
+% initialize variables for updated summaryTable
+ptID = zeros(height(summaryTable),1);
+hemID = cell(height(summaryTable),1);
+conditions_All = cell(height(summaryTable),1);
+contacts_All = cell(height(summaryTable),1);
+meanPOW = zeros(height(summaryTable),1);
+peakValue = zeros(height(summaryTable),1);
+maxPOW = zeros(height(summaryTable),1);
+standDevPOW = zeros(height(summaryTable),1);
+aucPOW = zeros(height(summaryTable),1);
+skewPOW = zeros(height(summaryTable),1);
+kurtPOW = zeros(height(summaryTable),1);
+medianFreq = zeros(height(summaryTable),1);
+
+% iterate through each row in the summaryTable
+for pt_i = 1:height(summaryTable)
+
+    % Extract necessary information for each measurement
+    ptID(pt_i) = str2double(summaryTable.('Participant ID'){pt_i}); 
+    hemID{pt_i} = summaryTable.('Hemisphere'){pt_i};
+    conditions_All{pt_i} = summaryTable.('Condition'){pt_i};
+    contacts_All{pt_i} = summaryTable.('Contact(s)'){pt_i};
+    pxx = summaryTable.PxxP{pt_i}; % PSD values
+    fxx = summaryTable.fxx{pt_i}; % Frequency values
+    
+    % Compute statistics from pxx
+    meanPOW(pt_i) = mean(pxx);
+    [maxPOW(pt_i), peakIdx] = max(pxx);
+    peakValue(pt_i) = fxx(peakIdx);
+    standDevPOW(pt_i) = std(pxx);
+    aucPOW(pt_i) = trapz(fxx, pxx);
+    skewPOW(pt_i) = skewness(pxx);
+    kurtPOW(pt_i) = kurtosis(pxx);
+    
+    % Compute median frequency
+    totalPower = sum(pxx);
+    cumulativePower = cumsum(pxx);
+    halfTotalPower = totalPower / 2;
+    medianIndex = find(cumulativePower >= halfTotalPower, 1, 'first');
+    medianFreq(pt_i) = fxx(medianIndex);
+end
+
+% Append the calculated variables as new columns to 'summaryTable'
+summaryTable.meanPOW = meanPOW;
+summaryTable.peakValue = peakValue;
+summaryTable.maxPOW = maxPOW;
+summaryTable.standDevPOW = standDevPOW;
+summaryTable.aucPOW = aucPOW;
+summaryTable.skewPOW = skewPOW;
+summaryTable.kurtPOW = kurtPOW;
+summaryTable.medianFreq = medianFreq;
+
+% save summaryTable as both a .mat and .csv
+save('updatedSummaryTable.mat', 'summaryTable');
+writetable(summaryTable, 'updatedSummaryTable.csv');
+
+
+
+%% load (50 second recordings)
 % Run PSD
 % Use MDT variation of PSD computation
 

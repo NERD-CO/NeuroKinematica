@@ -502,7 +502,7 @@ totalNumSamples_Vid = height(dlc_lab2use);
 totalNumSecs = totalNumSamples_Vid/60; % 60 fps
 
 totalNumSamples_LFP = floor(totalNumSecs*250); % 250 samples per second
-
+% y = floor(a) rounds fi object a to the nearest integer in the direction of negative infinity and returns the result in fi object y
 
 % Original signal (video) sampling rate at 60 Hz (fps)
 ts_DLC = 0:1/60:(height(dlc_lab2use)-1)/60;
