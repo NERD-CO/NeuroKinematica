@@ -191,6 +191,14 @@ for ddi = 1:height(dataTable)
 
 end
 
+%%
+
+cd('C:\Users\Admin\Documents\Github\NeuroKinematica\RM_Capstone')
+locTable = readtable('depthLOCS.xlsx');
+
+
+merLOC = 'I:\Ruby_M_Capstone\MER_Data';
+dlcLOC = 'I:\Ruby_M_Capstone\DLC_Data';
 
 
 
