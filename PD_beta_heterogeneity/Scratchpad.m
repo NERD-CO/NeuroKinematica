@@ -7,6 +7,18 @@ mainDir = 'C:\Users\radclier\OneDrive\Documents\CU Denver - Anschutz Medical Bio
 mainDir2 = 'C:\Users\radclier\OneDrive\Documents\CU Denver - Anschutz Medical BioE PhD\Neuro_ThompsonLab\PD beta peak feature heterogeneity\Subject Data';
 
 
+cd(mainDir2)
+
+mat_dir1 = dir('*.mat');
+mat_dir2 = {mat_dir1.name}; % list of mat files
+
+addpath('C:\MATLAB\GitHub\NeuroKinematica\PD_beta_heterogeneity') 
+for i = 1:length(mat_dir2)
+    outStruct = fixVecLength(mat_dir2{i})
+    % overwrite orig. file with new mat file
+    save(mat_dir2{i}, 'outStruct')
+end
+
 %% Sensing Session Data (15 streams per hemisphere, 30 streams per pt)
 
 % outershell features
@@ -45,6 +57,9 @@ row_counter = 1;
 % outer loop: .mat_filenames
 mat_dir1 = dir('*.mat');
 mat_dir2 = {mat_dir1.name}; % list of mat files
+
+% Initialize session_container as a cell array if the lengths can vary
+% session_container = cell(:, 1);
 
 for f_i = 1:length(mat_dir2)
     filename = mat_dir2{f_i}
@@ -85,7 +100,9 @@ for f_i = 1:length(mat_dir2)
                 sessionName = sessionNames{session_i};
                 contact_stream = sensingSessions.(sessionName).(contactName);
 
+
                 session_container(:, session_i) = contact_stream;
+                % session_container{session_i} = contact_stream;
 
             end
 
@@ -133,16 +150,11 @@ summaryTable = table(pt_ID_all2, hem_all2, condition_all2, contactName_all2, fxx
 % save summaryTable as both a .mat and .csv
 cd(mainDir)
 save('summaryTable.mat', 'summaryTable');
-writetable(summaryTable, 'summaryTable.csv');
 
 
 %%
 
 % do I need to save out session_mean per pt. hem?
-
-% save out pt_ID, hem, condition, contact, session_mean, fxx, uVp_t, PxxP
-
-% unsupervised ML dataset for clustering
 
 
 %%
@@ -175,6 +187,10 @@ for pt_i = 1:height(summaryTable)
     pxx = summaryTable.PxxP{pt_i}; % PSD values
     fxx = summaryTable.fxx{pt_i}; % Frequency values
     
+    % for loop through freq. bands 
+    % theta
+    % beta
+
     % Compute statistics from pxx
     meanPOW(pt_i) = mean(pxx);
     [maxPOW(pt_i), peakIdx] = max(pxx);
@@ -204,9 +220,179 @@ summaryTable.medianFreq = medianFreq;
 
 % save summaryTable as both a .mat and .csv
 save('updatedSummaryTable.mat', 'summaryTable');
-writetable(summaryTable, 'updatedSummaryTable.csv');
 
 
+%%
+
+%%
+
+% Load summaryTable
+load("summaryTable.mat");
+dimdataTab = summaryTable;
+
+% 5th column onwards in summaryTable contains the data for t-SNE (fxx, uVp, PxxP)
+cellArray = table2array(dimdataTab(:,5:end));
+
+% Initialize an empty cell array to store the numeric data
+numericData = cell(size(cellArray, 1), size(cellArray, 2));
+
+% Loop through each cell in the cell array and extract the numeric data
+for i = 1:size(cellArray, 1)
+    for j = 1:size(cellArray, 2)
+        % Extract the numeric data from the cell
+        numericData{i, j} = cellArray{i, j};
+    end
+end
+
+% Convert the cell array of numeric data to a numeric matrix
+dimDataNum = cell2mat(numericData);
+
+% Set Perplexity to a value less than the number of rows in dimDataArray
+perplexityValue = min(size(dimDataNum, 1) - 1, 15);
+
+% t-SNE with adjusted Perplexity value
+tsneOutdim = tsne(dimDataNum, 'Algorithm', 'exact', 'Distance', 'mahalanobis', 'Perplexity', perplexityValue);
+
+% Define new color scheme
+newCOLORS = [35, 61, 77;
+             254, 127, 45;
+             252, 202, 70;
+             161, 193, 129;
+             97, 155, 138];
+newCOLORS2 = newCOLORS / 255;
+
+% Overlay outlines for each subject
+for subii = 1:5
+    tsneSUB = tsneOutdim(ismember(dimdataTab.Subject,subii),:);
+    scatter(tsneSUB(:,1),tsneSUB(:,2),20,newCOLORS2(subii,:),"filled")
+    hold on
+    tmpBound = boundary(tsneSUB,0.05);
+    
+    xVals = tsneSUB(tmpBound,1);
+    yVals = tsneSUB(tmpBound,2);
+    
+    centroid_x = mean(xVals);
+    centroid_y = mean(yVals);
+    
+    scale_factor = 1.2; % Adjust as necessary
+    
+    % Move each point away from the centroid
+    new_x = centroid_x + scale_factor * (xVals - centroid_x);
+    new_y = centroid_y + scale_factor * (yVals - centroid_y);
+    
+    plot(new_x,new_y,'Color',newCOLORS2(subii,:))
+    
+    ftmp = fill(new_x,new_y,newCOLORS2(subii,:),'FaceAlpha',0.3);
+    ftmp.EdgeColor = newCOLORS2(subii,:);
+    ftmp.LineWidth = 1.2;
+end
+
+legend({'','','1','','','2','','','3','','','4','','','5'},"Location","southeast")
+
+xticks([-25 0 25])
+xlabel('tSNE 1')
+yticks([-20 0 20])
+ylabel('tSNE 2')
+
+axis square
+ax1 = gca;
+ax1.TitleHorizontalAlignment = 'left';
+title('Subject separation - beta power parameters')
+
+% Compute silhouette values for each subject
+figure;
+[silhouVals_Subject,~] = silhouette(tsneOutdim,dimdataTab.Subject);
+
+% Plot histograms of silhouette values for each subject
+figure;
+tiledlayout(5,1,'TileSpacing','tight','Padding','compact')
+for subii = 1:5
+    nexttile
+    h = histogram(silhouVals_Subject(dimdataTab.Subject == subii));
+    h.Normalization = 'probability';
+    h.BinWidth = 0.1;
+    h.FaceColor = newCOLORS2(subii,:);
+    h.EdgeColor = "none";
+    h.FaceAlpha = 0.5;
+    
+    meanLOC = mean(silhouVals_Subject(dimdataTab.Subject == subii));
+    meanTxt = ['Ave. ' , num2str(round(meanLOC,2))];
+    meanColr = newCOLORS2(subii,:);
+    xline(meanLOC,'-',meanTxt,'Color',meanColr,'LabelHorizontalAlignment','left')
+    
+    xlim([-1 1])
+    ylim([0 0.6])
+    xlabel('Silhouette value')
+    ylabel('Fraction of values')
+end
+
+set(gcf, 'Position', [1160 266 360 911])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%%
 
 %% load (50 second recordings)
 % Run PSD
