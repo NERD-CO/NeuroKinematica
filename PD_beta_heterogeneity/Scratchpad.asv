@@ -1,23 +1,34 @@
 %% PD beta peak feature heterogeneity
 
-% Define data directories
+% Define data directories - Navigate b/t machines
+pcname = getenv('COMPUTERNAME');
 
-mainDir = 'C:\Users\radclier\OneDrive\Documents\CU Denver - Anschutz Medical BioE PhD\Neuro_ThompsonLab\PD beta peak feature heterogeneity';
+switch pcname
 
-mainDir2 = 'C:\Users\radclier\OneDrive\Documents\CU Denver - Anschutz Medical BioE PhD\Neuro_ThompsonLab\PD beta peak feature heterogeneity\Subject Data';
+    case 'DSKTP-JTLAB-EMR'   % ER Desktop
 
+        mainDir = 'Z:\RadcliffeE\PD beta peak feature heterogeneity';
+        addpath('C:\Users\erinr\OneDrive\Documents\GitHub\NeuroKinematica\PD_beta_heterogeneity');
+        
+    case 'NSG-M-FQBPFK3'     % ER PC
+
+        mainDir = 'C:\Users\radclier\OneDrive\Documents\CU Denver - Anschutz Medical BioE PhD\Neuro_ThompsonLab\PD beta peak feature heterogeneity';
+        addpath('C:\MATLAB\GitHub\NeuroKinematica\PD_beta_heterogeneity'); 
+end
+
+mainDir2 = [mainDir, filesep, 'Subject Data'];
 
 cd(mainDir2)
 
 mat_dir1 = dir('*.mat');
 mat_dir2 = {mat_dir1.name}; % list of mat files
 
-addpath('C:\MATLAB\GitHub\NeuroKinematica\PD_beta_heterogeneity') 
 for i = 1:length(mat_dir2)
-    outStruct = fixVecLength(mat_dir2{i})
+    outStruct = fixVecLength(mat_dir2{i});
     % overwrite orig. file with new mat file
-    save(mat_dir2{i}, 'outStruct')
+    save(mat_dir2{i}, 'outStruct');
 end
+
 
 %% Sensing Session Data (15 streams per hemisphere, 30 streams per pt)
 
@@ -222,36 +233,33 @@ summaryTable.medianFreq = medianFreq;
 save('updatedSummaryTable.mat', 'summaryTable');
 
 
-%%
-
-%%
+%% Dimensionality reduction
 
 % Load summaryTable
-load("summaryTable.mat");
+load('updatedSummaryTable.mat');
 dimdataTab = summaryTable;
 
-% 5th column onwards in summaryTable contains the data for t-SNE (fxx, uVp, PxxP)
-cellArray = table2array(dimdataTab(:,5:end));
+% 8th column onwards in summaryTable contains the data for t-SNE 
+dimDataNum = table2array(dimdataTab(:,8:end));
+dimDataNum2 = dimDataNum(:,[1, 3:7]); % remove col. 2 (peakVakue) and 8 (medianFreq)
 
-% Initialize an empty cell array to store the numeric data
-numericData = cell(size(cellArray, 1), size(cellArray, 2));
+% PCA
+[coeff,score,latent,tsquared,explained,mu] = pca(dimDataNum2,"Algorithm","svd");
 
-% Loop through each cell in the cell array and extract the numeric data
-for i = 1:size(cellArray, 1)
-    for j = 1:size(cellArray, 2)
-        % Extract the numeric data from the cell
-        numericData{i, j} = cellArray{i, j};
-    end
-end
+% plot first 2 columns of score (two principal components)
+h = biplot(coeff(:,1:2),'Scores',score(:,1:2));
 
-% Convert the cell array of numeric data to a numeric matrix
-dimDataNum = cell2mat(numericData);
 
+% t-SNE
 % Set Perplexity to a value less than the number of rows in dimDataArray
-perplexityValue = min(size(dimDataNum, 1) - 1);
+perplexityValue = min(size(dimDataNum2, 1) - 1, 15); % range ~ 20-30% or data input row#
+% lower perplexity, less seperable; higher sep. greater seperability
 
 % t-SNE with adjusted Perplexity value
-tsneOutdim = tsne(dimDataNum, 'Algorithm', 'exact', 'Distance', 'mahalanobis', 'Perplexity', perplexityValue);
+tSNE_Outdim = tsne(dimDataNum2, 'Algorithm', 'barneshut', 'Distance', 'mahalanobis', 'Perplexity', perplexityValue);
+
+
+%% Plotting colors
 
 % Define new color scheme
 newCOLORS = [35, 61, 77;
@@ -259,35 +267,140 @@ newCOLORS = [35, 61, 77;
              252, 202, 70;
              161, 193, 129;
              97, 155, 138];
-newCOLORS2 = newCOLORS / 255;
+newCOLORS2 = newCOLORS / 255; % RGB --> fraction
 
+
+%% Plot PCA results by subject
+
+figure;
 % Overlay outlines for each subject
-for subii = 1:5
-    tsneSUB = tsneOutdim(ismember(dimdataTab.Subject,subii),:);
-    scatter(tsneSUB(:,1),tsneSUB(:,2),20,newCOLORS2(subii,:),"filled")
+for pt_ii = 1:10
+    % Convert pt_ii to a string
+    pt_ii_str = ['MPR', num2str(pt_ii)];
+    
+    % Use the string version of pt_ii in ismember
+    pca_PT = score(ismember(dimdataTab.("Participant ID"), pt_ii_str), :);
+    
+    % Use modulo operator to cycle through colors
+    newCOLORS2 = rand(1,3);
+    
+    scatter(pca_PT(:,1), pca_PT(:,2), 20, newCOLORS2, "filled")
     hold on
-    tmpBound = boundary(tsneSUB,0.05);
+    tmpBound = boundary(pca_PT, 0.05);
     
-    xVals = tsneSUB(tmpBound,1);
-    yVals = tsneSUB(tmpBound,2);
-    
-    centroid_x = mean(xVals);
-    centroid_y = mean(yVals);
-    
-    scale_factor = 1.2; % Adjust as necessary
-    
-    % Move each point away from the centroid
-    new_x = centroid_x + scale_factor * (xVals - centroid_x);
-    new_y = centroid_y + scale_factor * (yVals - centroid_y);
-    
-    plot(new_x,new_y,'Color',newCOLORS2(subii,:))
-    
-    ftmp = fill(new_x,new_y,newCOLORS2(subii,:),'FaceAlpha',0.3);
-    ftmp.EdgeColor = newCOLORS2(subii,:);
-    ftmp.LineWidth = 1.2;
+    if ~isempty(tmpBound)
+        xVals = pca_PT(tmpBound,1);
+        yVals = pca_PT(tmpBound,2);
+        
+        centroid_x = mean(xVals);
+        centroid_y = mean(yVals);
+        
+        scale_factor = 1.2; % Adjust as necessary
+        
+        % Move each point away from the centroid
+        new_x = centroid_x + scale_factor * (xVals - centroid_x);
+        new_y = centroid_y + scale_factor * (yVals - centroid_y);
+        
+        plot(new_x, new_y, 'Color', newCOLORS2)
+        
+        ftmp = fill(new_x,new_y,newCOLORS2,'FaceAlpha',0.3);
+        ftmp.EdgeColor = newCOLORS2;
+        ftmp.LineWidth = 1.2;
+    end
 end
 
-legend({'','','1','','','2','','','3','','','4','','','5'},"Location","southeast")
+legend({'','','1','','','2','','','3','','','4','','','5','','','6','','','7','','','8','','','9','','','10'},"Location","southeast")
+
+xticks([-25 0 25])
+xlabel('pc 1')
+yticks([-20 0 20])
+ylabel('pc 2')
+
+axis square
+ax1 = gca;
+ax1.TitleHorizontalAlignment = 'left';
+title('Subject separation')
+
+
+% Compute silhouette values for each subject
+figure;
+[silhouVals_Subject,~] = silhouette(tSNE_Outdim, dimdataTab.("Participant ID"));
+
+% Plot histograms of silhouette values for each subject
+figure;
+tiledlayout(10,1,'TileSpacing','tight','Padding','compact')
+for pt_ii = 1:10
+    nexttile
+    newCOLORS2 = rand(1,3);
+    pt_ii_str = ['MPR', num2str(pt_ii)];
+    h = histogram(silhouVals_Subject(ismember(dimdataTab.("Participant ID"), pt_ii_str)));
+    h.Normalization = 'probability';
+    h.BinWidth = 0.1;
+    h.FaceColor = newCOLORS2;
+    h.EdgeColor = "none";
+    h.FaceAlpha = 0.5;
+    
+    meanLOC = mean(silhouVals_Subject(ismember(dimdataTab.("Participant ID"), pt_ii_str)));
+    meanTxt = ['Ave. ' , num2str(round(meanLOC,2))];
+    meanColr = newCOLORS2;
+    xline(meanLOC,'-',meanTxt,'Color',meanColr,'LabelHorizontalAlignment','left')
+    
+    xlim([-1 1])
+    ylim([0 0.6])
+    xlabel('Silhouette value')
+    ylabel('Fraction of values')
+end
+
+set(gcf, 'Position', [1160 266 360 911])
+
+%% Plot t-SNE results
+
+% Define new color scheme
+newCOLORS = [35, 61, 77;
+             254, 127, 45;
+             252, 202, 70;
+             161, 193, 129;
+             97, 155, 138];
+newCOLORS2 = newCOLORS / 255; % RGB --> fraction
+
+figure;
+% Overlay outlines for each subject
+for pt_ii = 1:10
+    % Convert pt_ii to a string
+    pt_ii_str = ['MPR', num2str(pt_ii)];
+    
+    % Use the string version of pt_ii in ismember
+    tsne_PT = tSNE_Outdim(ismember(dimdataTab.("Participant ID"), pt_ii_str), :);
+    
+    % Use modulo operator to cycle through colors
+    newCOLORS2 = rand(1,3);
+    
+    scatter(tsne_PT(:,1), tsne_PT(:,2), 20, newCOLORS2, "filled")
+    hold on
+    tmpBound = boundary(tsne_PT, 0.05);
+    
+    if ~isempty(tmpBound)
+        xVals = tsne_PT(tmpBound,1);
+        yVals = tsne_PT(tmpBound,2);
+        
+        centroid_x = mean(xVals);
+        centroid_y = mean(yVals);
+        
+        scale_factor = 1.2; % Adjust as necessary
+        
+        % Move each point away from the centroid
+        new_x = centroid_x + scale_factor * (xVals - centroid_x);
+        new_y = centroid_y + scale_factor * (yVals - centroid_y);
+        
+        plot(new_x,new_y,'Color',newCOLORS2)
+        
+        ftmp = fill(new_x,new_y,newCOLORS2,'FaceAlpha',0.3);
+        ftmp.EdgeColor = newCOLORS2;
+        ftmp.LineWidth = 1.2;
+    end
+end
+
+legend({'','','1','','','2','','','3','','','4','','','5','','','6','','','7','','','8','','','9','','','10'},"Location","southeast")
 
 xticks([-25 0 25])
 xlabel('tSNE 1')
@@ -297,27 +410,30 @@ ylabel('tSNE 2')
 axis square
 ax1 = gca;
 ax1.TitleHorizontalAlignment = 'left';
-title('Subject separation - beta power parameters')
+title('Subject separation')
+
 
 % Compute silhouette values for each subject
 figure;
-[silhouVals_Subject,~] = silhouette(tsneOutdim,dimdataTab.Subject);
+[silhouVals_Subject,~] = silhouette(tSNE_Outdim, dimdataTab.("Participant ID"));
 
 % Plot histograms of silhouette values for each subject
 figure;
-tiledlayout(5,1,'TileSpacing','tight','Padding','compact')
-for subii = 1:5
+tiledlayout(10,1,'TileSpacing','tight','Padding','compact')
+for pt_ii = 1:10
     nexttile
-    h = histogram(silhouVals_Subject(dimdataTab.Subject == subii));
+    newCOLORS2 = rand(1,3);
+    pt_ii_str = ['MPR', num2str(pt_ii)];
+    h = histogram(silhouVals_Subject(ismember(dimdataTab.("Participant ID"), pt_ii_str)));
     h.Normalization = 'probability';
     h.BinWidth = 0.1;
-    h.FaceColor = newCOLORS2(subii,:);
+    h.FaceColor = newCOLORS2;
     h.EdgeColor = "none";
     h.FaceAlpha = 0.5;
     
-    meanLOC = mean(silhouVals_Subject(dimdataTab.Subject == subii));
+    meanLOC = mean(silhouVals_Subject(ismember(dimdataTab.("Participant ID"), pt_ii_str)));
     meanTxt = ['Ave. ' , num2str(round(meanLOC,2))];
-    meanColr = newCOLORS2(subii,:);
+    meanColr = newCOLORS2;
     xline(meanLOC,'-',meanTxt,'Color',meanColr,'LabelHorizontalAlignment','left')
     
     xlim([-1 1])
@@ -329,75 +445,55 @@ end
 set(gcf, 'Position', [1160 266 360 911])
 
 
+%%
 
+%%
 
+% Compute a distance metric
+eva = evalclusters(pcaClust,subIDnum,'silhouette');
+% 
+figure;
+[silhouVals_Subject,~] = silhouette(pcaClust,subIDnum);
+% % axis square
+% 
+figure;
+tiledlayout(7,1,'TileSpacing','tight','Padding','compact')
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+for ttI = 1:7
+    nexttile
+    h1 = histogram(silhouVals_Subject(subIDnum == ttI));
+    h1.Normalization = 'probability';
+    h1.BinWidth = 0.1;
+    h1.FaceColor = newCOLORS2(ttI,:);
+    h1.EdgeColor = "none";
+    h1.FaceAlpha = 0.5;
+    meanLOC = mean(silhouVals_Subject(subIDnum == ttI));
+    meanTxt = ['Ave. ' , num2str(round(meanLOC,2))];
+    meanColr = newCOLORS2(ttI,:);
+    xline(meanLOC,'-',meanTxt,'Color',meanColr,'LabelHorizontalAlignment','left')
+    xlim([-1 1])
+    ylim([0 0.6])
+    xlabel('Silhouette value')
+    ylabel('Fraction of values')
+end
 
 
 %%
+clust = zeros(size(pcaClust,1),6);
+
+for i=1:6
+clust(:,i) = kmeans(pcaClust,i,'emptyaction','singleton',...
+        'replicate',5);
+end
+
+eva2 = evalclusters(pcaClust,clust,'CalinskiHarabasz');
+
+[~,scoreP,~,~,~] = pca(normDimArray);
+
 
 %% load (50 second recordings)
 % Run PSD
 % Use MDT variation of PSD computation
-
 
 %% 3. PD symptom scores – get from Dr. Kern notes (choose clinPref)
 
