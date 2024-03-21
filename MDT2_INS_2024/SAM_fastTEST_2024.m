@@ -8,13 +8,22 @@
 
 %%
 
-%% Combine Percept LFP with DLC Video
+pcNAME = getenv('COMPUTERNAME');
+
+
+% Combine Percept LFP with DLC Video
 
 % Determine frames for video based on recording start
 
-mainDIR = 'D:\Dropbox\erin_clinic_video\Clin_2023-09-12_session1_soffoffLi_Lcam-emr-2023-09-16\videos';
-% Tablet video
+switch pcNAME
+    case 'jst'
+        mainDIR = 'D:\Dropbox\erin_clinic_video\Clin_2023-09-12_session1_soffoffLi_Lcam-emr-2023-09-16\videos';
+        % Tablet video
+    case'DESKTOP-FAGRV5G'
 
+        mainDIR = 'E:\Dropbox\erin_clinic_video\Clin_2023-09-12_session1_soffoffLi_Lcam-emr-2023-09-16\videos';
+
+end
 tab_vidLoc = [mainDIR, filesep , 'TabletVideo'];
 cd(tab_vidLoc)
 
@@ -32,6 +41,56 @@ whos tab_vid
 v1who = whos('tab_vid');
 round(v1who.bytes/1000000/1000,2)
 disp('Video1 done!')
+
+%% Load in allpoints from GUI
+
+load('PointFrameStart.mat')
+
+nonNanInd = find(~isnan(allPoints(:,1)));
+allPoints2 = allPoints;
+for nii = 1:length(nonNanInd)
+
+    tmpNi = nonNanInd(nii);
+    if nii == length(nonNanInd)
+        tmpNi2 = height(allPoints);
+    else
+        tmpNi2 = nonNanInd(nii+1)-1;
+    end
+    allPoints2(tmpNi:tmpNi2,:) = repmat(allPoints(tmpNi,:), length(tmpNi:tmpNi2),1);
+
+end
+
+allPoints2(:,3) = allPoints2(:,1) > 30;
+
+%% Initialize Segment model
+
+obj = segmentAnythingModel;
+
+
+%%
+
+tab_vidMasks = tab_vid;
+for frameI = 1:size(tab_vid,2)
+
+    if allPoints2(frameI,3) == 1
+
+        embeddings = extractEmbeddings(obj,tab_vid(frameI).cdata);
+
+        promptPointROI = allPoints2(frameI,1:2);
+
+        [masks, ~] = segmentObjectsFromEmbeddings(obj, embeddings,...
+            size(tab_vid(frameI).cdata),...
+            ForegroundPoints = promptPointROI,...
+            ReturnMultiMask = true);
+        tab_vidMasks(frameI).cdata = masks;
+    else
+        tab_vidMasks(frameI).cdata = [];
+        continue
+    end
+    disp(frameI)
+
+end
+
 
 %% 
 
