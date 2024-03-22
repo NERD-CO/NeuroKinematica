@@ -253,8 +253,12 @@ pca_scores = score(:,1:2);
 
 % t-SNE
 % Set Perplexity to a value less than the number of rows in dimDataArray
+<<<<<<< Updated upstream
 perplexityValue = min(size(dimDataNum2, 1) - 1, 15); % range ~ 20-30% or data input row#
 % lower perplexity, less seperable; higher sep. greater seperability
+=======
+perplexityValue = min(size(dimDataNum, 1) - 1, 15);
+>>>>>>> Stashed changes
 
 % t-SNE with adjusted Perplexity value
 tSNE_Outdim = tsne(dimDataNum2, 'Algorithm', 'barneshut', 'Distance', 'mahalanobis', 'Perplexity', perplexityValue);
@@ -396,6 +400,7 @@ for pt_ii = 1:10
         new_x = centroid_x + scale_factor * (xVals - centroid_x);
         new_y = centroid_y + scale_factor * (yVals - centroid_y);
 
+<<<<<<< Updated upstream
         plot(new_x,new_y,'Color',newCOLORS2)
 
         ftmp = fill(new_x,new_y,newCOLORS2,'FaceAlpha',0.3);
@@ -496,6 +501,8 @@ eva2 = evalclusters(pcaClust,clust,'CalinskiHarabasz');
 [~,scoreP,~,~,~] = pca(normDimArray);
 
 
+=======
+>>>>>>> Stashed changes
 %%
 
 % map to severity (threshold)

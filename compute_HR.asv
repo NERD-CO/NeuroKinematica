@@ -1,0 +1,9 @@
+function [maxHR, goalHR, HR85] = compute_HR(age)
+    maxHR = 220 - age;
+    goalHR = 0.8 * maxHR;
+    HR85 = 0.85 * maxHR;
+end
+
+% Determine participant heartrate (HR) goal
+Pt_age = 65;
+[Pt_maxHR, Pt_goalHR, Pt_HR85] = compute_HR(Pt_age);
