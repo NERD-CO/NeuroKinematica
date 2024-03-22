@@ -498,7 +498,7 @@ eva2 = evalclusters(pcaClust,clust,'CalinskiHarabasz');
 
 %%
 
-% map to severity (threshold)
+% map to severity (set threshold)
 
 %% load (50 second recordings)
 % Run PSD

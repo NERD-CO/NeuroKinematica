@@ -496,6 +496,10 @@ eva2 = evalclusters(pcaClust,clust,'CalinskiHarabasz');
 [~,scoreP,~,~,~] = pca(normDimArray);
 
 
+%%
+
+% map to severity (threshold)
+
 %% load (50 second recordings)
 % Run PSD
 % Use MDT variation of PSD computation
