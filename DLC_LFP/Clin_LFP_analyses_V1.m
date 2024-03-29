@@ -3,10 +3,8 @@
 %% Combine Percept LFP with DLC Video
 
 % Data ingredients:
-% 1) LFP - JSON Session Reports (1 report per hemisphere, multiple rows
-% (stream recordings) per report [metadata informs ID of row])
-% Preprocess subfunctions that determine relevant data, extracts, and stores it
-% 2) Movement data and Movement Indices
+% 1) LFP - JSON Session Reports (1 report per hemisphere, multiple rows (stream recordings) per report [metadata informs ID of row])
+% 2) Movement data (.mat files) and Movement Indices (.csvs)
 
 
 %% Directory set-up - Navigate b/t machines
@@ -111,7 +109,6 @@ for json_i = 1:length(JSON_filenames)
 
 end
 
-
 % JSON_name1 (...5956.json), FullNAT {'12-Sep-2023 10:17:12'},  Off Med
 % JSON_name2 (...5939.json), FullNAT {'12-Sep-2023 11:31:25'},  On Med
 
@@ -119,7 +116,7 @@ end
 %% Process OFF Med JSON Session Report 1st
 
 % load JSON Session Report
-js_1_name = 'Report_Json_Session_Report_20230912T115956.json'
+js_1_name = 'Report_Json_Session_Report_20230912T115956.json' % Off Med
 js_1 = jsondecode(fileread(js_1_name));
 
 % temp_JSON2_name = 'Report_Json_Session_Report_20230912T115939.json';
@@ -292,15 +289,255 @@ for R_i = 1:length(R_streamsofInt_OffMed)
 end
 
 
-%% Separate LFP streams of interest by condition
+%% Hilbert Transform test with L_streamOfInt_s1
+
+fs = 250;
+t = 1/250;
+
+% Target signal (LFP) sampling rate at 250 Hz (samples per sec)
+ts_LFP = 0:1/250:(height(L_streamOfInt_s1)-1)/250;
+
+ecgClean_s1 = perceive_ecg(transpose(L_streamOfInt_s1),250,0);
+
+cleanLFP_s1 = ecgClean_s1.cleandata;
+
+% Calculate instantaneous phase using Hilbert transform
+hilbert_s1 = hilbert(cleanLFP_s1);
+inst_phase = angle(hilbert_s1);
+inst_freq = diff(unwrap(inst_phase))/(2*pi*t);
+
+% Filter instantaneous frequency for 13-30 Hz
+bandpass_filt = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',13,'HalfPowerFrequency2',30, ...
+    'SampleRate',fs);
+inst_freq_filtered = filtfilt(bandpass_filt, inst_freq);
+inst_freq_filtered2 = [inst_freq_filtered , 0];
+
+figure;
+plot(ts_LFP,inst_freq_filtered2);
+xlim([0 round(max(ts_LFP))])
+ylabel('frequency (Hz)')
+xlabel('time (seconds)')
+title('Instantaneous Frequency of filtered LFP Beta Band (13-30 Hz)');
+
+
+%% bursting analysis (based on Torrecillos et al., 2018) test with L_streamOfInt_s1
+
+% define 'lfp_data' as a LFP data matrix with dimensions [samples x trials]
+lfp_data = L_streamOfInt_s1;
+
+% Assuming 'movement_onset' is a vector indicating the time of movement onset for each trial
+
+fs = 250;
+f0 = 1:0.25:45; % Frequency range from 1 to 45 Hz in steps of 0.25 Hz
+
+% Frequency-Time Decomposition using complex Morlet wavelets
+time = (1:length(lfp_data)) / fs;
+cwt_power = zeros(length(f0), length(lfp_data));
+for i = 1:length(f0)
+    wavelet = exp(2 * pi * 1i * f0(i) .* time) .* exp(-time.^2 / (2 * (f0(i) / 7)^2));
+    cwt_power(i, :) = abs(conv(lfp_data, wavelet, 'same')).^2;
+end
+
+% Normalize power for each frequency band
+mean_power = mean(cwt_power, 2);
+std_power = std(cwt_power, 0, 2);
+normalized_power = (cwt_power - mean_power) ./ std_power;
+
+% Beta Peak Selection
+beta_range = find(f0 >= 13 & f0 <= 30);
+[~, peak_idx] = max(mean(normalized_power(beta_range, :), 2));
+beta_peak_frequency = f0(beta_range(peak_idx));
+
+
+% Burst Detection
+% Compute beta power time courses for each trial using a 6-Hz-wide frequency band centered on the beta peak frequency
+beta_power_time_courses = mean(normalized_power(beta_range(peak_idx) + (-3:3), :), 1);
+
+% Compute mean beta power
+mean_beta_power = mean(beta_power_time_courses);
+
+% Set threshold at the 75th percentile of the mean beta power
+threshold = prctile(mean_beta_power, 75);
+
+% Define beta bursts as time points exceeding the threshold for more than 3 oscillatory cycles (3 oscillatory cycles = ~100ms)
+min_duration = round(0.1 * fs); % Minimum duration of a burst in samples (100 ms)
+% min_duration = round(0.066 * fs);  % Reduce minimum duration to 2 osc. cycles(66 ms)
+
+above_threshold = beta_power_time_courses > threshold;
+above_threshold = above_threshold(:);  % Ensure it's a column vector
+bursts = zeros(size(above_threshold));  % Initialize bursts array
+[start_indices, end_indices] = findConsecutiveIndices(above_threshold);  % Find start and end indices of consecutive regions above threshold
+for k = 1:length(start_indices)
+    if (end_indices(k) - start_indices(k) + 1) >= min_duration
+        bursts(start_indices(k):end_indices(k)) = 1;  % Mark burst regions
+    end
+end
+    
+
+% Plot the beta power time course
+figure('Renderer', 'opengl');
+plot(time, beta_power_time_courses);
+hold on;
+
+% Overlay the detected bursts on the same plot
+burst_indices = find(bursts);
+for i = 1:length(burst_indices)
+    burst_start = burst_indices(i);
+    while i < length(burst_indices) && burst_indices(i + 1) - burst_indices(i) == 1
+        i = i + 1;
+    end
+    burst_end = burst_indices(i);
+    patch([time(burst_start), time(burst_end), time(burst_end), time(burst_start)], ...
+          [min(beta_power_time_courses), min(beta_power_time_courses), ...
+           max(beta_power_time_courses), max(beta_power_time_courses)], ...
+          [0.8, 0.8, 0.8], 'EdgeColor', 'none', 'FaceAlpha', 0.5);
+end
+
+hold off;
+xlabel('Time (s)');
+ylabel('Beta Power');
+title('Beta Bursting Dynamics');
+legend('Beta Power', 'Detected Bursts');
+
+
+%% Loop through each LFP stream in Left STN
+for i = 1:length(L_streamsofInt_OffMed)
+    lfp_data = L_streamsofInt_OffMed{i};  
+
+    % Hilbert Transform
+    [inst_freq_filtered, ts_LFP] = HilbertTransform(lfp_data, fs);
+
+    % Plotting
+    figure;
+    plot(ts_LFP, inst_freq_filtered);
+    xlim([0 round(max(ts_LFP))]);
+    ylabel('Frequency (Hz)');
+    xlabel('Time (s)');
+    title(sprintf('Instantaneous Frequency of filtered LFP Beta Band (13-30 Hz) for Stream %d', i));
+
+    % Bursting Analysis
+    [beta_power_time_courses, beta_peak_frequency, bursts, time] = burstingAnalysis(lfp_data, fs);
+
+    % Plotting
+    figure('Renderer', 'opengl');
+    plot(time, beta_power_time_courses);
+    hold on;
+    burst_indices = find(bursts);
+    for j = 1:length(burst_indices)
+        burst_start = burst_indices(j);
+        while j < length(burst_indices) && burst_indices(j + 1) - burst_indices(j) == 1
+            j = j + 1;
+        end
+        burst_end = burst_indices(j);
+        patch([time(burst_start), time(burst_end), time(burst_end), time(burst_start)], ...
+              [min(beta_power_time_courses), min(beta_power_time_courses), ...
+               max(beta_power_time_courses), max(beta_power_time_courses)], ...
+              [0.8, 0.8, 0.8], 'EdgeColor', 'none', 'FaceAlpha', 0.5);
+    end
+    hold off;
+    xlabel('Time (s)');
+    ylabel('Beta Power');
+    title(sprintf('Beta Bursting Dynamics for Stream %d', i));
+    legend('Beta Power', 'Detected Bursts');
+end
+
+%% Loop through each LFP stream in Right STN
+for i = 1:length(R_streamsofInt_OffMed)
+    lfp_data = R_streamsofInt_OffMed{i};  
+
+    % Hilbert Transform
+    [inst_freq_filtered, ts_LFP] = HilbertTransform(lfp_data, fs);
+
+    % Plotting
+    figure;
+    plot(ts_LFP, inst_freq_filtered);
+    xlim([0 round(max(ts_LFP))]);
+    ylabel('Frequency (Hz)');
+    xlabel('Time (s)');
+    title(sprintf('Instantaneous Frequency of filtered LFP Beta Band (13-30 Hz) for Stream %d', i));
+
+    % Bursting Analysis
+    [beta_power_time_courses, beta_peak_frequency, bursts, time] = burstingAnalysis(lfp_data, fs);
+
+    % Plotting
+    figure('Renderer', 'opengl');
+    plot(time, beta_power_time_courses);
+    hold on;
+    burst_indices = find(bursts);
+    for j = 1:length(burst_indices)
+        burst_start = burst_indices(j);
+        while j < length(burst_indices) && burst_indices(j + 1) - burst_indices(j) == 1
+            j = j + 1;
+        end
+        burst_end = burst_indices(j);
+        patch([time(burst_start), time(burst_end), time(burst_end), time(burst_start)], ...
+              [min(beta_power_time_courses), min(beta_power_time_courses), ...
+               max(beta_power_time_courses), max(beta_power_time_courses)], ...
+              [0.8, 0.8, 0.8], 'EdgeColor', 'none', 'FaceAlpha', 0.5);
+    end
+    hold off;
+    xlabel('Time (s)');
+    ylabel('Beta Power');
+    title(sprintf('Beta Bursting Dynamics for Stream %d', i));
+    legend('Beta Power', 'Detected Bursts');
+end
+
+%% Separate LFP streams and corresponding DLC sessions of interest by condition
 
 % baseline
+% js1_Row	sessDur(s)	DLC_sessID	DLC_sessDur(s) 	Hemisphere	Notes: case videos (10) for JSON Session Report 1 - Off Med
+% 1	        32	        NA	            NA	        L	        % • L_baseline, (Off Med, Off Stim @ 0 mA)
+% 2	        32	        NA		        NA          R	        % • R_baseline, (Off Med, Off Stim @ 0 mA)
 
 % Off Stim
+% js1_Row	sessDur(s)	DLC_sessID	DLC_sessDur(s) 	Hemisphere	Notes: case videos (10) for JSON Session Report 1 - Off Med
+% 3	        47	        session001	    56	        L	        % • session001, set1 (Off Med, Off Stim @ 0 mA)
+% 4	        41	        session002		40          R	        % • session002, set1 (Off Med, Off Stim @ 0 mA)
+% 5	        38	        session003	    48	        L	        % • session003, set2 (Off Med, Off Stim @ 0 mA)
+% 6	        34	        session004		44          R	        % • session004, set2 (Off Med, Off Stim @ 0 mA)
 
 % Ramp
+% js1_Row	sessDur(s)	DLC_sessID	DLC_sessDur(s) 	Hemisphere	Notes: case videos (10) for JSON Session Report 1 - Off Med
+% 7	        322	        session005	    336	        L	        % • session005 (Off Med, Stim Ramping)
+% 8	        251	        session006		262         R	        % • session006 (Off Med, Stim Ramping)
 
 % On Stim
+% js1_Row	sessDur(s)	DLC_sessID	DLC_sessDur(s) 	Hemisphere	Notes: case videos (10) for JSON Session Report 1 - Off Med
+% 9	        36	        session007	    45	        L	        % • session007, set1 (Off Med, On Stim @ max mA)
+% 10	    29	        session008		37          R	        % • session008, set1 (Off Med, On Stim @ max mA)
+% 11	    28	        session009	    35	        L	        % • session009, set2 (Off Med, On Stim @ max mA)
+% 12	    26	        session010		36          R       	% • session010, set2 (Off Med, On Stim @ max mA)
+
+
+%% Corresponding movement data
+
+DLC_csv_dir = [mainDir2 , filesep , 'csv folder']; % contains dlc label timeseries data as csv files
+DLC_mat_dir = [mainDir2 , filesep , 'mat folder']; % contains dlc label timeseries data as mat files
+DLC_video_dir = [mainDir2 , filesep , 'video folder', filesep , 'Converted for dual GUI']; % contains labeled videos + MovementIndex csv
+
+%% Isolate dlc outputs of interest
+
+% Generate list of dlc-video-labeled MAT files
+cd(DLC_mat_dir)
+mainMat = dir('*.mat');
+mainMAT2 = {mainMat.name};
+
+% Generate list of Motor Index CSVs
+cd(DLC_video_dir)
+moveCSV = dir('*.csv');
+moveCSV2 = {moveCSV.name};
+
+% EUC indicies
+cd(mainDir2)
+eucINDICIES = readtable("EUC_Indicies_1.xlsx");
+
+%% test
+% L_streamOfInt_s1 (js1_Row 3) corresponds with session001 (DLC_sessID 1), (Off Med, Off Stim @ 0 mA)
+% eucINDICIES.videoID contains session001
+% eucINDICIES.moveID contains 'Hand OC'
+% eucINDICIES.eucID = 11
+% StartInd, StartEnd
 
 
 %% (?) Trim / normalize the LFP stream durations by motor trial indices condition
@@ -308,7 +545,7 @@ end
 % baseline - NA
 
 % Off Stim
-% Hand O/C 
+% Hand O/C
 % Pronation/Supination
 % Elbow Flexion/Extension
 
@@ -316,16 +553,9 @@ end
 % finger tap
 
 % On Stim
-% Hand O/C 
+% Hand O/C
 % Pronation/Supination
 % Elbow Flexion/Extension
-
-
-%% Corresponding movement data 
-
-DLC_csv_dir = [mainDir2 , filesep , 'csv folder']; % contains dlc label timeseries data as csv files
-DLC_mat_dir = [mainDir2 , filesep , 'mat folder']; % contains dlc label timeseries data as mat files
-DLC_video_dir = [mainDir2 , filesep , 'video folder', filesep , 'Converted for dual GUI']; % contains labeled videos + MovementIndex csv
 
 
 %% compute LFP power / instantaneous LFP beta power and plot PSDs per session (using pspectrum function)
@@ -350,13 +580,13 @@ DLC_video_dir = [mainDir2 , filesep , 'video folder', filesep , 'Converted for d
 
 % positional data
 % constext-dependent kinematic behav: resting, initiation, braking
-% feature extraction and weighting via unsupervised ML 
+% feature extraction and weighting via unsupervised ML
 % movement vigor - rest vs. move - freq. of movement
 
 %% subfunctions
 
 
-function [outTAB] = getDAYtimes(inputTIMES , inputSAMPLES)
+function [outTAB] = getDAYtimes(inputTIMES , inputSAMPLES) % JAT helper function
 
 dayTIMES = cell(height(inputTIMES),1);
 dayS = cell(height(inputTIMES),1);
@@ -365,7 +595,6 @@ durations = zeros(height(inputTIMES),1);
 streamOffsets = nan(height(inputTIMES),1);
 
 for ti = 1:height(inputTIMES)
-
     inputTi = inputTIMES{ti};
 
     % The input date-time string
@@ -390,20 +619,15 @@ for ti = 1:height(inputTIMES)
     dayS{ti} = timeComponent_DATE;
     fullDtime{ti} = dateTimeObj_Mountain;
     durations(ti) = round(length(inputSAMPLES{ti})/250);
-
 end
 
-
 for di = 1:height(fullDtime)
-
     if di < height(fullDtime)
         t1 = fullDtime{di} + seconds(durations(di));
         t2 = fullDtime{di + 1};
 
         streamOffsets(di) = seconds(time(between(t1,t2)));
-
     end
-
 end
 
 dayT2 = cellfun(@(x) char(x), dayTIMES, 'UniformOutput',false);
@@ -412,9 +636,6 @@ fDt = cellfun(@(x) char(x), fullDtime, 'UniformOutput',false);
 
 outTAB = table(dayT2 , dayS2  , fDt , durations , streamOffsets,...
     'VariableNames',{'TimeOccur','DayOccur','FullNAT','Duration','Offset'});
-
-% end
-
 end
 
 
@@ -425,7 +646,6 @@ dayS = cell(height(inputTIMES),1);
 fullDtime = cell(height(inputTIMES),1);
 
 for ti = 1:height(inputTIMES)
-
     inputTi = inputTIMES{ti};
 
     % Convert the string to a datetime object
@@ -446,7 +666,6 @@ for ti = 1:height(inputTIMES)
     dayTIMES{ti} = timeComponent_AMPM;
     dayS{ti} = timeComponent_DATE;
     fullDtime{ti} = dateTimeObj_Mountain;
-
 end
 
 dayT2 = cellfun(@(x) char(x), dayTIMES, 'UniformOutput',false);
@@ -455,36 +674,77 @@ fDt = cellfun(@(x) char(x), fullDtime, 'UniformOutput',false);
 
 outTAB = table(dayT2 , dayS2  , fDt,...
     'VariableNames',{'TimeOccur','DayOccur','FullNAT'});
-
 end
 
 
-function [inst_freq_filtered, maxBetaPower, ts_LFPtmp] = analyze_LFPBetaPower(lfpData, fs)
+function [inst_freq_filtered, ts_LFP_tmp] = HilbertTransform(lfpData, fs)
+    % Calculate time vector
+    ts_LFP_tmp = (0:length(lfpData)-1) / fs;
 
-% Calculate time vector
-ts_LFPtmp = (0:length(lfpData)-1) / fs;
+    % Apply Hilbert transform
+    hilbert_eeg = hilbert(lfpData);
+    inst_phase = angle(hilbert_eeg);
+    inst_freq = diff(unwrap(inst_phase)) / (2 * pi * (1 / fs));
 
-% Apply Hilbert transform
-hilbert_eeg = hilbert(lfpData);
-inst_phase = angle(hilbert_eeg);
-time = 1/fs;
-inst_freq = diff(unwrap(inst_phase))/(2*pi*time);
-
-% Filter instantaneous frequency for beta band (13-30 Hz)
-bandpass_filt = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',13,'HalfPowerFrequency2',30, ...
-    'SampleRate',fs);
-inst_freq_filtered = filtfilt(bandpass_filt, inst_freq);
-inst_freq_filtered(end+1) = 0;  % Padding the last value
-
-% Calculate maximum beta power
-maxBetaPower = max(abs(inst_freq_filtered));
-
-% Plotting
-plot(ts_LFPtmp, inst_freq_filtered);
-xlim([0 round(max(ts_LFPtmp))]);
-ylabel('Voltage (Beta Band)');
-xlabel('Time (s)');
-title(sprintf('Filtered LFP for Stream %d', i));
-
+    % Filter instantaneous frequency for 13-30 Hz
+    bandpass_filt = designfilt('bandpassiir', 'FilterOrder', 4, ...
+        'HalfPowerFrequency1', 13, 'HalfPowerFrequency2', 30, ...
+        'SampleRate', fs);
+    inst_freq_filtered = filtfilt(bandpass_filt, inst_freq);
+    inst_freq_filtered(end + 1) = 0;  % Padding the last value
 end
+
+
+function [beta_power_time_courses, beta_peak_frequency, bursts, time] = burstingAnalysis(lfp_data, fs)
+    % Bursting Analysis: Time-Frequency Decomposition using complex Morlet wavelet transform
+    f0 = 1:0.25:45;  % Frequency range from 1 to 45 Hz in steps of 0.25 Hz
+    time = (1:size(lfp_data, 1)) / fs;
+    cwt_power = zeros(length(f0), size(lfp_data, 1));
+    for i = 1:length(f0)
+        % wavelet = complex exponential (sine wave) modulated by a Gaussian envelope. 
+        % (f0(i) / 7) controls the width of the Gaussian envelope, with a constant ratio of f0/σf = 7, 
+        % σf = standard deviation of the Gaussian in the frequency domain
+        wavelet = exp(2 * pi * 1i * f0(i) .* time) .* exp(-time.^2 / (2 * (f0(i) / 7)^2)); 
+        cwt_power(i, :) = abs(conv(lfp_data, wavelet, 'same')).^2; % convolves the LFP data with the complex Morlet wavelet and then takes the absolute value squared to obtain the power
+    end
+
+    % Normalize power for each frequency band
+    mean_power = mean(cwt_power, 2); % 2nd dim is the time dimension
+    std_power = std(cwt_power, 0, 2);
+    normalized_power = (cwt_power - mean_power) ./ std_power;
+
+    % Beta Peak Selection
+    beta_range = find(f0 >= 13 & f0 <= 30);
+    [~, peak_idx] = max(mean(normalized_power(beta_range, :), 2));
+    beta_peak_frequency = f0(beta_range(peak_idx));
+
+    % Burst Detection
+    % calculate average beta power time courses across a 6-Hz-wide frequency band centered on the peak beta frequency
+    beta_power_time_courses = mean(normalized_power(beta_range(peak_idx) + (-3:3), :), 1);
+    
+    % compute mean beta power
+    mean_beta_power = mean(beta_power_time_courses);
+    
+    % set threshold at the 75th percentile of the mean beta power across the session
+    threshold = prctile(mean_beta_power, 75);
+
+    % Define beta bursts as time points exceeding the threshold for more than 3 oscillatory cycles (3 oscillatory cycles = ~100ms)
+    min_duration = round(0.1 * fs);  
+    above_threshold = beta_power_time_courses > threshold;
+    above_threshold = above_threshold(:);  % Ensure it's a column vector
+    bursts = zeros(size(above_threshold));  % Initialize bursts array
+    [start_indices, end_indices] = findConsecutiveIndices(above_threshold);  % Find start and end indices of consecutive regions above threshold
+    for k = 1:length(start_indices)
+        if (end_indices(k) - start_indices(k) + 1) >= min_duration
+            bursts(start_indices(k):end_indices(k)) = 1;  % Mark burst regions
+        end
+    end
+end
+
+function [start_indices, end_indices] = findConsecutiveIndices(logical_array)
+    % Find start and end indices of consecutive true regions in a logical array
+    d = diff([0; logical_array(:); 0]);
+    start_indices = find(d > 0);
+    end_indices = find(d < 0) - 1;
+end
+

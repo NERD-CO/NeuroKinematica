@@ -49,10 +49,26 @@ cd(DLC_video_dir)
 moveCSV = dir('*.csv');
 moveCSV2 = {moveCSV.name};
 
-%%
+% bodyparts ("Markers")
+1.  PalmBase
+2. MCP1
+3. MCP2
+4. MCP3
+5. MCP4
+6. MCP5
+7. fTip1
+8. fTip2
+9. fTip3
+10. fTip4
+11. fTip5
+12. MidForeArm
+13. Elbow
 
 
-% Loop through move_CSV files
+
+%% Plot dlc label / anatomical marker traces
+
+% Loop through dlc mat files corresponding with move_CSV files
 moveCSV_fileLocation = DLC_video_dir;
 cd(moveCSV_fileLocation)
 
@@ -139,9 +155,9 @@ for csv_i = 1:length(moveCSV2)
     end
 
     % Store plot elements
-    app.MarkerPlotData = yPLOTDATA;
-    app.MarkerYlabels = yLABELSn;
-    app.MarkerYindicies = yLABELSi;
+    MarkerPlotData = yPLOTDATA;
+    MarkerYlabels = yLABELSn;
+    MarkerYindicies = yLABELSi;
 
     plot(yPLOTDATA,'Color',[0 0 0 0.5])
 
@@ -149,12 +165,9 @@ for csv_i = 1:length(moveCSV2)
 
     % fix y lim
     ylim([0 max(yPLOTDATA,[],'all')+5])
-    %
-    % % fix labels
-    % yticks(MarkerYindicies)
-    % yticklabels(MarkerYlabels)
-
-    % currentSliderPos = app.indexSlider.Value;
-    % xline(currentSliderPos,'-','Color','red','LineWidth',3)
+    
+    % fix labels
+    yticks(MarkerYindicies)
+    yticklabels(MarkerYlabels)
 
 end

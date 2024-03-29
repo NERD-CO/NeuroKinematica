@@ -49,6 +49,20 @@ cd(DLC_video_dir)
 moveCSV = dir('*.csv');
 moveCSV2 = {moveCSV.name};
 
+% % bodyparts ("Markers")
+% 1.  PalmBase
+% 2.  MCP1
+% 3.  MCP2
+% 4.  MCP3
+% 5.  MCP4
+% 6.  MCP5
+% 7.  fTip1
+% 8.  fTip2
+% 9.  fTip3
+% 10. fTip4
+% 11. fTip5
+% 12. MidForeArm
+% 13. Elbow
 
 %% Plot dlc label / anatomical marker traces
 

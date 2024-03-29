@@ -115,14 +115,14 @@ end
 %% Process OFF Med JSON Session Report 1st
 
 % load JSON Session Report
-js_1_name = 'Report_Json_Session_Report_20230912T115956.json'
-js_1 = jsondecode(fileread(js_1_name));
+js_OffMed_name = 'Report_Json_Session_Report_20230912T115956.json'
+js_OffMed = jsondecode(fileread(js_OffMed_name));
 
 % temp_JSON2_name = 'Report_Json_Session_Report_20230912T115939.json';
 % temp_JSON2 = jsondecode(fileread(temp_JSON2_name));
 
 % calculate the date/time
-sessDate_field_1 = js_1.SessionDate;
+sessDate_field_1 = js_OffMed.SessionDate;
 
 % Convert the string to a datetime object
 dateTimeObj_1 = datetime(sessDate_field_1, 'InputFormat', 'yyyy-MM-dd''T''HH:mm:ss''Z');
@@ -134,7 +134,7 @@ dateTimeObj_1.TimeZone = 'UTC';
 dateTimeObj_Mountain_1 = datetime(dateTimeObj_1, 'TimeZone', 'America/Denver');
 
 % convert BrainSense timedomain data to table
-BSTD_1 = js_1.BrainSenseTimeDomain; % struct
+BSTD_1 = js_OffMed.BrainSenseTimeDomain; % struct
 BSTD_1_table = struct2table(BSTD_1); % table
 
 % navigate to time domain data
@@ -539,8 +539,8 @@ lfpsamplerate = 2;
 color = turbo(11);
 
 addpath 'C:\Users\erinr\OneDrive\Documents\GitHub\NeuroKinematica\DLC_LFP\MDT-SampleCode'
-UCH_PowerSnapTD_short(js_1)
-UCH_PowerSnapLFPCL_short(js_1)
+UCH_PowerSnapTD_short(js_OffMed)
+UCH_PowerSnapLFPCL_short(js_OffMed)
 
 
 %% Kinematics and LFP plot
