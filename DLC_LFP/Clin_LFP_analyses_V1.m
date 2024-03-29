@@ -289,7 +289,7 @@ for R_i = 1:length(R_streamsofInt_OffMed)
 end
 
 
-%% Hilbert Transform test with L_streamOfInt_s1
+%% Hilbert Transform (test w/ L_streamOfInt_s1)
 
 fs = 250;
 t = 1/250;
@@ -301,7 +301,7 @@ ecgClean_s1 = perceive_ecg(transpose(L_streamOfInt_s1),250,0);
 
 cleanLFP_s1 = ecgClean_s1.cleandata;
 
-% Calculate instantaneous phase using Hilbert transform
+% Calculate instantaneous phase and freq. using Hilbert transform
 hilbert_s1 = hilbert(cleanLFP_s1);
 inst_phase = angle(hilbert_s1);
 inst_freq = diff(unwrap(inst_phase))/(2*pi*t);
@@ -318,8 +318,20 @@ plot(ts_LFP,inst_freq_filtered2);
 xlim([0 round(max(ts_LFP))])
 ylabel('frequency (Hz)')
 xlabel('time (seconds)')
-title('Instantaneous Frequency of filtered LFP Beta Band (13-30 Hz)');
+title('Instantaneous Frequency of Filtered LFP Beta Band (13-30 Hz)');
 
+% Compute and Plot Power Spectral Density (PSD)
+
+% Use pspectrum to compute the power spectral density
+[power, freq] = pspectrum(cleanLFP_s1, fs);
+
+% Plot the power spectral density
+figure;
+plot(freq, 10*log10(power));
+xlim([0 50])  % Limit x-axis to 50 Hz for better visualization
+xlabel('Frequency (Hz)');
+ylabel('Power/Frequency (dB/Hz)');
+title('Power Spectral Density of LFP Signal');
 
 %% bursting analysis (based on Torrecillos et al., 2018) test with L_streamOfInt_s1
 
@@ -338,6 +350,17 @@ for i = 1:length(f0)
     wavelet = exp(2 * pi * 1i * f0(i) .* time) .* exp(-time.^2 / (2 * (f0(i) / 7)^2));
     cwt_power(i, :) = abs(conv(lfp_data, wavelet, 'same')).^2;
 end
+
+% time-domain bin size
+% example to test
+cwt(lfp_data,fs,'FrequencyLimits',[1 125],'VoicesPerOctave',7);
+
+% sanity-check plot
+imagesc(cwt_power)
+set(gca, 'YDir','normal')
+% remap y-axis to represent freq. steps
+ytemp = yticks;
+yticklabels(f0(ytemp))
 
 % Normalize power for each frequency band
 mean_power = mean(cwt_power, 2);
@@ -376,6 +399,7 @@ end
     
 
 % Plot the beta power time course
+
 figure('Renderer', 'opengl');
 plot(time, beta_power_time_courses);
 hold on;
@@ -393,6 +417,8 @@ for i = 1:length(burst_indices)
            max(beta_power_time_courses), max(beta_power_time_courses)], ...
           [0.8, 0.8, 0.8], 'EdgeColor', 'none', 'FaceAlpha', 0.5);
 end
+
+% https://www.mathworks.com/help/matlab/ref/xregion.html
 
 hold off;
 xlabel('Time (s)');
@@ -538,6 +564,14 @@ eucINDICIES = readtable("EUC_Indicies_1.xlsx");
 % eucINDICIES.moveID contains 'Hand OC'
 % eucINDICIES.eucID = 11
 % StartInd, StartEnd
+
+% calculate offset 
+% video_start
+% tablet_start
+% Lfp_start
+
+% trim video
+% adjust indices
 
 
 %% (?) Trim / normalize the LFP stream durations by motor trial indices condition
