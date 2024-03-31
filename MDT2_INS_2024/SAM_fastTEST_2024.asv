@@ -151,11 +151,10 @@ load("SegMasks.mat")
 load("OrigVid.mat")
 load("PointFrameRefine2.mat")
 %%
-tab_vidARM = tab_vidMasks;
+
 for sii = 1:size(tab_vidMasks,2)
 
     if isempty(tab_vidMasks(sii).cdata)
-        tab_vidARM(sii).cdata = [];
         continue
     else
         tmpIM = tab_vidMasks(sii).cdata(:,:,2);
@@ -210,9 +209,6 @@ for sii = 1:size(tab_vidMasks,2)
         % BW8 = activecontour(tmpFRAME,mask,100,'edge');
         % imshow(BW8)
 
-        % grayIM = rgb2gray(tmpFRAME);
-        % points = detectFASTFeatures(grayIM,'ROI', stats2.BoundingBox);
-
         if isempty(stats2)
             continue
         else
@@ -226,36 +222,20 @@ for sii = 1:size(tab_vidMasks,2)
 
             imshow(tmpARM)
 
-            tab_vidARM(sii).cdata = tmpARM;
-            tab_vidARM(sii).B3 = B3;
-            tab_vidARM(sii).L3 = L3;
-            tab_vidARM(sii).Rprops = stats2;
-
             % imshow(label2rgb(L3, @jet, [.5 .5 .5]))
             hold on
 
-            grayIM = rgb2gray(tmpARM);
-            grayIM2 = rgb2gray(tmpFRAME);
-            pointsEF = detectMinEigenFeatures(grayIM,'ROI', stats2.BoundingBox);
-            pointsFAST = detectFASTFeatures(grayIM,'ROI', stats2.BoundingBox);
-            [regions,mserCC] = detectMSERFeatures(grayIM2,'ROI', stats2.BoundingBox,...
-                'ThresholdDelta',8);
-            % ----------PLOT BOUNDARY AROUND ARM FOR EMPHASIS
+            % PLOT BOUNDARY AROUND ARM FOR EMPHASIS
             % for k = 1:length(B3)
             %     boundary = B3{k};
             %     plot(boundary(:,2), boundary(:,1), 'w', 'LineWidth', 2)
             % end
 
-            %--------------- PLOT RECTANGLE TO ADD INFO 
+            % PLOT RECTANGLE TO ADD INFO 
             % rectangle('Position',stats2.BoundingBox,'Curvature',0.2)
-
-            plot(regions,'showPixelList',true,'showEllipses',false)
-            % plot(pointsEF.selectStrongest(5))
-            % plot(pointsFAST.selectStrongest(5))
 
         end
 
-        % TO DO FUTURE
         % USE BOUNDING BOX - USE TO REFINE OUTLINE
 
 
@@ -268,8 +248,6 @@ for sii = 1:size(tab_vidMasks,2)
     cla
 
 end
-
-test = 1;
 
 
 %%
