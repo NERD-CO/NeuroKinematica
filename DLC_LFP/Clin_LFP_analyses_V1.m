@@ -558,16 +558,41 @@ moveCSV2 = {moveCSV.name};
 cd(mainDir2)
 eucINDICIES = readtable("EUC_Indicies_1.xlsx");
 
+%%
+videoIDs = eucINDICIES.videoID; % 32x1 cell array (4 instances per 8 videos)
+moveIDs = eucINDICIES.moveID; % 32x1 cell array (4 moveIDs per 8 videos)
+
+% Find all rows in the eucINDICIES table where the 'moveID' is 'Tablet'
+tablet_indices = find(strcmp(eucINDICIES.moveID, 'Tablet'));
+
+% Iterate over each 'Tablet' index to trim video files and adjust LFP start times
+for i = 1:length(tablet_indices)
+    
+    % Get the start index of the tablet appearance for the current session
+    tablet_start_index = eucINDICIES.StartInd(tablet_indices(i));
+    
+    % Code to trim the video file from the beginning to tablet_start_index
+    % This will depend on the video processing functions available in your environment
+    
+    % Find the LFP start time that corresponds to the session
+    % This will also depend on the functions you have to process JSON Session Reports
+    % and might involve converting times between time zones, as seen in your code
+    
+    % Code to synchronize the start time of the LFP data to match the tablet appearance time
+    % This can be done by adjusting the LFP data to start at the same relative time as the tablet appearance
+end
+
 %% test
-% L_streamOfInt_s1 (js1_Row 3) corresponds with session001 (DLC_sessID 1), (Off Med, Off Stim @ 0 mA)
+
+% L_streamOfInt_s1 (js1_Row 3) LFP stream corresponds with session001 (DLC_sessID 1) movement video, (Off Med, Off Stim @ 0 mA)
 % eucINDICIES.videoID contains session001
 % eucINDICIES.moveID contains 'Hand OC'
 % eucINDICIES.eucID = 11
 % StartInd, StartEnd
 
-% calculate offset 
-% video_start
-% tablet_start
+% calculate offset
+% Video_start
+% Tablet_start
 % Lfp_start
 
 % trim video

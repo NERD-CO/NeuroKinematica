@@ -399,6 +399,7 @@ end
     
 
 % Plot the beta power time course
+
 figure('Renderer', 'opengl');
 plot(time, beta_power_time_courses);
 hold on;
@@ -416,6 +417,8 @@ for i = 1:length(burst_indices)
            max(beta_power_time_courses), max(beta_power_time_courses)], ...
           [0.8, 0.8, 0.8], 'EdgeColor', 'none', 'FaceAlpha', 0.5);
 end
+
+% https://www.mathworks.com/help/matlab/ref/xregion.html
 
 hold off;
 xlabel('Time (s)');
@@ -555,12 +558,23 @@ moveCSV2 = {moveCSV.name};
 cd(mainDir2)
 eucINDICIES = readtable("EUC_Indicies_1.xlsx");
 
+videoIDs = eucINDICIES.videoID; % 32x1 cell array (4 instances per 8 videos)
+moveIDs = eucINDICIES.moveID; 
+
 %% test
 % L_streamOfInt_s1 (js1_Row 3) corresponds with session001 (DLC_sessID 1), (Off Med, Off Stim @ 0 mA)
 % eucINDICIES.videoID contains session001
 % eucINDICIES.moveID contains 'Hand OC'
 % eucINDICIES.eucID = 11
 % StartInd, StartEnd
+
+% calculate offset 
+% video_start
+% tablet_start
+% Lfp_start
+
+% trim video
+% adjust indices
 
 
 %% (?) Trim / normalize the LFP stream durations by motor trial indices condition
