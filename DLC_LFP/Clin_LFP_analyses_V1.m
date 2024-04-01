@@ -558,46 +558,122 @@ moveCSV2 = {moveCSV.name};
 cd(mainDir2)
 eucINDICIES = readtable("EUC_Indicies_1.xlsx");
 
-%%
-videoIDs = eucINDICIES.videoID; % 32x1 cell array (4 instances per 8 videos)
-moveIDs = eucINDICIES.moveID; % 32x1 cell array (4 moveIDs per 8 videos)
-
-% Find all rows in the eucINDICIES table where the 'moveID' is 'Tablet'
+% Find all rows in eucINDICIES where the 'moveID' is 'Tablet'
 tablet_indices = find(strcmp(eucINDICIES.moveID, 'Tablet'));
 
-% Iterate over each 'Tablet' index to trim video files and adjust LFP start times
-for i = 1:length(tablet_indices)
-    
-    % Get the start index of the tablet appearance for the current session
-    tablet_start_index = eucINDICIES.StartInd(tablet_indices(i));
-    
-    % Code to trim the video file from the beginning to tablet_start_index
-    % This will depend on the video processing functions available in your environment
-    
-    % Find the LFP start time that corresponds to the session
-    % This will also depend on the functions you have to process JSON Session Reports
-    % and might involve converting times between time zones, as seen in your code
-    
-    % Code to synchronize the start time of the LFP data to match the tablet appearance time
-    % This can be done by adjusting the LFP data to start at the same relative time as the tablet appearance
+% Define row indices in eucINDICIES for each 'moveID'
+HandMov_indices = find(strcmp(eucINDICIES.moveID, 'HAND OC'));
+PronSup_indices = find(strcmp(eucINDICIES.moveID, 'HAND PS'));
+FlexExtend_indices = find(strcmp(eucINDICIES.moveID, 'ARM EF'));
+
+
+%% test - Isolate LFP and Video of iterest (LFP stream 3, DLC session 1)
+
+% L_streamOfInt_s1 (LFP stream 3) corresponds with DLC session001 (movement video 1), (Off Med, Off Stim @ 0 mA)
+
+% Define LFP stream of interest: 
+streamOfInt_1 = L_streamOfInt_s1; % 11688x1 double
+
+% Extract DLC video of interest
+session_id_1 = eucINDICIES.videoID{1};
+
+% Extract dlc Tablet start frame index 
+tablet_start_index_1 = eucINDICIES.StartInd(tablet_indices(1));
+tablet_stop_index_1 = eucINDICIES.StopInd(tablet_indices(1));
+
+% Load mat file corresponding to DLC video session
+cd(DLC_mat_dir)
+load('dlcDAT_20230912_session001_idea08_resnet50_rightCam-0000DLC.mat','outDATA')
+dlc_labDAT_1 = outDATA;
+
+% Trim mat file corresponding to DLC video session
+dlc_trimmed_1 = dlc_labDAT_1(tablet_start_index_1:tablet_stop_index_1,:); % 2821x40 table
+
+% Synchronize corresponding LFP stream (trim by dlc Tablet start frame index) 
+
+% calculate offset from Video_start to Tablet_start 
+% trim offset
+% synchronize Lfp_start with Tablet_start
+
+
+%% Sampling Rate Conversions and Calculations
+
+totalNumSamples_Vid = height(dlc_trimmed_1);
+
+totalNumSecs = totalNumSamples_Vid/60; % 60 fps
+
+totalNumSamples_LFP = floor(totalNumSecs*250); % 250 samples per second
+% y = floor(a) rounds fi object a to the nearest integer in the direction of negative infinity and returns the result in fi object y
+
+% Original signal (video) sampling rate at 60 Hz (fps)
+ts_DLC = 0:1/60:(height(dlc_trimmed_1)-1)/60;
+
+% Target signal (LFP) sampling rate at 250 Hz (samples per sec)
+ts_LFP = 0:1/250:(height(streamOfInt_1)-1)/250;
+
+% Interpolate - upsample kinematic data to match LFP sampling rate
+allColNs = dlc_trimmed_1.Properties.VariableNames;
+dlc_trimmed_1_int = table;
+for coli = 1:width(dlc_trimmed_1)
+
+    % Tmp col
+    tmpCol = allColNs{coli};
+
+    % % Interpolation
+    % x_250 = interp1(ts_DLC, transpose(dlc_lab2use.(tmpCol)), ts_LFP, 'spline');
+    x_250 = interp1(ts_DLC, dlc_trimmed_1.(tmpCol), ts_LFP);
+
+    dlc_trimmed_1_int.(tmpCol) = transpose(x_250);
 end
 
-%% test
+%trimFrB_int = linspace(FRAMEstart,FRAMEend, length(ts_LFP));
 
-% L_streamOfInt_s1 (js1_Row 3) LFP stream corresponds with session001 (DLC_sessID 1) movement video, (Off Med, Off Stim @ 0 mA)
-% eucINDICIES.videoID contains session001
-% eucINDICIES.moveID contains 'Hand OC'
-% eucINDICIES.eucID = 11
-% StartInd, StartEnd
+%% Kinematics and LFP plot
 
-% calculate offset
-% Video_start
-% Tablet_start
-% Lfp_start
+tiledlayout(2,1,"TileSpacing","tight")
+xTime = ts_LFP;
 
-% trim video
-% adjust indices
+fTip1_X_smooth = smoothdata(dlc_trimmed_1_int.fTip1_x,'gaussian',70);
+nexttile
+plot(xTime,fTip1_X_smooth);
+xlim([0 round(max(ts_LFP))])
+xlabel('Time (s)')
+ylabel('fTip1, X deflection')
 
+ecg = perceive_ecg(transpose(streamOfInt_1),250,0);
+
+nexttile
+plot(xTime,ecg.cleandata);
+xlim([0 round(max(ts_LFP))])
+xlabel('Time (s)')
+ylabel('LFP (uV)')
+
+%%
+
+% Extract start and stop frame indices for 'Hand OC'
+HOC_start_index_1 = eucINDICIES.StartInd(HandMov_indices(1));
+HOC_stop_index_1 = eucINDICIES.StopInd(HandMov_indices(1));
+
+
+%% loop for test above
+
+
+
+
+%%
+% OFF Med
+DLC_s1 = videoIDs(1:3); % set 1 [OFF Med, OFF Stim]
+DLC_s3 = videoIDs(4:6); % set 2 [OFF Med, OFF Stim]
+% DLC_5_ramp % OFF Med
+DLC_s7 = videoIDs(7:9); % set 1 [OFF Med, ON Stim]
+DLC_s9 = videoIDs(10:12); % set 2 [OFF Med, ON Stim]
+
+% ON Med
+DLC_13 = videoIDs(13:15); % set 1 [ON Med, OFF Stim]
+DLC_15 = videoIDs(16:18); % set 2 [ON Med, OFF Stim]
+% DLC_18_ramp % ON Med
+DLC_20 = videoIDs(19:21); % set 1 [ON Med, ON Stim]
+DLC_22 = videoIDs(22:24); % set 2 [ON Med, ON Stim]
 
 %% (?) Trim / normalize the LFP stream durations by motor trial indices condition
 
