@@ -167,7 +167,7 @@ for sii = 1:size(tab_vidMasks,2)
         [B,L] = bwboundaries(tmpIM,'noholes');
         LL = logical(L);
 
-        [B2 , L2 , L2M] = getRidOfsmall(B,L);
+        % [B2 , L2 , L2M] = getRidOfsmall(B,L);
 
         stats = regionprops("table",LL,"Area","Centroid","PixelIdxList", ...
             "MajorAxisLength","MinorAxisLength","BoundingBox");
