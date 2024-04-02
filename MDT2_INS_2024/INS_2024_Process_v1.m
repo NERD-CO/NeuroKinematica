@@ -87,8 +87,9 @@ csv_vidLoc  = leftSTN_rightBD_dir;
 save_matLoc = leftSTN_rightBD_dir;
 cd(csv_vidLoc)
 
-dlcIO_processCSV('dirLOC',1,'userLOC',csv_vidLoc,'saveLOC',save_matLoc,...
-    'selCSV',GROUP_Video_CSV,'USERid','JAT','hemiS','L','bodyS','R')
+% DO NOT NEED TO RE-RUN ------------------
+% dlcIO_processCSV('dirLOC',1,'userLOC',csv_vidLoc,'saveLOC',save_matLoc,...
+%     'selCSV',GROUP_Video_CSV,'USERid','JAT','hemiS','L','bodyS','R')
 
 cd(save_matLoc)
 
