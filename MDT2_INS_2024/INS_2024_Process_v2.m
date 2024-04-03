@@ -1,4 +1,4 @@
-
+% function [] = generateINS_DatasetS(subject2u , bodySIDE , LFPSIDE)
 % INPUT ARGUMENT for SUBJECT
 % LOAD CSV file with:
 % JSON left and right files
@@ -30,19 +30,22 @@ end
 
 mainFOLDloc = [mainDir , filesep , subjectID];
 
-% loop through and store as structs
+% --------- LOAD BOTH LEFT and RIGHT STN lfp
+% LEFT STN LFP
 leftSTNLoc = [mainFOLDloc,'\Streaming\Left STN'];
 leftSTNfile = 'Report_Json_Session_Report_20230908T131441.json';
+rightFF = [rightSTNLoc , filesep , rightSTNfile];
 
+% RIGHT STN LFP
 rightSTNLoc = [mainDir,filesep,subjectID,'\Streaming\Right STN'];
 rightSTNfile = 'Report_Json_Session_Report_20230911T133035.json';
-
-% cd(leftSTNLoc)
 leftFF = [leftSTNLoc , filesep , leftSTNfile];
-rightFF = [rightSTNLoc , filesep , rightSTNfile];
 
 % Left STN / Right Body videos
 cd(mainFOLDloc)
+
+% SWITCH CASE FOR bodySIDE [input argument]
+
 leftSTN_rightBD_dir = [mainFOLDloc , '\RightBody'];
 search_path = fullfile(leftSTN_rightBD_dir, '*.csv');
 leftSTN_rightBD_csvLt = dir(search_path );
@@ -51,14 +54,16 @@ leftSTN_rightBD_csvL = {leftSTN_rightBD_csvLt.name};
 leftSTN_rightBD_csvTable = getCSVinfo(leftSTN_rightBD_dir , leftSTN_rightBD_csvL);
 leftSTN_rightBD_Vinfo_fname = fullfile(leftSTN_rightBD_dir ,"VideoINFO.xlsx");
 
-% Right STN LFP / Left Body videos
+% Left and Right STN JSON Files
 stnLEFTjson  = jsondecode(fileread(leftFF));
 stnRIGHTjson = jsondecode(fileread(rightFF));
 
 % Extract BrainSenseTimeDomain
 stnLEFTstream = stnLEFTjson.BrainSenseTimeDomain;
 stnLSt_tab = struct2table(stnLEFTstream);
-% Get relevant rows for hemi recorded
+
+% Left JSON is Left hemi primary (contralateral always collected)
+% Select LEFT STN fields from LEFT JSON file
 stnLSt_tab_LH = stnLSt_tab(contains(stnLSt_tab.Channel,'LEFT'),:);
 
 % process with a function
@@ -70,7 +75,7 @@ stnLEFTBSlfp = struct2table(stnLEFTjson.BrainSenseLfp);
 
 % Get times from BS LFP
 [BSlfptimes] = getBSLFPtimes(stnLEFTBSlfp.FirstPacketDateTime);
-%
+
 
 
 
@@ -288,7 +293,7 @@ end
 
 
 
-%%
+%% FUNCTIONS with MAIN FUNCTION
 
 
 
@@ -343,14 +348,12 @@ GROUPA_Video_Name = allVideoNames2(contains(allVideoNames3,...
 GROUPA_Video_MoveIND_Name = [extractBefore(GROUPA_Video_Name{1},'.'),'_MoveIndex.csv'];
 
 
-
-
-
-
-
-
-
 end
+
+
+
+
+
 
 
 
@@ -390,15 +393,12 @@ for ti = 1:height(inputTIMES)
 
 end
 
-
 for di = 1:height(fullDtime)
 
     if di < height(fullDtime)
         t1 = fullDtime{di};
         t2 = fullDtime{di + 1};
-
         streamOffsets(di) = seconds(time(between(t1,t2)));
-
     end
 
 end
@@ -486,12 +486,6 @@ outTABLE = table(csvLIST , numFrames,'VariableNames',{'CSVname','NumFrames'});
 
 
 end
-
-
-
-
-
-
 
 
 

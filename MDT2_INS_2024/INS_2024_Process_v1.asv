@@ -43,7 +43,7 @@ rightFF = [rightSTNLoc , filesep , rightSTNfile];
 
 % Left STN / Right Body videos
 cd(mainFOLDloc)
-leftSTN_rightBD_dir = [mainFOLDloc , '\RightBody'];
+leftSTN_rightBD_dir = [mainFOLDloc , 'RightBody'];
 search_path = fullfile(leftSTN_rightBD_dir, '*.csv');
 leftSTN_rightBD_csvLt = dir(search_path );
 leftSTN_rightBD_csvL = {leftSTN_rightBD_csvLt.name};
@@ -51,11 +51,12 @@ leftSTN_rightBD_csvL = {leftSTN_rightBD_csvLt.name};
 leftSTN_rightBD_csvTable = getCSVinfo(leftSTN_rightBD_dir , leftSTN_rightBD_csvL);
 leftSTN_rightBD_Vinfo_fname = fullfile(leftSTN_rightBD_dir ,"VideoINFO.xlsx");
 
-% Right STN LFP / Left Body videos
+% Right STN / Left Body videos
+
 stnLEFTjson  = jsondecode(fileread(leftFF));
 stnRIGHTjson = jsondecode(fileread(rightFF));
 
-% Extract BrainSenseTimeDomain
+%
 stnLEFTstream = stnLEFTjson.BrainSenseTimeDomain;
 stnLSt_tab = struct2table(stnLEFTstream);
 % Get relevant rows for hemi recorded

@@ -1,4 +1,4 @@
-
+% function [] = generateINS_Dataset
 % INPUT ARGUMENT for SUBJECT
 % LOAD CSV file with:
 % JSON left and right files
@@ -288,7 +288,7 @@ end
 
 
 
-%%
+%% FUNCTIONS with MAIN FUNCTION
 
 
 
@@ -343,14 +343,12 @@ GROUPA_Video_Name = allVideoNames2(contains(allVideoNames3,...
 GROUPA_Video_MoveIND_Name = [extractBefore(GROUPA_Video_Name{1},'.'),'_MoveIndex.csv'];
 
 
-
-
-
-
-
-
-
 end
+
+
+
+
+
 
 
 
@@ -486,12 +484,6 @@ outTABLE = table(csvLIST , numFrames,'VariableNames',{'CSVname','NumFrames'});
 
 
 end
-
-
-
-
-
-
 
 
 
