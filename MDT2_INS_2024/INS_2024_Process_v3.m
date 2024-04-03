@@ -1,4 +1,4 @@
-% function [] = generateINS_DatasetS(subject2u , bodySIDE , LFPSIDE)
+% function [] = generateINS_DatasetS(subject2u , bodySIDE , LFPSIDE , group2use333)
 % INPUT ARGUMENT for SUBJECT
 % LOAD CSV file with:
 % JSON left and right files
@@ -32,78 +32,83 @@ mainFOLDloc = [mainDir , filesep , subjectID];
 
 % --------- LOAD BOTH LEFT and RIGHT STN lfp
 % LEFT STN LFP
-leftSTNLoc = [mainFOLDloc,'\Streaming\Left STN'];
-leftSTNfile = 'Report_Json_Session_Report_20230908T131441.json';
-rightFF = [rightSTNLoc , filesep , rightSTNfile];
-
+STNLoc.Left = [mainFOLDloc,'\Streaming\Left STN'];
+STNfile.Left = 'Report_Json_Session_Report_20230908T131441.json';
+STN_fulFile.Left = [STNLoc.Left , filesep , STNfile.Left];
 % RIGHT STN LFP
-rightSTNLoc = [mainDir,filesep,subjectID,'\Streaming\Right STN'];
-rightSTNfile = 'Report_Json_Session_Report_20230911T133035.json';
-leftFF = [leftSTNLoc , filesep , leftSTNfile];
+STNLoc.Right = [mainDir,filesep,subjectID,'\Streaming\Right STN'];
+STNfile.Right = 'Report_Json_Session_Report_20230911T133035.json';
+STN_fulFile.Right = [STNLoc.Right , filesep , STNfile.Right];
 
 % Left STN / Right Body videos
 cd(mainFOLDloc)
 
 % SWITCH CASE FOR bodySIDE [input argument]
 
-leftSTN_rightBD_dir = [mainFOLDloc , '\RightBody'];
-search_path = fullfile(leftSTN_rightBD_dir, '*.csv');
-leftSTN_rightBD_csvLt = dir(search_path );
-leftSTN_rightBD_csvL = {leftSTN_rightBD_csvLt.name};
+BodyVidDir.Right = [mainFOLDloc , '\RightBody'];
+BodyCSVsrch.Right = fullfile(BodyVidDir.Right, '*.csv');
+BodyCSVList.Right = dir(BodyCSVsrch.Right);
+BodyCSVListCA.Right = {BodyCSVList.Right.name};
 
-leftSTN_rightBD_csvTable = getCSVinfo(leftSTN_rightBD_dir , leftSTN_rightBD_csvL);
-leftSTN_rightBD_Vinfo_fname = fullfile(leftSTN_rightBD_dir ,"VideoINFO.xlsx");
+% leftSTN_rightBD_csvTable = getCSVinfo(BodyVidDir.Right , BodyCSVListCA.Right);
+BodyVideoIndex.Right = fullfile(BodyVidDir.Right ,"VideoINFO.xlsx");
 
 % Left and Right STN JSON Files
-stnLEFTjson  = jsondecode(fileread(leftFF));
-stnRIGHTjson = jsondecode(fileread(rightFF));
+stnLEFTjson  = jsondecode(fileread(STN_fulFile.Left));
+stnRIGHTjson = jsondecode(fileread(STN_fulFile.Right));
 
 % Extract BrainSenseTimeDomain
 stnLEFTstream = stnLEFTjson.BrainSenseTimeDomain;
-stnLSt_tab = struct2table(stnLEFTstream);
+stnRIGHTstream = stnRIGHTjson.BrainSenseTimeDomain;
+stnLeftSt_tab = struct2table(stnLEFTstream);
+stnRightSt_tab = struct2table(stnRIGHTstream);
 
 % Left JSON is Left hemi primary (contralateral always collected)
 % Select LEFT STN fields from LEFT JSON file
-stnLSt_tab_LH = stnLSt_tab(contains(stnLSt_tab.Channel,'LEFT'),:);
+stnLeftSt_tabU.Left = stnLeftSt_tab(contains(stnLeftSt_tab.Channel,'LEFT'),:);
+stnLeftSt_tabU.Right = stnLeftSt_tab(contains(stnLeftSt_tab.Channel,'RIGHT'),:);
+
+stnRightSt_tabU.Left = stnRightSt_tab(contains(stnRightSt_tab.Channel,'LEFT'),:);
+stnRightSt_tabU.Right = stnRightSt_tab(contains(stnRightSt_tab.Channel,'RIGHT'),:);
 
 % process with a function
-stnLEFTsTtimes = getDAYtimes(stnLSt_tab_LH.FirstPacketDateTime ,...
-    stnLSt_tab_LH.TimeDomainData);
+stnLeftSt_times.Left = getDAYtimes(stnLeftSt_tabU.Left.FirstPacketDateTime ,...
+    stnLeftSt_tabU.Left.TimeDomainData);
 
 % LEFT brain LFP + stimulation
-stnLEFTBSlfp = struct2table(stnLEFTjson.BrainSenseLfp);
+stnBSLFP.Left = struct2table(stnLEFTjson.BrainSenseLfp);
 
 % Get times from BS LFP
-[BSlfptimes] = getBSLFPtimes(stnLEFTBSlfp.FirstPacketDateTime);
+% BSlfptimes = getBSLFPtimes(stnBSLFP.Left.FirstPacketDateTime);
 
 
 
 
 %% Get Group A (first group)
-groupIDchk = stnLEFTBSlfp.TherapySnapshot;
+
+% EXTRACT ALL Groups from Left [primary] JSON 
+groupIDchk = stnBSLFP.Left.TherapySnapshot;
 groupIDs = cell(height(groupIDchk),1);
 for gi = 1:height(groupIDchk)
-
     tmpGrpR = groupIDchk{gi}.ActiveGroup;
     tmpGrpR1 = extractAfter(tmpGrpR,'.');
     groupIDs{gi} = tmpGrpR1;
-
 end
 
+% ADD as input argument
 group2use333 = 'b';
+% stnLEFT_Stream.Left
+[GROUP_Video_Names , GROUP_Video_MoveIND_Names, ~,...
+    stnLEFT_Stream.Left]...
+    = getGroupInfo(groupIDs, stnBSLFP.Left , stnLeftSt_times.Left ,...
+    stnLeftSt_tabU.Left , BodyVideoIndex.Right , BodyVidDir.Right);
 
-[GROUP_Video_Name , GROUP_Video_MoveIND_Name, GROUP_Video_CSV,...
-    stnL_LFP_St_GrpA_KinLFP]...
-    = getGroupInfo(group2use333 , groupIDs, stnLEFTBSlfp , stnLEFTsTtimes ,...
-    stnLSt_tab_LH , leftSTN_rightBD_Vinfo_fname);
-
-
-
+%%% SWITCH Case for Body Side
 
 % DLC CVS convert video frame CSV
 % Load and Process CSV file
-csv_vidLoc  = leftSTN_rightBD_dir;
-save_matLoc = leftSTN_rightBD_dir;
+csv_vidLoc  = BodyVidDir.Right;
+save_matLoc = BodyVidDir.Right;
 cd(csv_vidLoc)
 
 % DO NOT NEED TO RE-RUN ------------------
@@ -118,60 +123,79 @@ matLISTu = {matLIST.name};
 
 stnSIDE = 'L';
 
-csvNparts = split(GROUP_Video_Name , {'_','-'});
-csvMatSearch = [csvNparts{1},'_',csvNparts{3},'_',csvNparts{4},'_',stnSIDE,'STN'];
-dlcMATname = matLISTu{contains(matLISTu,csvMatSearch)};
+% FIX per GROUP
+% csvNparts = split(GROUP_Video_Names.B , {'_','-'});
+% csvMatSearch = [csvNparts{1},'_',csvNparts{3},'_',csvNparts{4},'_',stnSIDE,'STN'];
+% dlcMATname = matLISTu{contains(matLISTu,csvMatSearch)};
 
-load(dlcMATname)
-camFields = fieldnames(outDATA.labelTab);
-d1_labDAT = outDATA.labelTab.(camFields{1});
+[dlcMATnames] = getMATDLCnames(stnSIDE , matLISTu , GROUP_Video_Names);
+
+load(dlcMATnames.A)
+camFields.A = fieldnames(outDATA.labelTab);
+d1_labDAT.A = outDATA.labelTab.(camFields.A{1});
+
+load(dlcMATnames.B)
+camFields.B = fieldnames(outDATA.labelTab);
+d1_labDAT.B = outDATA.labelTab.(camFields.B{1});
 
 % VIDEO WILL BE LONGER THAN LFP ---- TRIM FRAMES by LFP --- KEEP TRACK of
 % INDEX
 % STEP 1 ---- TRIM FRAMES by LFP
-%%%%%%%%%%%%%% HARD CODED
+%%%%%%%%%%%%%% HARD CODED -------------------------------------------------
+% ADD TO CSV
 
-switch group2use333
-    case 'a'
-        tabletFRAMEstart = 180;
-        tabletFRAMEend = 6445;
-    case 'b'
-        tabletFRAMEstart = 63;
-        tabletFRAMEend = 4624;
-end
+tabletFRAMEstart.A = 180;
+tabletFRAMEend.A = 6445;
+tabletFRAMEstart.B = 63;
+tabletFRAMEend.B = 4624;
 
-dlc_lab2use = d1_labDAT(tabletFRAMEstart:tabletFRAMEend,:);
+dlc_lab2use.A = d1_labDAT.A(tabletFRAMEstart.A:tabletFRAMEend.A,:);
+dlc_lab2use.B = d1_labDAT.B(tabletFRAMEstart.B:tabletFRAMEend.B,:);
 
-totalNumSamplesV = height(dlc_lab2use);
-totalNumSecs = totalNumSamplesV/60; % 60 fps
+totalNumSamplesV.A = height(dlc_lab2use.A);
+totalNumSecs.A = totalNumSamplesV.A/60; % 60 fps
+totalNumSamplesV.B = height(dlc_lab2use.B);
+totalNumSecs.B = totalNumSamplesV.B/60; % 60 fps
 
-totalNumSampsLFP = floor(totalNumSecs*250);
+% totalNumSampsLFP = floor(totalNumSecs*250);
 
-% LFP
-streamOfInt = stnL_LFP_St_GrpA_KinLFP.TimeDomainData{1};
+%%%%%%%%%%%%%%%%%%%% ------ LFP ---------------------%%%%%%%%%%%%%%%%%%%%%%
+streamOfInt.Left.Left.GroupA = stnLEFT_Stream.Left.GroupA.TimeDomainData{1};
+streamOfInt.Left.Left.GroupB = stnLEFT_Stream.Left.GroupB.TimeDomainData{1};
+
 % Original signal at 60 Hz
-ts_DLC = 0:1/60:(height(dlc_lab2use)-1)/60;
-% Target sampling rate at 250 Hz
-ts_LFP = 0:1/250:(height(streamOfInt)-1)/250;
+ts_DLC.A = 0:1/60:(height(dlc_lab2use.A)-1)/60;
+ts_DLC.B = 0:1/60:(height(dlc_lab2use.B)-1)/60;
 
-allColNs = dlc_lab2use.Properties.VariableNames;
-dlc_lab2use2int = table;
-for coli = 1:width(dlc_lab2use)
+% Target sampling rate at 250 Hz
+ts_LFP.A = 0:1/250:(height(streamOfInt.Left.Left.GroupA)-1)/250;
+ts_LFP.B = 0:1/250:(height(streamOfInt.Left.Left.GroupB)-1)/250;
+
+
+allColNs = dlc_lab2use.B.Properties.VariableNames;
+dlc_lab2use2int.A = table;
+dlc_lab2use2int.B = table;
+for coli = 1:width(dlc_lab2use.B)
     % Tmp col
     tmpCol = allColNs{coli};
-    % Interpolation
-    x_250 = interp1(ts_DLC, transpose(dlc_lab2use.(tmpCol)),...
-        ts_LFP, 'spline');
 
-    dlc_lab2use2int.(tmpCol) = transpose(x_250);
+    % Interpolation
+    x_250A = interp1(ts_DLC.A, transpose(dlc_lab2use.A.(tmpCol)),...
+        ts_LFP.A, 'spline');
+
+    x_250B = interp1(ts_DLC.B, transpose(dlc_lab2use.B.(tmpCol)),...
+        ts_LFP.B, 'spline');
+
+    dlc_lab2use2int.A.(tmpCol) = transpose(x_250A);
+    dlc_lab2use2int.B.(tmpCol) = transpose(x_250B);
 end
 
-trimFrB_int = linspace(tabletFRAMEstart,tabletFRAMEend, length(ts_LFP));
-
+trimFrame_int.A = linspace(tabletFRAMEstart.A,tabletFRAMEend.A, length(ts_LFP.A));
+trimFrame_int.B = linspace(tabletFRAMEstart.B,tabletFRAMEend.B, length(ts_LFP.B));
 
 %%
-% Pull in 
-moveIND = readtable(GROUP_Video_MoveIND_Name);
+% GROUP Move indices ---- 
+moveIND = readtable(GROUP_Video_MoveIND_Names.B);
 moveINDc = moveIND(~moveIND.BeginF == 0,:);
 if matches(group2use333,'a')
     moveINDc = moveINDc(1:8,:); % remove last too short in time
@@ -185,12 +209,12 @@ for mii = 1:height(moveINDc)
     startIND = tmpMOve.BeginF;
     endIND = tmpMOve.EndF;
 
-    [~ , startINDi] = min(abs(startIND - trimFrB_int));
-    [~ , endINDi] = min(abs(endIND - trimFrB_int));
+    [~ , startINDi] = min(abs(startIND - trimFrame_int.B));
+    [~ , endINDi] = min(abs(endIND - trimFrame_int.B));
 
-    movKIN = [dlc_lab2use2int.fTip1_x(startINDi:endINDi) ,...
-        dlc_lab2use2int.fTip1_y(startINDi:endINDi)];
-    movLFP = streamOfInt(startINDi:endINDi);
+    movKIN = [dlc_lab2use2int.B.fTip1_x(startINDi:endINDi) ,...
+        dlc_lab2use2int.B.fTip1_y(startINDi:endINDi)];
+    movLFP = streamOfInt.Left.Left.GroupB(startINDi:endINDi);
 
     ts_LFPtmp = 0:1/250:(height(movLFP)-1)/250;
 
@@ -237,9 +261,6 @@ for mii = 1:height(moveINDc)
     % pause 
     close all
     clc
-
- 
-
 end
 
 
@@ -274,7 +295,7 @@ end
 % xlabel('Time in seconds')
 % 
 
-
+test = 1;
 
 
 
@@ -297,56 +318,73 @@ end
 
 
 
-function [GROUPA_Video_Name ,GROUPA_Video_MoveIND_Name ,...
-    GROUPA_Video_CSV, stnL_LFP_St_GrpA_KinLFP]...
-    = getGroupInfo(groupType , allGroups, BS_LFP , LFPstreamTimes ,...
-    LFPstreamTab , videoFname)
+function [GROUP_Video_Name , GROUP_Video_MoveIND_Name ,...
+    GROUP_Video_CSV, stnL_LFP_St_KinLFP]...
+    = getGroupInfo(allGroups, BS_LFP , LFPstreamTimes ,...
+    LFPstreamTab , videoFname , videoDirectory)
 
-switch groupType
-    case 'a'
-        group2use = 'GROUP_A';
-        group2use2 = 'A';
-
-
-    case 'b'
-        group2use = 'GROUP_B';
-        group2use2 = 'B';
-
-    case 'c'
-        group2use = 'GROUP_C';
-        group2use2 = 'C';
-end
+% switch groupType
+    % case 'a'
+        % group2use = 'GROUP_A';
+        % group2use2 = 'A';
+    % case 'b'
+        % group2use = 'GROUP_B';
+        % group2use2 = 'B';
+    % case 'c'
+        % group2use = 'GROUP_C';
+        % group2use2 = 'C';
+% end
 
 % Get Group A rows
-groupA_inds = matches(allGroups,group2use);
+groupA_inds = matches(allGroups,'GROUP_A');
 stnL_LFP_BS_grA = BS_LFP(groupA_inds,:); % BS LFP 
 % stnL_LFP_BStms_grA = BSlfptimes(groupA_inds,:);
 stnL_Ttims_grA = LFPstreamTimes(groupA_inds,:);
 stnLSt_tab_LH_grA = LFPstreamTab(groupA_inds,:); % Stream LFP
 
+groupB_inds = matches(allGroups,'GROUP_B');
+stnL_LFP_BS_grB = BS_LFP(groupB_inds,:);
+stnL_Ttims_grB = LFPstreamTimes(groupB_inds,:);
+stnLSt_tab_LH_grB = LFPstreamTab(groupB_inds,:);
+
 % Pull in video durations
 
 % Load Video info XslX
-stnL_BD_R_vinfo = readtable(videoFname);
+stnL_BD_vinfo = readtable(videoFname);
 % Pull out Group A and Group B
-groupA_Vinfo = stnL_BD_R_vinfo(contains(stnL_BD_R_vinfo.ftype,group2use2),:);
+groupA_Vinfo = stnL_BD_vinfo(contains(stnL_BD_vinfo.ftype,'A'),:);
+groupB_Vinfo = stnL_BD_vinfo(contains(stnL_BD_vinfo.ftype,'B'),:);
 
-[~ , stnL_BD_BS_row] = min(abs(groupA_Vinfo.duration - stnL_Ttims_grA.Duration));
+[~ , stnL_BD_BS_row_grpA] = min(abs(groupA_Vinfo.duration - stnL_Ttims_grA.Duration));
+[~ , stnL_BD_BS_row_grpB] = min(abs(groupB_Vinfo.duration - stnL_Ttims_grB.Duration));
 
 % GROUP A - Condition TEST
-stnL_BD_BS_GrpA_testInfo = stnL_Ttims_grA(stnL_BD_BS_row,:);
-stnL_LFP_BS_GrpA_KinLFP = stnL_LFP_BS_grA(stnL_BD_BS_row,:);
-stnL_LFP_St_GrpA_KinLFP = stnLSt_tab_LH_grA(stnL_BD_BS_row,:);
+stnL_BD_BS_testInfo.GroupA = stnL_Ttims_grA(stnL_BD_BS_row_grpA,:);
+stnL_LFP_BS_KinLFP.GroupA = stnL_LFP_BS_grA(stnL_BD_BS_row_grpA,:);
+stnL_LFP_St_KinLFP.GroupA = stnLSt_tab_LH_grA(stnL_BD_BS_row_grpA,:);
 
-GROUPA_Video_CSV = groupA_Vinfo.csvName;
+% GROUP A - Condition TEST
+stnL_BD_BS_testInfo.GroupB = stnL_Ttims_grB(stnL_BD_BS_row_grpB,:);
+stnL_LFP_BS_KinLFP.GroupB = stnL_LFP_BS_grB(stnL_BD_BS_row_grpB,:);
+stnL_LFP_St_KinLFP.GroupB = stnLSt_tab_LH_grB(stnL_BD_BS_row_grpB,:);
+
+GROUP_Video_CSV.A = groupA_Vinfo.csvName;
+GROUP_Video_CSV.B = groupB_Vinfo.csvName;
+
+cd(videoDirectory)
+
 allVideoNames = dir('*.mp4');
 allVideoNames2 = {allVideoNames.name};
 allVideoNames3 = cellfun(@(x) [extractBefore(x,'_labeled'),'.mp4'],...
     allVideoNames2, 'UniformOutput',false);
-GROUPA_Video_Name = allVideoNames2(contains(allVideoNames3,...
-    extractBefore(GROUPA_Video_CSV{1},'.')));
-GROUPA_Video_MoveIND_Name = [extractBefore(GROUPA_Video_Name{1},'.'),'_MoveIndex.csv'];
 
+GROUP_Video_Name.A = allVideoNames2(contains(allVideoNames3,...
+    extractBefore(GROUP_Video_CSV.A{1},'.')));
+GROUP_Video_Name.B = allVideoNames2(contains(allVideoNames3,...
+    extractBefore(GROUP_Video_CSV.B{1},'.')));
+
+GROUP_Video_MoveIND_Name.A = [extractBefore(GROUP_Video_Name.A{1},'.'),'_MoveIndex.csv'];
+GROUP_Video_MoveIND_Name.B = [extractBefore(GROUP_Video_Name.B{1},'.'),'_MoveIndex.csv'];
 
 end
 
@@ -489,6 +527,18 @@ end
 
 
 
+
+function [outDLCmatNames] = getMATDLCnames(stnSIDE , matLISTu ,GROUP_Video_Names)
+
+csvNpartsA = split(GROUP_Video_Names.A , {'_','-'});
+csvMatSearchA = [csvNpartsA{1},'_',csvNpartsA{3},'_',csvNpartsA{4},'_',stnSIDE,'STN'];
+outDLCmatNames.A = matLISTu{contains(matLISTu,csvMatSearchA)};
+
+csvNpartsB = split(GROUP_Video_Names.B , {'_','-'});
+csvMatSearchB = [csvNpartsB{1},'_',csvNpartsB{3},'_',csvNpartsB{4},'_',stnSIDE,'STN'];
+outDLCmatNames.B = matLISTu{contains(matLISTu,csvMatSearchB)};
+
+end
 
 
 
