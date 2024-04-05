@@ -13,6 +13,9 @@ switch pcName
         mainDir = 'D:\Dropbox\PowerPoint_Meta\2024_INS_Vancouver\Data';
     case 'DESKTOP-EGFQKAI'
         mainDir = 'C:\Users\johna\Dropbox\ConferencePresentationsMeta\INS_2024\MDT2';
+    case 'DESKTOP-FAGRV5G'
+        sumMetaTLoc = 'E:\Dropbox\PowerPoint_Meta\2024_INS_Vancouver\Data';
+        mainDir = 'E:\Dropbox\PowerPoint_Meta\2024_INS_Vancouver\Data';
 
     otherwise
 
