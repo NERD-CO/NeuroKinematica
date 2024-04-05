@@ -8,6 +8,7 @@
 
 %%
 
+<<<<<<< Updated upstream
 pcNAME = getenv('COMPUTERNAME');
 
 
@@ -24,6 +25,15 @@ switch pcNAME
         mainDIR = 'E:\Dropbox\erin_clinic_video\Clin_2023-09-12_session1_soffoffLi_Lcam-emr-2023-09-16\videos';
 
 end
+=======
+%% Combine Percept LFP with DLC Video
+
+% Determine frames for video based on recording start
+
+mainDIR = 'D:\Dropbox\erin_clinic_video\Clin_2023-09-12_session1_soffoffLi_Lcam-emr-2023-09-16\videos';
+% Tablet video
+
+>>>>>>> Stashed changes
 tab_vidLoc = [mainDIR, filesep , 'TabletVideo'];
 cd(tab_vidLoc)
 
@@ -42,8 +52,12 @@ v1who = whos('tab_vid');
 round(v1who.bytes/1000000/1000,2)
 disp('Video1 done!')
 
+<<<<<<< Updated upstream
 save('OrigVid.mat','tab_vid','-v7.3');
 
+=======
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
 %% Load in allpoints from GUI
 
 load('PointFrameStart.mat')
@@ -94,6 +108,8 @@ for frameI = 1:size(tab_vid,2)
 end
 
 
+=======
+>>>>>>> Stashed changes
 %% 
 
 imshow(tab_vid(300).cdata)
@@ -167,7 +183,7 @@ for sii = 1:size(tab_vidMasks,2)
         [B,L] = bwboundaries(tmpIM,'noholes');
         LL = logical(L);
 
-        [B2 , L2 , L2M] = getRidOfsmall(B,L);
+        % [B2 , L2 , L2M] = getRidOfsmall(B,L);
 
         stats = regionprops("table",LL,"Area","Centroid","PixelIdxList", ...
             "MajorAxisLength","MinorAxisLength","BoundingBox");
