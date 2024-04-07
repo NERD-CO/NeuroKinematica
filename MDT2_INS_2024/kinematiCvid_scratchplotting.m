@@ -1,55 +1,6 @@
-fs = 250;
-
-[pxxMM,fMM] = pwelch(pointX2sm,250,125,250,250);
-p2bmm = pow2db(pxxMM);
-p2bMMs = smoothdata(p2bmm,'gaussian',2);
-fMMi = fMM > 1 & fMM < 10;
-fMMf = fMM(fMMi);
-pxxMf = p2bMMs(fMMi);
-
-% figure;
-% plot(fMMf,pxxMf)
-
-
-
-
-% plot(f,10*log10(pxx))
-%
-% xlabel('Frequency (Hz)')
-% ylabel('PSD (dB/Hz)')
-%
-% xlim([1 10])
-
-
-%%
-
-[Pupvxx,upVfxx] = pwelch(transpose(movLFP), hanning(250), 125, 256, 250, 'onesided');
-uVp_t = sqrt(Pupvxx).*rms(hanning(250)).*sqrt(2).*2.*250/256;
-% PxxP = 10*log10(Pxx);
-% uPv_A = uVp_t;
-
-uPv_As = smoothdata(uVp_t,'gaussian',5);
-% pxxps = smoothdata(PxxP,'gaussian',5);
-
-upv50 = upVfxx < 50;
-upVfxxU = upVfxx(upv50);
-uVp_tU = uPv_As(upv50);
-
-
-figure;
-plot(upVfxxU,uVp_tU)
-% xlim([0 50])
-
-% figure;
-% plot(pxxps)
-% xlim([0 50])
-hold on
-plot(uPvRESTfreq , uPvRESTpow)
-legend('epoch','rest')
-
-
 %%
 generateINS_DatasetS_v2('MDT7' , 'left')
+%% HAND OPEN CLOSE
 % PCA plot of movement kin
 % REMOVE LIKELIHOOD and PUSH THROUGH
 colNames = dlc_lab2use2int.Properties.VariableNames; %
@@ -59,38 +10,26 @@ colNames3 = unique(cellfun(@(x) x{1}, colNames2,...
     'UniformOutput',false));
 colNames4 = colNames3(~matches(colNames3,'frames'));
 
-optItemInd = colNames4{tmpMOve.OptItem};
-tmpMOve.MoveType{1}
-xNAMEot = [optItemInd,'_x'];
-yNAMEot = [optItemInd,'_y'];
-startINDi = startINDi + 50;
-endINDi = endINDi - 50;
-trimFRAMES = dlc_lab2use2int(startINDi:endINDi,:);
+tmpMOve.MoveType{1}; %%%% GROUP A ---- HAND OC
+
+startINDi2 = startINDi + 50;
+endINDi2 = endINDi - 50;
+trimFRAMES = dlc_lab2use2int(startINDi2:endINDi2,:);
 
 % REMOVE likelihood
 colKEEP = contains(trimFRAMES.Properties.VariableNames,{'_x','_y'});
 trimFRAMES2 = trimFRAMES(:,colKEEP);
+[~,pcSCORES] = pca(table2array(trimFRAMES2));
 
-[a,b,c,d] = pca(table2array(trimFRAMES2));
-
-top3 = b(:,1:3);
-
+top3 = pcSCORES(:,1:3);
 figure;
 plot3(top3(:,1),top3(:,2),top3(:,3))
 figure;
 plot(top3(:,1))
 
-
-
-
-
-
-
 figure('NumberTitle', 'off', 'Name', 'test')
-
-
+%%%%%% THIS IS THE STATIC VERSION OF 3D TIMEPLOT
 % remove none fingers;
-
 getVnames0 = trimFRAMES.Properties.VariableNames;
 getVnames = getVnames0(~contains(getVnames0,'frames'));
 getVnames2 = getVnames(~contains(getVnames,{'MidForeArm','Elbow'}));
@@ -128,13 +67,7 @@ end
 % set view
 view([41 34])
 
-% plot the thing
-
-
-
-
-
-%%
+%% LOAD IN CORRECT VIDEO
 
 % plot the video
 % t1_20230816_idea08_session005_rightCam-0000DLC_resnet50_INS_2024_MPR7_LSTNMar20shuffle1_100000_labeled.mp4
@@ -179,19 +112,35 @@ stopINDS = startINDS(2:end)-1;
 startINDS = startINDS(1:end-1);
 allXvaLS = table2array(pointTable(:,contains(pointTable.Properties.VariableNames,{'_x'})));
 allYvaLS = table2array(pointTable(:,contains(pointTable.Properties.VariableNames,{'_y'})));
+figure
+set(gcf,'Position',[1000 124 706 1114])
 for vii = 1:height(dlc_lablab2useVIDE)-1
  tmpFrame = dlc_lablab2useVIDE.cdata{vii,1};
  subplot(2,1,1)
  imshow(tmpFrame)
 
+ if vii == 1
+     pause
+ end
 
 
  % 4 points
  subplot(2,1,2)
  frameIIx = allXvaLS(startINDS(1):stopINDS(vii),:);
+ frameIIx2 = reshape(frameIIx,numel(frameIIx),1);
  frameIIy = allYvaLS(startINDS(1):stopINDS(vii),:);
- frameIIz = repmat(transpose(1:stopINDS(vii)),1,;
+ frameIIy2 = reshape(frameIIy,numel(frameIIy),1);
+ frameIIz = repmat(transpose(1:stopINDS(vii)),1,11);
+ frameIIz2 = reshape(frameIIz,numel(frameIIz),1);
 
+
+rowIndices = repmat(1:size(plasCMP2u,1), stopINDS(vii), 1);
+rowIndices = rowIndices(:);
+plasCMP2u2u = plasCMP2u(rowIndices, :);
+ 
+
+ scatter3(frameIIz2,frameIIx2,frameIIy2,60,plasCMP2u2u,'filled')
+view([41 34])
 
 
  pause(0.01)

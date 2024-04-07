@@ -154,7 +154,7 @@ for groupIi = 1:2
     d1_labDAT.(groups2id{groupIi}) =...
         outDATA.labelTab.(camFields.(groups2id{groupIi}){1});
 
-    % CLEAN UP with CONFIDENCE
+    % CLEAN UP with CONFIDENCE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     likeLIhNs1 = d1_labDAT.(groups2id{groupIi}).Properties.VariableNames;
     likeLIhNs2 = likeLIhNs1(contains(likeLIhNs1,{'likelihood'}));
@@ -177,8 +177,7 @@ for groupIi = 1:2
 
     end
 
-
-
+    % CLEAN UP with CONFIDENCE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
     % LFP TABLET FRAMEs
