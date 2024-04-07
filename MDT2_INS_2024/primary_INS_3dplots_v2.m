@@ -12,14 +12,16 @@ switch movePICK
     case 2 % HAND PS
         load("MDT8_GroupB_Test2_HAND_PS.mat")
         videoID = 't2_20230816_idea08_session003_rightCam-0000DLC_resnet50_INS_2024_MPR8_LSTNMar20shuffle1_100000_labeled.mp4';
+        useALPHA = 0.8;
     case 3 % Finger
         load("MDT8_GroupA_Test1_Finger.mat");
         videoID = 't1_20230816_idea08_session002_rightCam-0000DLC_resnet50_INS_2024_MPR8_LSTNMar20shuffle1_100000_labeled.mp4';
+        useALPHA = 0.2;
 end
 
 
 
-%% HAND OPEN CLOSE
+%%
 % PCA plot of movement kin
 % REMOVE LIKELIHOOD and PUSH THROUGH
 colNames = dlc_lab2use2int.Properties.VariableNames; %
@@ -46,68 +48,8 @@ trimFRAMES2 = trimFRAMES(:,colKEEP);
 % figure;
 % plot(top3(:,1))
 
-% figure('NumberTitle', 'off', 'Name', 'test')
-%%%%%% THIS IS THE STATIC VERSION OF 3D TIMEPLOT
-% % remove none fingers;
-% getVnames0 = trimFRAMES.Properties.VariableNames;
-% getVnames = getVnames0(~contains(getVnames0,'frames'));
-% getVnames2 = getVnames(~contains(getVnames,{'MidForeArm','Elbow'}));
 
-% frameTable = dataTABLE.frames;
-% pointTable = trimFRAMES(:,getVnames2);
 
-% cVnames0 = cellfun(@(x) strsplit(x,'_'), getVnames2, 'UniformOutput', false);
-% cVnames = cellfun(@(x) x{1}, cVnames0, 'UniformOutput', false);
-% uniNames = unique(cVnames);
-
-% plasCMP = colormap(plasma);
-% plasCMP2u = plasCMP(round(linspace(1,256,length(uniNames))),:);
-% for fi = 1:length(uniNames)
-%
-%     tUiName = uniNames{fi};
-%     uiNindex = ismember(cVnames,tUiName);
-%     uiTab = pointTable(:,uiNindex);
-%
-%     % Get X and Y
-%     tPnames0 = cellfun(@(x) strsplit(x,'_'),...
-%         uiTab.Properties.VariableNames, 'UniformOutput', false);
-%     tPnames = cellfun(@(x) x{2}, tPnames0, 'UniformOutput', false);
-%     xyIND = contains(tPnames,{'x','y'});
-%     xyiTab = table2array(uiTab(:,xyIND));
-%
-%     allFrames = xyiTab;
-%     allColors = repmat(plasCMP2u(fi,:),height(uiTab) ,1);
-%
-%     % scatter(allFrames(:,1),allFrames(:,2),30,allColors,'filled')
-%     scatter3(transpose(1:length(allFrames)),allFrames(:,1),allFrames(:,2),30,allColors,'filled')
-%     hold on
-%
-% end
-% % set view
-% view([41 34])
-
-%% LOAD IN CORRECT VIDEO
-
-% plot the video
-% t1_20230816_idea08_session005_rightCam-0000DLC_resnet50_INS_2024_MPR7_LSTNMar20shuffle1_100000_labeled.mp4
-% dlcLab_vidLoc = vidLoc;
-% cd(dlcLab_vidLoc)
-
-% dlc_lab_vidObj = VideoReader(videoID);
-% dlc_lab_vid = struct('cdata',zeros(dlc_lab_vidObj.Height,dlc_lab_vidObj.Width,3,'uint8'),'colormap',[]);
-% 
-% frami = 1;
-% while hasFrame(dlc_lab_vidObj)
-%     dlc_lab_vid(frami).cdata = readFrame(dlc_lab_vidObj);
-%     %    imshow(frame)
-%     frami = frami+1;
-% end
-% dlcLabTab_vid = struct2table(dlc_lab_vid);
-% disp('Video1 done!')
-% 
-% 
-% dlc_lablab2useVIDE = dlcLabTab_vid(startIND:endIND,:);
-% save("MDT8_GroupA_Test1_Finger.mat",'dlc_lablab2useVIDE','-append')
 
 %%
 
@@ -147,46 +89,51 @@ stopINDS = startINDS(2:end)-1;
 startINDS = startINDS(1:end-1);
 allXvaLS = table2array(pointTable(:,contains(pointTable.Properties.VariableNames,{'_x'})));
 allYvaLS = table2array(pointTable(:,contains(pointTable.Properties.VariableNames,{'_y'})));
-figure
-set(gcf,'Position',[1000 124 706 1114])
-for vii = 1:height(dlc_lablab2useVIDE)-1
-    tmpFrame = dlc_lablab2useVIDE.cdata{vii,1};
-    subplot(2,1,1)
-    imshow(tmpFrame)
 
-    if vii == 2
-        pause
+if movePICK == 1
+
+    figure
+    set(gcf,'Position',[1000 124 706 1114])
+    for vii = 1:height(dlc_lablab2useVIDE)-1
+        tmpFrame = dlc_lablab2useVIDE.cdata{vii,1};
+        subplot(2,1,1)
+        imshow(tmpFrame)
+
+        if vii == 2
+            pause
+        end
+
+        % 4 points
+        subplot(2,1,2)
+        frameIIx = allXvaLS(startINDS(1):stopINDS(vii),:);
+        frameIIx2 = reshape(frameIIx,numel(frameIIx),1);
+        frameIIy = allYvaLS(startINDS(1):stopINDS(vii),:);
+        frameIIy2 = reshape(frameIIy,numel(frameIIy),1);
+        frameIIz = repmat(transpose(1:stopINDS(vii)),1,11);
+        frameIIz2 = reshape(frameIIz,numel(frameIIz),1);
+
+
+        rowIndices = repmat(1:size(plasCMP2u,1), stopINDS(vii), 1);
+        rowIndices = rowIndices(:);
+        plasCMP2u2u = plasCMP2u(rowIndices, :);
+
+
+        ssALL = scatter3(frameIIz2,frameIIx2,frameIIy2,60,plasCMP2u2u,'filled');
+        ssALL.MarkerFaceAlpha = 0.4;
+        view([41 34])
+
+        xticklabels([])
+        yticklabels([])
+        zticklabels([])
+        ylabel('Y pixel location')
+        xlabel('X pixel location')
+        zlabel('Frame number')
+
+        box off
+
+        pause(0.01)
+
     end
-
-    % 4 points
-    subplot(2,1,2)
-    frameIIx = allXvaLS(startINDS(1):stopINDS(vii),:);
-    frameIIx2 = reshape(frameIIx,numel(frameIIx),1);
-    frameIIy = allYvaLS(startINDS(1):stopINDS(vii),:);
-    frameIIy2 = reshape(frameIIy,numel(frameIIy),1);
-    frameIIz = repmat(transpose(1:stopINDS(vii)),1,11);
-    frameIIz2 = reshape(frameIIz,numel(frameIIz),1);
-
-
-    rowIndices = repmat(1:size(plasCMP2u,1), stopINDS(vii), 1);
-    rowIndices = rowIndices(:);
-    plasCMP2u2u = plasCMP2u(rowIndices, :);
-
-
-    ssALL = scatter3(frameIIz2,frameIIx2,frameIIy2,60,plasCMP2u2u,'filled');
-    ssALL.MarkerFaceAlpha = 0.4;
-    view([41 34])
-
-    xticklabels([])
-    yticklabels([])
-    zticklabels([])
-    ylabel('Y pixel location')
-    xlabel('X pixel location')
-    zlabel('Frame number')
-
-    box off
-
-    pause(0.01)
 
 end
 
@@ -214,7 +161,7 @@ if movePICK ~= 1
 
     nexttile
     ssALL1 = scatter3(frameIIz2f,frameIIx2f,frameIIy2f,60,plasCMP2u2u,'filled');
-    ssALL1.MarkerFaceAlpha = 0.2;
+    ssALL1.MarkerFaceAlpha = useALPHA;
     view([41 34])
     xticklabels([])
     yticklabels([])
@@ -228,7 +175,7 @@ if movePICK ~= 1
 
     nexttile
     ssALL2 = scatter3(frameIIz2f,frameIIx2f,frameIIy2f,60,plasCMP2u2u,'filled');
-    ssALL2.MarkerFaceAlpha = 0.2;
+    ssALL2.MarkerFaceAlpha = useALPHA;
     view([9 10])
     xticklabels([])
     yticklabels([])
@@ -242,7 +189,7 @@ if movePICK ~= 1
 
     nexttile
     ssALL3 = scatter3(frameIIz2f,frameIIx2f,frameIIy2f,60,plasCMP2u2u,'filled');
-    ssALL3.MarkerFaceAlpha = 0.2;
+    ssALL3.MarkerFaceAlpha = useALPHA;
     view([91 45])
     xticklabels([])
     yticklabels([])

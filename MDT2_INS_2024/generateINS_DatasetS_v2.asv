@@ -154,7 +154,7 @@ for groupIi = 1:2
     d1_labDAT.(groups2id{groupIi}) =...
         outDATA.labelTab.(camFields.(groups2id{groupIi}){1});
 
-    % CLEAN UP with CONFIDENCE
+    % CLEAN UP with CONFIDENCE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     likeLIhNs1 = d1_labDAT.(groups2id{groupIi}).Properties.VariableNames;
     likeLIhNs2 = likeLIhNs1(contains(likeLIhNs1,{'likelihood'}));
@@ -177,8 +177,7 @@ for groupIi = 1:2
 
     end
 
-
-
+    % CLEAN UP with CONFIDENCE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
     % LFP TABLET FRAMEs
@@ -467,12 +466,9 @@ allRESTstack = cell2mat(allREST);
 [PxxREST,FxxREST] = pwelch(transpose(allRESTstack), hanning(250), 125, 256, 250, 'onesided');
 uVp_REST = sqrt(PxxREST).*rms(hanning(250)).*sqrt(2).*2.*250/256;
 uPv_RESTsm = smoothdata(uVp_REST,'gaussian',5);
-upv50 = FxxREST < 50;
-upVfxxU = upVfxx(upv50);
-uVp_tU = uPv_RESTsm(upv50);
-
-plot(uVp_tU)
-
+upv50rest = FxxREST < 50;
+uPvRESTfreq = FxxREST(upv50rest);
+uPvRESTpow = uPv_RESTsm(upv50rest);
 
 
 groupLFPAmp = []; 
@@ -499,7 +495,6 @@ for mii = 1:height(moveIItable)
     if ~matches(tmpMOve.MoveType{1},{'FINGER TAP','HAND OC','HAND PS'})
         continue
     end
-
 
     startIND = tmpMOve.BeginF;
     endIND = tmpMOve.EndF;
@@ -536,6 +531,9 @@ for mii = 1:height(moveIItable)
 
     ts_LFPtmp = 0:1/250:(height(movLFP)-1)/250;
 
+    %%%%%%%%%% FINAL number ---- 
+    %%% 1. Euclidean distance
+    
     tiledlayout(7,1,"TileSpacing","tight") %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     xTime = ts_LFPtmp;
@@ -663,6 +661,8 @@ lfpProcData.betapsdall = betapsdall;
 lfpProcData.movepsdall = movepsdall;
 lfpProcData.betapsdall2 = betapsdall2;
 lfpProcData.movepsdall2 = movepsdall2;
+lfpProcData.REST = [uPvRESTpow,uPvRESTfreq];
+
 
 end
 

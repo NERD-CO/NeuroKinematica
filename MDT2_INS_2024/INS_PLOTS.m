@@ -1,4 +1,4 @@
-generateINS_DatasetS_v2('MDT9' , 'right')
+% generateINS_DatasetS_v2('MDT9' , 'right')
 load("MDT9_right.mat")
 
 close all

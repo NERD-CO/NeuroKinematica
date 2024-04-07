@@ -1,4 +1,4 @@
-function [] = generateINS_DatasetS_v2(subjectID , stnHemi)
+function [] = generateINS_DatasetS_v3(subjectID , stnHemi)
 % INPUT ARGUMENT for SUBJECT
 % LOAD CSV file with:
 % JSON left and right files
@@ -263,9 +263,9 @@ end
 
 
 % SAVE STUFF
-cd(saveDIR)
-saveNAME = [subjectID , '_' , stnHemi, '.mat'];
-save(saveNAME,'outDATAFin');
+% cd(saveDIR)
+% saveNAME = [subjectID , '_' , stnHemi, '.mat'];
+% save(saveNAME,'outDATAFin');
 
 
 
@@ -504,7 +504,7 @@ for mii = 1:height(moveIItable)
 
     % offset ----- check 
     startINDi = startINDi + 5;
-    endINDi = endINDi - 150;
+    endINDi = endINDi - 180; % was 5
 
 
     % FIGURE out OPTIMAL ITEM
@@ -531,20 +531,30 @@ for mii = 1:height(moveIItable)
 
     ts_LFPtmp = 0:1/250:(height(movLFP)-1)/250;
 
-    tiledlayout(7,1,"TileSpacing","tight") %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%%%%%%%%% FINAL number ---- 
+    %%% 1. Euclidean distance
+    %%% 2. PSD 2
+    %%% 3. CWT
+    %%% 4. beta extract
+    %%% 5. BETA PSD 2
+    tiledlayout(5,1,"TileSpacing","tight") %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    set(gcf,"Position",[344   162   486   980])
 
     xTime = ts_LFPtmp;
     pointXsm = smoothdata(movKIN1(:,1),'gaussian',5);
     % pointYsm = smoothdata(movKIN(:,2),'gaussian',5);
     
-    nexttile %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    plot(xTime,pointXsm,'k');
-    % hold on
-    % plot(xTime,pointYsm,'r');
-    xlim([0 max(ts_LFPtmp)])
-    ylabel('X deflection')
-    xlabel('Time in seconds')
+    % nexttile %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % plot(xTime,pointXsm,'k');
+    % % hold on
+    % % plot(xTime,pointYsm,'r');
+    % xlim([0 max(ts_LFPtmp)])
+    % ylabel('X deflection')
+    % xlabel('Time in seconds')
 
+    % box off
+
+    %%%% PLOT 1 - Euclidean distance
     nexttile %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     pointX2sm = smoothdata(movKIN2(:,1),'gaussian',15);
     plot(xTime(1:length(pointX2sm)),pointX2sm,'r')
@@ -552,6 +562,7 @@ for mii = 1:height(moveIItable)
     ylabel('EDist')
     xlabel('Time in seconds')
 
+    box off
 
     [pxxMM,fMM] = pwelch(pointX2sm,250,125,250,250);
     p2bmm = pow2db(pxxMM);
@@ -560,7 +571,15 @@ for mii = 1:height(moveIItable)
     fMMf = fMM(fMMi);
     pxxMf = p2bMMs(fMMi);
 
+    %%%% PLOT 2 ---- KIN PSD
+    nexttile %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    plot(fMMf,pxxMf)
+    xlim([2 9])
+    xlabel('Frequency (Hz)')
+    ylabel('Power')
 
+    box off
+    %%%% PLOT 3 ---- CWT
     nexttile %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     Fs = 250;
     % T = 1/250;
@@ -575,10 +594,11 @@ for mii = 1:height(moveIItable)
     ylabel('Frequency (Hz)')
     xlabel('Time in seconds')
 
-    % test = 1;
-    % figure;
+    box off
+
+    %%%% PLOT 4 ---- CWT PSD
     nexttile %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    pspectrum(cleanLFP,250,'FrequencyLimits',[0 50],'FrequencyResolution',3)
+    % pspectrum(cleanLFP,250,'FrequencyLimits',[0 50],'FrequencyResolution',3)
     [bPxx,bFxx] = pspectrum(cleanLFP,250,'FrequencyLimits',[0 50],'FrequencyResolution',3);
     bPxxP = pow2db(bPxx);
 
@@ -589,12 +609,19 @@ for mii = 1:height(moveIItable)
     upVfxxU = upVfxx(upv50);
     uVp_tU = uPv_As(upv50);
 
-    nexttile %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    pspectrum(pointX2sm,250,'FrequencyLimits',[1 10],'FrequencyResolution',0.75);
+    plot(upVfxxU,uVp_tU);
+    xlabel('Frequency (Hz)')
+    ylabel('uPv')
+
+    box off
+
+    % nexttile %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % pspectrum(pointX2sm,250,'FrequencyLimits',[1 10],'FrequencyResolution',0.75);
     [mPxx,mFxx] = pspectrum(pointX2sm,250,'FrequencyLimits',[1 10],'FrequencyResolution',0.75);
     mPxxP = pow2db(mPxx);
 
 
+    %%%% PLOT 5 ---- beta band
     nexttile %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     betaIND = frq > 13 & frq < 30;
@@ -607,8 +634,9 @@ for mii = 1:height(moveIItable)
 
     ylabel('Ave. beta power')
     xlabel('Time in seconds')
+    box off
 
-    nexttile %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % nexttile %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     % Calculate instantaneous phase using Hilbert transform
 
@@ -616,10 +644,10 @@ for mii = 1:height(moveIItable)
     [betaUP,~] = envelope(betaPass);
     betaPassSm = smoothdata(betaUP,'gaussian',30);
 
-    plot(xTime,betaPassSm);
-    xlim([0 max(ts_LFPtmp)])
-    ylabel('beta power')
-    xlabel('Time in seconds')
+    % plot(xTime,betaPassSm);
+    % xlim([0 max(ts_LFPtmp)])
+    % ylabel('beta power')
+    % xlabel('Time in seconds')
 
     groupLFPAmp(moveCOUNT,1) = mean(betaPassSm);
     groupKinAmp(moveCOUNT,1) = max(abs(pointXsm));

@@ -12,9 +12,11 @@ switch movePICK
     case 2 % HAND PS
         load("MDT8_GroupB_Test2_HAND_PS.mat")
         videoID = 't2_20230816_idea08_session003_rightCam-0000DLC_resnet50_INS_2024_MPR8_LSTNMar20shuffle1_100000_labeled.mp4';
+        useALPHA = 0.6;
     case 3 % Finger
         load("MDT8_GroupA_Test1_Finger.mat");
         videoID = 't1_20230816_idea08_session002_rightCam-0000DLC_resnet50_INS_2024_MPR8_LSTNMar20shuffle1_100000_labeled.mp4';
+        useALPHA = 0.;
 end
 
 
