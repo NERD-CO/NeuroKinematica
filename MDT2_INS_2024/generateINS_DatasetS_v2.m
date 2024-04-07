@@ -444,6 +444,33 @@ end
 function  [lfpProcData] = computeKIN_LFPcor(restIItable,moveIItable,...
     trimFrame_int,streamOfInt,dlc_lab2use2int)
 
+allREST = cell(height(restIItable),1);
+for rii = 1:height(restIItable)
+
+    tmpRrow = restIItable(rii,:);
+
+    startINDr = tmpRrow.BeginF;
+    endINDr = tmpRrow.EndF;
+
+
+    [~ , startINDir] = min(abs(startINDr - trimFrame_int));
+    [~ , endINDir] = min(abs(endINDr - trimFrame_int));
+
+    restLFP = streamOfInt(startINDir:endINDir);
+
+    allREST{rii} = restLFP;
+
+end
+
+allRESTstack = cell2mat(allREST);
+
+[PxxREST,FxxREST] = pwelch(transpose(allRESTstack), hanning(250), 125, 256, 250, 'onesided');
+uVp_REST = sqrt(PxxREST).*rms(hanning(250)).*sqrt(2).*2.*250/256;
+uPv_RESTsm = smoothdata(uVp_REST,'gaussian',5);
+upv50rest = FxxREST < 50;
+uPvRESTfreq = FxxREST(upv50rest);
+uPvRESTpow = uPv_RESTsm(upv50rest);
+
 
 groupLFPAmp = []; 
 groupKinAmp = [];
@@ -454,18 +481,21 @@ moveEUC = {};
 timeALL = {};
 moveID = {};
 obtItemID = {};
-
+betapsdall = {};
+betapsdall2 = {};
+movepsdall = {};
+movepsdall2 = {};
 
 moveCOUNT = 1;
 
 for mii = 1:height(moveIItable)
 
+    close all
     tmpMOve = moveIItable(mii,:);
 
     if ~matches(tmpMOve.MoveType{1},{'FINGER TAP','HAND OC','HAND PS'})
         continue
     end
-
 
     startIND = tmpMOve.BeginF;
     endIND = tmpMOve.EndF;
@@ -502,7 +532,7 @@ for mii = 1:height(moveIItable)
 
     ts_LFPtmp = 0:1/250:(height(movLFP)-1)/250;
 
-    tiledlayout(5,1,"TileSpacing","tight") %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    tiledlayout(7,1,"TileSpacing","tight") %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     xTime = ts_LFPtmp;
     pointXsm = smoothdata(movKIN1(:,1),'gaussian',5);
@@ -517,11 +547,20 @@ for mii = 1:height(moveIItable)
     xlabel('Time in seconds')
 
     nexttile %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    pointX2sm = smoothdata(movKIN2(:,1),'gaussian',5);
+    pointX2sm = smoothdata(movKIN2(:,1),'gaussian',15);
     plot(xTime(1:length(pointX2sm)),pointX2sm,'r')
     xlim([0 max(ts_LFPtmp)])
     ylabel('EDist')
     xlabel('Time in seconds')
+
+
+    [pxxMM,fMM] = pwelch(pointX2sm,250,125,250,250);
+    p2bmm = pow2db(pxxMM);
+    p2bMMs = smoothdata(p2bmm,'gaussian',2);
+    fMMi = fMM > 1 & fMM < 10;
+    fMMf = fMM(fMMi);
+    pxxMf = p2bMMs(fMMi);
+
 
     nexttile %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     Fs = 250;
@@ -539,7 +578,23 @@ for mii = 1:height(moveIItable)
 
     % test = 1;
     % figure;
-    % pspectrum(cleanLFP,250,'FrequencyLimits',[0 50],'FrequencyResolution',3)
+    nexttile %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    pspectrum(cleanLFP,250,'FrequencyLimits',[0 50],'FrequencyResolution',3)
+    [bPxx,bFxx] = pspectrum(cleanLFP,250,'FrequencyLimits',[0 50],'FrequencyResolution',3);
+    bPxxP = pow2db(bPxx);
+
+    [Pupvxx,upVfxx] = pwelch(transpose(movLFP), hanning(250), 125, 256, 250, 'onesided');
+    uVp_t = sqrt(Pupvxx).*rms(hanning(250)).*sqrt(2).*2.*250/256;
+    uPv_As = smoothdata(uVp_t,'gaussian',5);
+    upv50 = upVfxx < 50;
+    upVfxxU = upVfxx(upv50);
+    uVp_tU = uPv_As(upv50);
+
+    nexttile %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    pspectrum(pointX2sm,250,'FrequencyLimits',[1 10],'FrequencyResolution',0.75);
+    [mPxx,mFxx] = pspectrum(pointX2sm,250,'FrequencyLimits',[1 10],'FrequencyResolution',0.75);
+    mPxxP = pow2db(mPxx);
+
 
     nexttile %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -578,6 +633,11 @@ for mii = 1:height(moveIItable)
     moveID{moveCOUNT,1} = tmpMOve.MoveType{1};
     obtItemID{moveCOUNT,1} = optItemInd;
 
+    betapsdall{moveCOUNT,1} = [bPxxP,bFxx];
+    betapsdall2{moveCOUNT,1} = [uVp_tU,upVfxxU];
+    movepsdall{moveCOUNT,1} = [mPxxP,mFxx];
+    movepsdall2{moveCOUNT,1} = [pxxMf,fMMf];
+
     pause(1.5) 
     close all
     clc
@@ -595,6 +655,12 @@ lfpProcData.moveID = moveID;
 lfpProcData.obtItemID = obtItemID;
 lfpProcData.groupLFPAmp = groupLFPAmp;
 lfpProcData.groupKinAmp = groupKinAmp;
+lfpProcData.betapsdall = betapsdall;
+lfpProcData.movepsdall = movepsdall;
+lfpProcData.betapsdall2 = betapsdall2;
+lfpProcData.movepsdall2 = movepsdall2;
+lfpProcData.REST = [uPvRESTpow,uPvRESTfreq];
+
 
 end
 

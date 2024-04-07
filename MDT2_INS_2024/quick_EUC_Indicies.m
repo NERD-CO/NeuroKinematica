@@ -1,10 +1,10 @@
 
 
-% csv_vidLoc = 'E:\Dropbox\PowerPoint_Meta\2024_INS_Vancouver\Data\MDT8\RightBody';
-% save_matLoc = 'E:\Dropbox\PowerPoint_Meta\2024_INS_Vancouver\Data\MDT8\RightBody';
-% GROUP_Video_CSV = 't2_20230816_idea08_session003_rightCam-0000DLC_resnet50_INS_2024_MPR8_LSTNMar20shuffle1_100000.csv';
-% dlcIO_processCSV('dirLOC',1,'userLOC',csv_vidLoc,'saveLOC',save_matLoc,...
-%     'selCSV',GROUP_Video_CSV,'USERid','JAT','hemiS','L','bodyS','R')
+csv_vidLoc = 'E:\Dropbox\PowerPoint_Meta\2024_INS_Vancouver\Data\MDT8\RightBody';
+save_matLoc = 'E:\Dropbox\PowerPoint_Meta\2024_INS_Vancouver\Data\MDT8\RightBody';
+GROUP_Video_CSV = 't2_20230816_idea08_session003_rightCam-0000DLC_resnet50_INS_2024_MPR8_LSTNMar20shuffle1_100000.csv';
+dlcIO_processCSV('dirLOC',1,'userLOC',csv_vidLoc,'saveLOC',save_matLoc,...
+    'selCSV',GROUP_Video_CSV,'USERid','JAT','hemiS','L','bodyS','R')
 
 
 %% mdt7 baseline
