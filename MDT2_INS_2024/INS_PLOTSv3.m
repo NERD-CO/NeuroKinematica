@@ -1,7 +1,8 @@
 % generateINS_DatasetS_v2('MDT9' , 'right')
 % clear
 % close all
-cd('E:\Dropbox\PowerPoint_Meta\2024_INS_Vancouver\Data\finalResults')
+% cd('E:\Dropbox\PowerPoint_Meta\2024_INS_Vancouver\Data\finalResults')
+cd('D:\Dropbox\PowerPoint_Meta\2024_INS_Vancouver\Data\finalResults')
 % load("MDT7_left.mat")
 
 %%
@@ -81,6 +82,9 @@ end
 
 %%
 
+MBSColor = [219, 175, 33]/255;
+TMRColor = [17, 17, 15]/255;
+
 close all
 %%%%% PLOT 1%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tiledlayout(1,2,"TileSpacing","tight")
@@ -88,14 +92,14 @@ tiledlayout(1,2,"TileSpacing","tight")
 set(gcf,'Position',[161 342 934 724])
 
 nexttile
-plot(xDATAbet,meanAallbeta,'Color',[1 0 0 0.4],'LineWidth',1);
+plot(xDATAbet,meanAallbeta,'Color',TMRColor,'LineWidth',1);
 hold on
-plot(xDATAbet,mean(meanAallbeta),'r','LineWidth',3)
-plot(xDATAbet,meanBallbeta,'Color',[0 0 1 0.4],'LineWidth',1);
-plot(xDATAbet,mean(meanBallbeta),'b','LineWidth',3)
+plot(xDATAbet,mean(meanAallbeta),'Color',TMRColor,'LineWidth',3)
+plot(xDATAbet,meanBallbeta,'Color',MBSColor,'LineWidth',1);
+plot(xDATAbet,mean(meanBallbeta),'Color',MBSColor,'LineWidth',3)
 
-legend({'','','',outDATAFin.conditionID.GroupA ,...
-            outDATAFin.conditionID.GroupB});
+legend({'','','','',outDATAFin.conditionID.GroupA ,...
+            '','','','',outDATAFin.conditionID.GroupB});
 
 groupAmean = mean(meanAallbeta);
 groupBmean = mean(meanBallbeta);
@@ -114,11 +118,11 @@ box off
 
 nexttile
 
-plot(xDATAmov,meanAallkin,'Color',[1 0 0 0.4],'LineWidth',1);
+plot(xDATAmov,meanAallkin,'Color',TMRColor,'LineWidth',1);
 hold on
-plot(xDATAmov,mean(meanAallkin),'r','LineWidth',3)
-plot(xDATAmov,meanBallkin,'Color',[0 0 1 0.4],'LineWidth',1);
-plot(xDATAmov,mean(meanBallkin),'b','LineWidth',3)
+plot(xDATAmov,mean(meanAallkin),'Color',TMRColor,'LineWidth',3)
+plot(xDATAmov,meanBallkin,'Color',MBSColor,'LineWidth',1);
+plot(xDATAmov,mean(meanBallkin),'Color',MBSColor,'LineWidth',3)
 
 % legend({outDATAFin.conditionID.GroupA ,...
 %             outDATAFin.conditionID.GroupB});
