@@ -9,6 +9,7 @@ switch movePICK
     case 1 % HAND OC ---- MOVIE
         load("MDT7_GroupA_Test1_HAND_OC.mat")
         videoID = 't1_20230816_idea08_session005_rightCam-0000DLC_resnet50_INS_2024_MPR7_LSTNMar20shuffle1_100000_labeled.mp4';
+        videoDLC = 'dlcDAT_t1_idea08_session005_LSTN_RBODY.mat';
     case 2 % HAND PS
         load("MDT8_GroupB_Test2_HAND_PS.mat")
         videoID = 't2_20230816_idea08_session003_rightCam-0000DLC_resnet50_INS_2024_MPR8_LSTNMar20shuffle1_100000_labeled.mp4';
@@ -37,10 +38,19 @@ tmpMOve.MoveType{1}; %%%% GROUP A ---- HAND OC
 % endINDi2 = endINDi - 50;
 trimFRAMES = dlc_lab2use2int(startINDi2:endINDi2,:);
 
+load(videoDLC,"outDATA")
+dlcVIDm = outDATA.labelTab.session005;
+orgtrimFr = dlcVIDm(startIND:endIND,:);
+
+
 % REMOVE likelihood
-colKEEP = contains(trimFRAMES.Properties.VariableNames,{'_x','_y'});
-trimFRAMES2 = trimFRAMES(:,colKEEP);
-[~,pcSCORES] = pca(table2array(trimFRAMES2));
+% colKEEP = contains(trimFRAMES.Properties.VariableNames,{'_x','_y'});
+% trimFRAMES2 = trimFRAMES(:,colKEEP);
+% [~,pcSCORES] = pca(table2array(trimFRAMES2));
+
+trimFRAMES = orgtrimFr
+colKEEP = contains(orgtrimFr.Properties.VariableNames,{'_x','_y'});
+trimFRAMES2 = orgtrimFr(:,colKEEP);
 
 % top3 = pcSCORES(:,1:3);
 % % figure;
@@ -85,9 +95,9 @@ plasCMP2u = plasCMP2u(round(linspace(1,height(plasCMP2u),length(uniNames))),:);
 
 % numFRAMES = floor(1695/433);
 % startINDS = transpose(round(linspace(1,height(pointTable),height(dlc_lablab2useVIDE))));
-startINDS = round(linspace(1,height(pointTable),1695/5));
-stopINDS = startINDS(2:end)-1;
-startINDS = startINDS(1:end-1);
+% startINDS = round(linspace(1,height(pointTable),1695/5));
+% stopINDS = startINDS(2:end)-1;
+% startINDS = startINDS(1:end-1);
 allXvaLS = table2array(pointTable(:,contains(pointTable.Properties.VariableNames,{'_x'})));
 allYvaLS = table2array(pointTable(:,contains(pointTable.Properties.VariableNames,{'_y'})));
 
@@ -108,24 +118,21 @@ if movePICK == 1
         subplot(2,1,2)
         [xDims , yDims] = getDataDims(pointTable);
 
-
-
-        frameIIx = allXvaLS(startINDS(1):stopINDS(vii),:);
+        frameIIx = allXvaLS(1:vii,:);
         frameIIx2 = reshape(frameIIx,numel(frameIIx),1);
-        frameIIy = allYvaLS(startINDS(1):stopINDS(vii),:);
+        frameIIy = allYvaLS(1:vii,:);
         frameIIy2 = reshape(frameIIy,numel(frameIIy),1);
-        frameIIz = repmat(transpose(1:stopINDS(vii)),1,11);
+        frameIIz = repmat(transpose(1:vii),1,11);
         frameIIz2 = reshape(frameIIz,numel(frameIIz),1);
 
-
-        rowIndices = repmat(1:size(plasCMP2u,1), stopINDS(vii), 1);
+        rowIndices = repmat(1:size(plasCMP2u,1), vii, 1);
         rowIndices = rowIndices(:);
         plasCMP2u2u = plasCMP2u(rowIndices, :);
         % X-Axis is frame number or frameIIz2
         % Y-Axis is X-value or frameIIx2
         
         ssALL = scatter3(frameIIz2,frameIIx2,frameIIy2,60,plasCMP2u2u,'filled');
-        ssALL.MarkerFaceAlpha = 0.4;
+        ssALL.MarkerFaceAlpha = 0.6;
         view([41 34])
 
         xticklabels([])
