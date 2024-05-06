@@ -263,9 +263,9 @@ end
 
 
 % SAVE STUFF
-% cd(saveDIR)
-% saveNAME = [subjectID , '_' , stnHemi, '.mat'];
-% save(saveNAME,'outDATAFin');
+cd(saveDIR)
+saveNAME = [subjectID , '_' , stnHemi, '.mat'];
+save(saveNAME,'outDATAFin');
 
 
 

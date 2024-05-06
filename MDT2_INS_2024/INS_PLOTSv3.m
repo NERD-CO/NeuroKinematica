@@ -1,23 +1,35 @@
 % generateINS_DatasetS_v2('MDT9' , 'right')
 % clear
 % close all
-% cd('E:\Dropbox\PowerPoint_Meta\2024_INS_Vancouver\Data\finalResults')
-cd('D:\Dropbox\PowerPoint_Meta\2024_INS_Vancouver\Data\finalResults')
+
+getPCid = getenv('COMPUTERNAME');
+switch getPCid
+    case 'DESKTOP-FAGRV5G'
+        cd('E:\Dropbox\PowerPoint_Meta\2024_INS_Vancouver\Data\finalResults')
+    otherwise
+        cd('D:\Dropbox\PowerPoint_Meta\2024_INS_Vancouver\Data\finalResults')
+end
 % load("MDT7_left.mat")
 
 %%
 matdir1 = dir('*.mat');
 matdir2 = {matdir1.name};
 
+%%
+stackAallbeta = nan(100,52);
+stackBallbeta = nan(100,52);
+stackAallkin = nan(100,8);
+stackBallkin = nan(100,8);
 meanAallbeta = zeros(4,52);
 meanBallbeta = zeros(4,52);
 meanAallkin = zeros(4,8);
 meanBallkin = zeros(4,8);
+stackAallKINids = cell(100,1);
+stackBallKINids = cell(100,1);
 for midi = 1:length(matdir2)
 
     tmpF = matdir2{midi};
     load(tmpF,'outDATAFin');
-     
 
     allBetaA = zeros(height(outDATAFin.lfpKINdata.GroupA.betapsdall2),...
         size(outDATAFin.lfpKINdata.GroupA.betapsdall2{1},1));
@@ -34,7 +46,6 @@ for midi = 1:length(matdir2)
         tbeB = outDATAFin.lfpKINdata.GroupA.betapsdall2{biB}(:,1);
         allBetaB(biB,:) = tbeB;
     end
-
 
     allMoveA = zeros(height(outDATAFin.lfpKINdata.GroupA.movepsdall2),...
         size(outDATAFin.lfpKINdata.GroupA.movepsdall2{1},1));
@@ -64,8 +75,6 @@ for midi = 1:length(matdir2)
     meanAallkin(midi,:) = mean(allmoveAn);
     meanBallkin(midi,:) =  mean(allmoveBn);
 
-
-
     betaNormalized1 = [allBetaA ; allBetaB];
 
     betaNormalized2 = (betaNormalized1 - mean(betaNormalized1,'all'))./std(betaNormalized1,[],'all');
@@ -73,12 +82,61 @@ for midi = 1:length(matdir2)
     allBetaAn = betaNormalized2(1:height(allBetaA),:);
     allBetaBn = betaNormalized2(height(allBetaA)+1:height(betaNormalized2),:);
 
+    curNANbA = find(isnan(stackAallbeta(:,1)),1,'first');
+    curNANbB = find(isnan(stackBallbeta(:,1)),1,'first');
+    stackAallbeta(curNANbA:curNANbA+height(allBetaAn)-1,:) = allBetaAn;
+    stackBallbeta(curNANbB:curNANbB+height(allBetaBn)-1,:) = allBetaBn;
+
     meanAallbeta(midi,:) = mean(allBetaAn);
     meanBallbeta(midi,:) = mean(allBetaBn);
+
+    curNANkA = find(isnan(stackAallkin(:,1)),1,'first');
+    curNANkB = find(isnan(stackBallkin(:,1)),1,'first');
+    stackAallkin(curNANkA:curNANkA+height(allmoveAn)-1,:) = allmoveAn;
+    stackBallkin(curNANkB:curNANkB+height(allmoveBn)-1,:) = allmoveBn;
+
+    curMOVEidsA = outDATAFin.lfpKINdata.GroupA.moveID;
+    curMOVEidsB = outDATAFin.lfpKINdata.GroupB.moveID;
+
+    emCELLSA = find(cellfun(@(x) isempty(x), stackAallKINids,'UniformOutput',true),...
+        1,'first');
+    stackAallKINids(emCELLSA:emCELLSA+length(curMOVEidsA)-1,1) = curMOVEidsA;
+
+    emCELLSB = find(cellfun(@(x) isempty(x), stackBallKINids,'UniformOutput',true),...
+        1,'first');
+    stackBallKINids(emCELLSB:emCELLSB+length(curMOVEidsB)-1,1) = curMOVEidsB;
 
     xDATAbet =  outDATAFin.lfpKINdata.GroupA.betapsdall2{biA}(:,2);
 
 end
+
+%% clean up
+stackAallbeta = stackAallbeta(~isnan(stackAallbeta(:,1)),:);
+stackBallbeta = stackBallbeta(~isnan(stackBallbeta(:,1)),:);
+stackAallkin = stackAallkin(~isnan(stackAallkin(:,1)),:);
+stackBallkin = stackBallkin(~isnan(stackBallkin(:,1)),:);
+stackAallKINids = stackAallKINids(cellfun(@(x) ~isempty(x), stackAallKINids,...
+    'UniformOutput',true));
+stackBallKINids = stackBallKINids(cellfun(@(x) ~isempty(x), stackBallKINids,...
+    'UniformOutput',true));
+
+%% Move into Move buckets
+
+% Complete 5/5/2024
+GroupAKINids = unique(stackAallKINids);
+GroupBKINids = unique(stackBallKINids);
+
+logINDcellA = cell(1,3);
+for uniI = 1:3
+    logINDcellA{uniI} = matches(stackAallKINids,GroupAKINids{uniI});
+end
+groupAidTab = cell2table(logINDcellA,'VariableNames',GroupAKINids);
+
+logINDcellB = cell(1,3);
+for uniI = 1:3
+    logINDcellB{uniI} = matches(stackBallKINids,GroupBKINids{uniI});
+end
+groupBidTab = cell2table(logINDcellB,'VariableNames',GroupBKINids);
 
 %%
 
@@ -99,7 +157,7 @@ plot(xDATAbet,meanBallbeta,'Color',MBSColor,'LineWidth',1);
 plot(xDATAbet,mean(meanBallbeta),'Color',MBSColor,'LineWidth',3)
 
 legend({'','','','',outDATAFin.conditionID.GroupA ,...
-            '','','','',outDATAFin.conditionID.GroupB});
+    '','','','',outDATAFin.conditionID.GroupB});
 
 groupAmean = mean(meanAallbeta);
 groupBmean = mean(meanBallbeta);
