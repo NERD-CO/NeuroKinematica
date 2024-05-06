@@ -148,7 +148,7 @@ MBSColor = [219, 175, 33]/255;
 TMRColor = [17, 17, 15]/255;
 
 close all
-tiledlayout(3,3,"TileSpacing","tight")
+tiledlayout(2,3,"TileSpacing","tight")
 
 set(gcf,'Position',[161 342 934 724])
 
@@ -175,6 +175,7 @@ ylabel('Z-scored power')
 [~,beta1_pval,~] = kstest2(fingertAmean,fingertBmean);
 
 xlim([0.5 50])
+xticks([1 13 30 50])
 axis square
 text(25,1.5,['p = ',num2str(round(beta1_pval,3))],'FontSize',14)
 box off
@@ -196,6 +197,7 @@ handOCAmean = mean(handOCAbeta);
 handOCBmean = mean(handOCBbeta);
 [~,beta2_pval,~] = kstest2(handOCAmean,handOCBmean);
 xlim([0.5 50])
+xticks([1 13 30 50])
 axis square
 text(25,1.5,['p = ',num2str(round(beta2_pval,3))],'FontSize',14)
 box off
@@ -212,6 +214,63 @@ ax = gca;
 title('LFP: Hand Pronation/Supination');
 ax.TitleHorizontalAlignment = 'left'; 
 ylim([-1 5])
+
+handPSAmean = mean(handPSAbeta);
+handPSBmean = mean(handPSBbeta);
+[~,beta3_pval,~] = kstest2(handPSAmean,handPSBmean);
+xlim([0.5 50])
+xticks([1 13 30 50])
+axis square
+text(25,1.5,['p = ',num2str(round(beta2_pval,3))],'FontSize',14)
+box off
+
+
+moveMENTs = {"FINGER TAP","HAND OC","HAND PS"};
+
+for kii = 1:3
+
+    nexttile % KIN 1 - finger tap
+    moveAKin = stackAallkin(groupAidTab.(moveMENTs{kii}){1},:);
+    moveBKin = stackBallkin(groupBidTab.(moveMENTs{kii}){1},:);
+    plot(xDATAmov,moveAKin,'Color',TMRColor,'LineWidth',1);
+    hold on
+    plot(xDATAmov,mean(moveAKin),'Color',TMRColor,'LineWidth',3)
+    plot(xDATAmov,moveBKin,'Color',MBSColor,'LineWidth',1);
+    plot(xDATAmov,mean(moveBKin),'Color',MBSColor,'LineWidth',3)
+    ax = gca;
+    switch kii
+        case 1
+            title('Kinematic: Finger tap');
+        case 2
+            title('Kinematic: Hand Open/Close');
+        case 3
+            title('Kinematic: Hand Pronation/Supination');
+    end
+    ax.TitleHorizontalAlignment = 'left';
+    % ylim([-1 5])
+
+    if kii == 1
+
+        legend({'','','','',outDATAFin.conditionID.GroupA ,...
+            '','','',outDATAFin.conditionID.GroupB});
+
+        xlabel('Frequency Hz')
+        ylabel('Z-scored power')
+
+    end
+
+    moveAmean = mean(moveAKin);
+    moveBmean = mean(moveBKin);
+
+    [~,kin_pval,~] = kstest2(moveAmean,moveBmean);
+
+    xlim([2 9])
+    % xticks([1 13 30 50])
+    axis square
+    text(5,-1.5,['p = ',num2str(round(kin_pval,3))],'FontSize',14)
+    box off
+
+end
 
 
 %%
