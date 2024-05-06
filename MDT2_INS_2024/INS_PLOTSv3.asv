@@ -166,18 +166,20 @@ ax.TitleHorizontalAlignment = 'left';
 ylim([-1 5])
 
 legend({'','','','',outDATAFin.conditionID.GroupA ,...
-    '','','',outDATAFin.conditionID.GroupB});
+    '','','','',outDATAFin.conditionID.GroupB});
 
 fingertAmean = mean(fingerTapAbeta);
 fingertBmean = mean(fingerTapBbeta);
 xlabel('Frequency Hz')
 ylabel('Z-scored power')
-[~,beta1_pval,~] = kstest2(fingertAmean,fingertBmean);
+[~,beta_pval,~] = kstest2(fingertAmean,fingertBmean);
 
 xlim([0.5 50])
 axis square
-text(25,1.5,['p = ',num2str(round(beta1_pval,3))],'FontSize',14)
+
+text(25,1.5,['p = ',num2str(round(beta_pval,3))],'FontSize',14)
 box off
+
 
 nexttile % LFP 2 - hand oc
 handOCAbeta = stackAallbeta(groupAidTab.("HAND OC"){1},:);
@@ -191,14 +193,6 @@ ax = gca;
 title('LFP: Hand Open/Close');
 ax.TitleHorizontalAlignment = 'left'; 
 ylim([-1 5])
-
-handOCAmean = mean(handOCAbeta);
-handOCBmean = mean(handOCBbeta);
-[~,beta2_pval,~] = kstest2(handOCAmean,handOCBmean);
-xlim([0.5 50])
-axis square
-text(25,1.5,['p = ',num2str(round(beta2_pval,3))],'FontSize',14)
-box off
 
 nexttile % LFP 3 - hand ps
 handPSAbeta = stackAallbeta(groupAidTab.("HAND PS"){1},:);
