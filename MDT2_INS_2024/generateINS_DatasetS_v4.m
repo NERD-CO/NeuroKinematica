@@ -1,4 +1,4 @@
-function [] = generateINS_DatasetS_v3(subjectID , stnHemi)
+function [] = generateINS_DatasetS_v4(subjectID , stnHemi)
 % INPUT ARGUMENT for SUBJECT
 % LOAD CSV file with:
 % JSON left and right files
@@ -486,6 +486,7 @@ betapsdall = {};
 betapsdall2 = {};
 movepsdall = {};
 movepsdall2 = {};
+movepsdall3 = {};
 
 moveCOUNT = 1;
 
@@ -563,6 +564,13 @@ for mii = 1:height(moveIItable)
     xlim([0 max(ts_LFPtmp)])
     ylabel('EDist')
     xlabel('Time in seconds')
+
+    % ADD FUNCTION TO GENERATE
+    % KINEMATIS___________________________________________________________________
+    % _____________________________________________________________________________
+
+
+    [freqOUT , fftOUT, peakMAX] = getFFTnew(pointX2sm);
 
     box off
 
@@ -666,6 +674,7 @@ for mii = 1:height(moveIItable)
     betapsdall2{moveCOUNT,1} = [uVp_tU,upVfxxU];
     movepsdall{moveCOUNT,1} = [mPxxP,mFxx];
     movepsdall2{moveCOUNT,1} = [pxxMf,fMMf];
+    movepsdall3{moveCOUNT,1} = [fftOUT ,transpose(freqOUT)];
 
     pause(1.5) 
     close all
@@ -688,6 +697,7 @@ lfpProcData.betapsdall = betapsdall;
 lfpProcData.movepsdall = movepsdall;
 lfpProcData.betapsdall2 = betapsdall2;
 lfpProcData.movepsdall2 = movepsdall2;
+lfpProcData.movepsdall3 = movepsdall3;
 lfpProcData.REST = [uPvRESTpow,uPvRESTfreq];
 
 
@@ -709,5 +719,52 @@ function [euclidall] = getEucDist(tmpXdata , tmpYdata)
             euclidall(frame_i) = pdist2(point1 , point2);
         end
     end
+
+end
+
+
+
+
+
+
+
+function [freqOUT , fftOUT, peakMAX] = getFFTnew(pointX2sm)
+
+
+dataNEW = pointX2sm;
+% timeNEW = linspace(0, length(pointX2sm)/250, length(pointX2sm));
+
+% Sampling frequency
+Fs = 250;  % Hz
+
+% Compute the FFT
+Y = fft(dataNEW);
+n = length(dataNEW);  % Length of the signal
+P2 = abs(Y/n);  % Two-sided spectrum
+P1 = P2(1:n/2+1);  % Single-sided spectrum
+P1(2:end-1) = 2*P1(2:end-1);  % Handle the symmetry
+
+% Compute the frequency axis
+f = Fs*(0:(n/2))/n;
+
+findex = f > 1 & f < 20;
+freqOUT = f(findex);
+Plow = P1(findex);
+
+% Find the peak frequency
+[~, idx] = max(Plow);  % Index of peak
+peakMAX = freqOUT(idx);  % Frequency at peak
+
+fftOUT = smoothdata(Plow,'sgolay',5);
+
+% plot(f2, smF);
+% title('Single-Sided Amplitude Spectrum of Data');
+% xlabel('Frequency (Hz)');
+% ylabel('|P1(f)|');
+% xlim([1 20])
+
+% Display the peak frequency
+% disp(['Peak Frequency: ', num2str(peakFreq), ' Hz']);
+
 
 end
