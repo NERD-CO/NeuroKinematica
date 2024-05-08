@@ -737,15 +737,29 @@ dataNEW = pointX2sm;
 % Sampling frequency
 Fs = 250;  % Hz
 
+% NEW$$$$$$$$$$$$$$$$$$$$
+
+desiredDeltaF = 0.1;
+N = Fs / desiredDeltaF;
+
+if length(dataNEW) < N
+    dataNEW(end+1:N) = 0;  % Append zeros
+end
+
+% NEW$$$$$$$$$$$$$$$$$$$$
+
 % Compute the FFT
-Y = fft(dataNEW);
-n = length(dataNEW);  % Length of the signal
-P2 = abs(Y/n);  % Two-sided spectrum
-P1 = P2(1:n/2+1);  % Single-sided spectrum
+%Y = fft(dataNEW) % OLD
+Y = fft(dataNEW, N);
+f = (0:N-1)*(Fs/N);
+
+% n = length(dataNEW);  % Length of the signal
+P2 = abs(Y/N);  % Two-sided spectrum old used n
+P1 = P2(1:N/2+1);  % Single-sided spectrum
 P1(2:end-1) = 2*P1(2:end-1);  % Handle the symmetry
 
 % Compute the frequency axis
-f = Fs*(0:(n/2))/n;
+% f = Fs*(0:(n/2))/n;
 
 findex = f > 1 & f < 20;
 freqOUT = f(findex);

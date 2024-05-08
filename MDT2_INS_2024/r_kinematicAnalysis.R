@@ -84,4 +84,38 @@ hist(mov_analyzed$aaccel,
 ### LOAD in 
 
 
+## CD to Computer location
+setwd("D:\Dropbox\PowerPoint_Meta\2024_INS_Vancouver\Data\finalResults")
+csv_files <- list.files(pattern = "\\.csv$", full.names = TRUE)
+
+# Initialize an empty list to store data frames
+list_of_dataframes <- list()
+
+# Loop through the .csv files and read each one
+for (file_name in csv_files) {
+  # Read the CSV file into a data frame
+  data_frame <- read.csv(file_name)
+  
+  # DO SOMETHING 
+  
+  # Modify the file name to include '_EN' before the '.csv'
+  new_file_name <- sub(".csv$", "_EN.csv", basename(file_name))
+  
+  # Save the modified data frame back to disk with the new file name
+  write.csv(data_frame, file.path(dirname(file_name), new_file_name), row.names = FALSE)
+  
+  # Add the data frame to the list using the filename as the key
+  list_of_dataframes[[file_name]] <- data_frame
+}
+
+
+
+
+
+
+# Access a specific data frame by its file name
+specific_df <- list_of_dataframes[["path/to/your/file.csv"]]
+
+
+
 
