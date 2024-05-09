@@ -1,7 +1,8 @@
-# devtools::install_github("PabRod/kinematics")
+devtools::install_github("PabRod/kinematics")
 
 
 library(kinematics)
+library(ggplot2)
 
 mov <- data.frame(t = c(0, 1, 2, 3, 4), 
                   x = c(0, 1, 2, 3, 4), 
@@ -24,7 +25,7 @@ mov_analyzed <- append_dynamics(mov)
 # Curvature radius’ unit is the same as x.
 # Displacements’ units are the same as x.
 
-library(ggplot2)
+#library(ggplot2)
 ggplot(data = mov_analyzed, 
        mapping = aes(x = x, y = y, col = curv_radius, size = aspeed)) +
   geom_point() +
@@ -85,7 +86,7 @@ hist(mov_analyzed$aaccel,
 
 
 ## CD to Computer location
-setwd("D:\Dropbox\PowerPoint_Meta\2024_INS_Vancouver\Data\finalResults")
+setwd("E:\\Dropbox\\PowerPoint_Meta\\2024_INS_Vancouver\\Data\\finalResults")
 csv_files <- list.files(pattern = "\\.csv$", full.names = TRUE)
 
 # Initialize an empty list to store data frames
@@ -97,21 +98,31 @@ for (file_name in csv_files) {
   data_frame <- read.csv(file_name)
   
   # DO SOMETHING 
+  mov_analyzed <- append_dynamics(data_frame)
   
   # Modify the file name to include '_EN' before the '.csv'
   new_file_name <- sub(".csv$", "_EN.csv", basename(file_name))
   
   # Save the modified data frame back to disk with the new file name
-  write.csv(data_frame, file.path(dirname(file_name), new_file_name), row.names = FALSE)
+  write.csv(mov_analyzed, file.path(dirname(file_name), new_file_name), row.names = FALSE)
   
   # Add the data frame to the list using the filename as the key
-  list_of_dataframes[[file_name]] <- data_frame
+  list_of_dataframes[[file_name]] <- mov_analyzed
 }
 
 
 
+ggplot(data = mov_analyzed, 
+       mapping = aes(x = x, y = y, col = aaccel, size = aspeed)) +
+  geom_point(alpha = 0.1) +
+  coord_fixed() +
+  scale_color_gradient(low="blue", high="red")
 
 
+hist(mov_analyzed$aaccel, 
+     breaks = 500, 
+     xlab = 'Accelerations', 
+     main = 'Acceleration histogram')
 
 # Access a specific data frame by its file name
 specific_df <- list_of_dataframes[["path/to/your/file.csv"]]
