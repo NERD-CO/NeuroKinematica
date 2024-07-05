@@ -25,7 +25,7 @@ clear
 %% Variable Inputs
 
 % isolate a specific studyID
-studyID = 18;
+studyID = 2;
 
 % specify directory where case-specific data files are located 
 
@@ -36,7 +36,7 @@ switch curPCname
         Case_DataDir = 'X:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_09_2023'; 
         IO_DataDir = 'X:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';  
     case 'DSKTP-JTLAB-EMR'
-        Case_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\07_26_2023'; 
+        Case_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_23_2023'; 
         IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';  
 end
 

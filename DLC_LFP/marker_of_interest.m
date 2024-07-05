@@ -18,8 +18,8 @@ end
 %% Analyze data isolated by casedate and hemisphere
 
 % Define casedate_hem
-casedate_hem = '09_12_2023_LSTN_v2';
-% casedate_hem = '09_12_2023_RSTN_v2';
+ casedate_hem = '09_12_2023_LSTN_v2';
+%casedate_hem = '09_12_2023_RSTN_v2';
 
 mainDir2 = [mainDir , filesep , casedate_hem];
 
@@ -67,9 +67,6 @@ moveCSV2 = {moveCSV.name};
 %% Plot dlc label / anatomical marker traces
 
 % Loop through dlc mat files corresponding with move_CSV files
-moveCSV_fileLocation = DLC_video_dir;
-cd(moveCSV_fileLocation)
-
 for csv_i = 1:length(moveCSV2)
 
     tmpCSV = moveCSV2{csv_i};
@@ -121,9 +118,9 @@ for csv_i = 1:length(moveCSV2)
 
     euclidalltmp = euclidall;
 
-    mall = mean(mean(euclidalltmp));
-    sall = std(std(euclidalltmp));
-    artThresh = mall + (sall*2);
+    m_all = mean(mean(euclidalltmp));
+    s_all = std(std(euclidalltmp));
+    artThresh = m_all + (s_all*2);
 
     euclidalltmp2 = euclidalltmp;
     euclidalltmp2(euclidalltmp > artThresh) = 0;
@@ -157,13 +154,12 @@ for csv_i = 1:length(moveCSV2)
     MarkerYlabels = yLABELSn;
     MarkerYindicies = yLABELSi;
 
+    % Plot
+    figure;
     plot(yPLOTDATA,'Color',[0 0 0 0.5])
-
     xlim([1 height(yPLOTDATA)])
-
     % fix y lim
     ylim([0 max(yPLOTDATA,[],'all')+5])
-    
     % fix labels
     yticks(MarkerYindicies)
     yticklabels(MarkerYlabels)
