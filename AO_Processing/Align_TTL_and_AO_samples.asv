@@ -76,15 +76,13 @@ for SpCl_names = 1:length(SPKmatnames)
 end
 
 if numel(unique(spikeClInfo.clusterIDS)) ~= 1
-    % determine clust IDs
+    %determine clust IDs
     clust_IDs = unique(spikeClInfo.clusterIDS);
     for cii = 1:length(clust_IDs)
         % find unique cluster ID indices
         clust_index = ismember(spikeClInfo.clusterIDs,clust_IDs(cii));
         clust_time = spikeClInfo.SpikeTSindex(clust_index);
     end
-    % use distinct clust_time vectors as input in subsequent spike cluster
-    % analysis
 
 
 
@@ -119,7 +117,7 @@ spikes_in_move1 = SpikeTS > TTL_spike_idx_Start & SpikeTS < TTL_spike_idx_End; %
 %% movement block structre
 % start frame of event
 % end frame of event
-% offset duration before & after event
+% offset before & after event
 
 %%
 
