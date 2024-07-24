@@ -33,7 +33,6 @@ DLC_fs = 1000; % fps
 %% go to ProcDataDir
 cd(ProcDataDir)
 
-% turn into loop later
 % load Processed .mat files of interest
 matfiles = dir('*.mat');
 matnames = {matfiles.name};
@@ -41,22 +40,37 @@ for mat_names = 1:length(matnames)
     load(matnames{mat_names},'ProcEphys'); 
 end
 
-load("Processed_LT1D1.064F0002.mat")
+% test code within loop below with example .mat file
+load("Processed_LT1D1.064F0002.mat") % 'ProcEphys'
 
-% isolate fields of interest
-TTL_Down = ProcEphys.TTL.Down; % number of TTLs in frames
-TTL_startTime = ProcEphys.TTL.startTime;
+for mat_names = 1:length(matnames)
+    % isolate fields of interest
+    TTL_Down = ProcEphys.TTL.Down; % number of TTLs (frames)
+    TTL_clockStart = ProcEphys.TTL.startTime; % in time wrt TTL clock
 
-% define task recording start time
-rec_startTime = 101; % frame index for AO recording start-time
-% index of frame time that corresponds with timepoint of TTL
-% sample_num = 
+    % define AO recording times                                        % Q: get these from movement index csv? (time or frame index?)
+    rec_startTime = 101; % index of AO recording initiation
+    rec_endTime = 1001; % index of AO recording termination
+
+    % define TTL (frame) of interest based on task context
+    TTL_taskStart = TTL_Down(:, rec_startTime); % number of samples wrt TTL clock
+    TTL_taskEnd = TTL_Down(:, rec_endTime); 
+
+    % index of task time that corresponds with timepoint of TTL
+    time_offset = TTL_clockStart - rec_startTime; % time (seconds .. or ms) wrt TTL clock
+
+    % convert time offset to sample offset
+    sample_offset = round(time_offset*AO_fs); % number of samples wrt AO clock
+
+    % Q: what's really happening here / why?
+    TTL_task_idx_Start = TTL_taskStart + sample_offset; % number of samples wrt AO clock
+    TTL_task_idx_End = TTL_taskEnd + sample_offset;
+end
+
+
 % rec_offset = 500; % duration in ms, example
-%rec_endTime = rec_startTime + rec_offset; % frame index for AO recording start-time
+% rec_endTime = rec_startTime + rec_offset; % frame index for AO recording start-time
 
-
-% define TTL of interest based on task start time
-TTL_of_int = TTL_Down(:, rec_startTime); % samplele # in AO
 
 
 %% go to ClustSpkTimesDir
@@ -66,6 +80,11 @@ cd(ClustSpkTimesDir)
 SPKmatfiles = dir('*.mat');
 SPKmatnames = {SPKmatfiles.name};
 
+
+% test code within loop below with example .mat file
+load("SpCl_E1_LT1D1.064F0002.mat")  % spikeClInfo
+
+% storage container
 all_clusts = zeros(size(SPKmatnames));
 
 % check # of clusters
@@ -73,53 +92,50 @@ for SpCl_names = 1:length(SPKmatnames)
     load(SPKmatnames{SpCl_names},'spikeClInfo');
     temp_clust = numel(unique(spikeClInfo.clusterIDS));
     all_clusts(SpCl_names) = temp_clust;
-end
-
-if numel(unique(spikeClInfo.clusterIDS)) ~= 1
-    %determine clust IDs
+    
+    if numel(unique(spikeClInfo.clusterIDS)) ~= 1
+    % determine clust IDs
     clust_IDs = unique(spikeClInfo.clusterIDS);
     for cii = 1:length(clust_IDs)
         % find unique cluster ID indices
-        clust_index = ismember(spikeClInfo.clusterIDs,clust_IDs(cii));
+        clust_index = ismember(spikeClInfo.clusterIDS,clust_IDs(cii));
         clust_time = spikeClInfo.SpikeTSindex(clust_index);
     end
-
-
-
+    % use distinct clust_time vectors as input in subsequent spike cluster analysis
+    %%% NOT sure how to proceed from here %%%
+    end 
 
 end
 
 
-% turn into loop later
-% load spike cluster of interest
-load("SpCl_E1_LT1D1.064F0002.mat")
+% load distinct spike clusters of interest
+
+
+% define AO recording times
 AO_startTime = spikeClInfo.AOstartTS;
 
 % index of spike time that corresponds with timepoint of TTL
-time_offset = TTL_startTime - AO_startTime; % in seconds .. or ms
+spk_time_offset = TTL_clockStart - AO_startTime; % time (in seconds .. or ms) wrt TTL clock
 
-% convert time offset to samples
-sample_offset = round(time_offset*AO_fs); % in samples wrt to AO clock
+% convert time offset to sample offset
+spk_sample_offset = round(spk_time_offset*AO_fs); % number of samples wrt AO clock
 
-% 
-TTL_spike_idx = TTL_of_int + sample_offset; % in samples wrt to AO clock
 
 % Movement block example
-TTL_of_int_Start = TTL_Down(:,501);
-TTL_of_int_End = TTL_Down(:,1000);
-TTL_spike_idx_Start = TTL_of_int_Start + sample_offset;
-TTL_spike_idx_End = TTL_of_int_End + sample_offset;
+TTL_spk_Start = TTL_Down(:,501);
+TTL_spk_End = TTL_Down(:,1000);
+TTL_spk_idx_Start = TTL_spk_Start + spk_sample_offset; % number of samples wrt AO clock
+TTL_spk_idx_End = TTL_spk_End + spk_sample_offset;
+
 
 SpikeTS = spikeClInfo.SpikeTSindex; % spikes in samp # wrt AO clock
-spikes_in_move1 = SpikeTS > TTL_spike_idx_Start & SpikeTS < TTL_spike_idx_End; % logical of spikes w/in moveblock in AO_time
+spikes_in_move1 = SpikeTS > TTL_spk_idx_Start & SpikeTS < TTL_spk_idx_End; % logical of spikes w/in moveblock in AO_time
 
 
 %% movement block structre
 % start frame of event
 % end frame of event
-% offset before & after event
-
-%%
+% offset duration before & after event
 
 
 %%
