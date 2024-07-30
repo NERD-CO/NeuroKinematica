@@ -94,7 +94,8 @@ switch inPUTS.USERid
             'STN_',inPUTS.bodyS,'BODY.mat'];
 
     otherwise
-        saveName = ['dlcDAT_',hdRT.date,'_',hdRT.depth,'_','R',num2str(inPUTS.depNUM),'.mat'];
+        fileParts = split(CSV_list{1},'.');
+        saveName = ['dlcDAT_',fileParts{1},'.mat'];
 end
 % Save file
 save(saveName,'outDATA');
