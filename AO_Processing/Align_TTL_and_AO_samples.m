@@ -1,76 +1,69 @@
-%% Environment / Data Directory Inputs
+%% Environment / Directory Set-up
 
-% specify directory where case-specific data files are located 
-curPCname = getenv('COMPUTERNAME'); 
+% specify directory where case-specific data files are located
+curPCname = getenv('COMPUTERNAME');
 
 switch curPCname
     case 'DESKTOP-I5CPDO7'  % PC_1
-        IO_DataDir = 'X:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';  
+        IO_DataDir = 'X:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
     case 'DSKTP-JTLAB-EMR'  % Lab Desktop
-        IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative'; 
+        IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
     case 'NSG-M-H8J3X34'    % PC_2
         IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
 end
 
-% isolate a specific CaseDate / studyID (in Subject_AO csv)
+cd(IO_DataDir)
+Subject_AO = readtable('Subject_AO.xlsx');
 
-% CaseDate = '03_09_2023'; % studyID = 1 
-CaseDate = '03_23_2023'; % studyID = 2 
 
+%% Hardcode Case-specific Data directories
+
+% isolate a specific CaseDate / studyID (StudyNum in Subject_AO csv)
+CaseDate = '03_09_2023'; % studyID = 1
+% CaseDate = '03_23_2023'; % studyID = 2
+
+% define case-specific data directory
 Case_DataDir = [IO_DataDir, filesep, CaseDate];
 
-%% Hardcode directories
-
-% directory where all IO data is located
+% directories where case-specific IO ephys data are located
 RawDataDir = [Case_DataDir, filesep, 'Raw Electrophysiology MATLAB'];       % directory where raw MATLAB data files are located (case-specific)
 ProcDataDir = [Case_DataDir, filesep, 'Processed Electrophysiology'];       % directory where processed MATLAB data should be saved (case-specific)
 ClustSpkTimesDir = [ProcDataDir, filesep, 'ClusteredSpikeTimes'];           % directory where clustered spike times should be saved (case-specific)
 
-% define datastream sampling rates (Alpha Omega and Video sampling fs)
-AO_fs = 44000; % Hz
-DLC_fs = 1000; % fps
 
-%% go to ProcDataDir
-cd(ProcDataDir)
+%% directory for movement indices
 
-% load Processed .mat files of interest
-matfiles = dir('*.mat');
-matnames = {matfiles.name};
-for mat_names = 1:length(matnames)
-    load(matnames{mat_names},'ProcEphys'); 
-end
+% define kinematic data directory
+MoveDataDir = [IO_DataDir, filesep, 'Kinematic Analyses'];
 
-% test code within loop below with example .mat file
-load("Processed_LT1D1.064F0002.mat") % 'ProcEphys'
+% specify case ID
+Move_CaseID = 'IO_03_09_2023_RSTN'; % studyID = 1
+% Move_CaseID = 'IO_03_23_2023_LSTN'; % studyID = 2
 
-for mat_names = 1:length(matnames)
-    % isolate fields of interest
-    TTL_Down = ProcEphys.TTL.Down; % number of TTLs (frames)
-    TTL_clockStart = ProcEphys.TTL.startTime; % in time wrt TTL clock
+% isolate case-specific kinematic data directory
+Move_CaseDir = [MoveDataDir, filesep, Move_CaseID];
 
-    % define AO recording times                                        % Q: get these from movement index csv? (time or frame index?)
-    rec_startTime = 101; % index of AO recording initiation
-    rec_endTime = 1001; % index of AO recording termination
+% data subfolders:
+Move_CaseMats = [Move_CaseDir, filesep, 'mat folder'];
+Move_CaseVideos = [Move_CaseDir, filesep, 'video folder'];
 
-    % define TTL (frame) of interest based on task context
-    TTL_taskStart = TTL_Down(:, rec_startTime); % number of samples wrt TTL clock
-    TTL_taskEnd = TTL_Down(:, rec_endTime); 
-
-    % index of task time that corresponds with timepoint of TTL
-    time_offset = TTL_clockStart - rec_startTime; % time (seconds .. or ms) wrt TTL clock
-
-    % convert time offset to sample offset
-    sample_offset = round(time_offset*AO_fs); % number of samples wrt AO clock
-
-    % Q: what's really happening here / why?
-    TTL_task_idx_Start = TTL_taskStart + sample_offset; % number of samples wrt AO clock
-    TTL_task_idx_End = TTL_taskEnd + sample_offset;
-end
+% isolate frames of movement type
+% moveType = 'Hand O/C'
 
 
-% rec_offset = 500; % duration in ms, example
-% rec_endTime = rec_startTime + rec_offset; % frame index for AO recording start-time
+cd(Move_CaseMats)
+moveMat = dir('*.mat');
+moveMat_names = {moveMat.name};
 
+
+
+
+%% define datastream sampling rates (Alpha Omega and Video sampling fs)
+
+TTL_fs = 44000; % Hz
+AO_spike_fs = 44000; % Hz
+AO_LFP_fs = 1375; % Hz
+DLC_fs = 100; % fps
 
 
 %% go to ClustSpkTimesDir
@@ -80,66 +73,144 @@ cd(ClustSpkTimesDir)
 SPKmatfiles = dir('*.mat');
 SPKmatnames = {SPKmatfiles.name};
 
-
-% test code within loop below with example .mat file
-load("SpCl_E1_LT1D1.064F0002.mat")  % spikeClInfo
-
 % storage container
-all_clusts = zeros(size(SPKmatnames));
+all_clusters = {};
+clust_counter = 1;
 
-% check # of clusters
-for SpCl_names = 1:length(SPKmatnames)
-    load(SPKmatnames{SpCl_names},'spikeClInfo');
-    temp_clust = numel(unique(spikeClInfo.clusterIDS));
-    all_clusts(SpCl_names) = temp_clust;
+for spk_mat_names = 1:length(SPKmatnames)
+    cd(ClustSpkTimesDir)
+
+    load(SPKmatnames{spk_mat_names},'spikeClInfo')
+
+    fileparts = split(SPKmatnames{spk_mat_names},'_');
+    ProcName = fileparts{3};
+
+    cd(ProcDataDir)
+    matfiles = dir('*.mat');
+    matnames = {matfiles.name};
+    ProcFile = matnames{contains(matnames, ProcName)};
+
+    load(ProcFile, 'ProcEphys')
+
+    % isolate fields of interest
+    TTL_Down = ProcEphys.TTL.Down; % TTL signal down voltage deflection     % 1 cell represents frame#, values within the cell represent sample#
+    TTL_clockStart = ProcEphys.TTL.startTime; % start-time of TTL clock     (in seconds wrt AO system start)
+
     
-    if numel(unique(spikeClInfo.clusterIDS)) ~= 1
-    % determine clust IDs
-    clust_IDs = unique(spikeClInfo.clusterIDS);
-    for cii = 1:length(clust_IDs)
-        % find unique cluster ID indices
-        clust_index = ismember(spikeClInfo.clusterIDS,clust_IDs(cii));
-        clust_time = spikeClInfo.SpikeTSindex(clust_index);
+    % Find row of ao_MAT_file that corresponds with trial
+    SubjectAO_row = Subject_AO(contains(Subject_AO.ao_MAT_file,ProcName),:);
+   
+    switch SubjectAO_row.stn_loc{1}(1)
+        case 'd'
+            depthName = 't'
+        case 'v'
+            depthName = 'b'
+        otherwise 
+            depthName = 'c'
     end
-    
 
-    %%% NOT sure how to proceed from here %%%
+    trial_ID = [depthName, num2str(SubjectAO_row.trialNum),'_', SubjectAO_row.depth{1}];
 
-    end 
+    % Generate list of Motor Index CSVs
+    cd(Move_CaseVideos)
+    moveCSV = dir('*.csv');
+    moveCSV_names = {moveCSV.name};
+
+    % Generate list of Motor Index CSVs (filters for CSVs that contain 'Move' string)
+    moveCSV = moveCSV_names(contains(moveCSV_names,'Move'));
+
+    moveTbl_name = moveCSV{contains(moveCSV, trial_ID)};
+
+    moveTbl = readtable(moveTbl_name);
+    moveTbl(cellfun(@(X) ~isempty(X), moveTbl.MoveType, 'UniformOutput', true),:)
+
+    % loop through trials and pull out BeginF and EndF indices in MoveIndex csv per corresponding trial
+    for move_i = 1:height(moveTbl)
+
+    % define frame indices based on task recording context (frame indices in TTL_Down)                    % get these from movement index csv
+    frame_startTime = moveTbl.BeginF(move_i); % index of recording initiation
+    frame_endTime = moveTbl.EndF(move_i); % index of recording termination
+
+    % extract TTL signals of interest based on task context
+    TTL_samp_taskStart = TTL_Down(frame_startTime); % number of samples wrt TTL clock
+    TTL_samp_taskEnd = TTL_Down(frame_endTime);
+
+    % define AO recording times
+    AO_startTime = spikeClInfo.AOstartTS;
+
+    % calculate difference in clock startTimes
+    time_offset = TTL_clockStart - AO_startTime; % time (seconds) wrt TTL clock
+
+    % convert time offset to sample offset
+    sample_offset = round(time_offset*AO_spike_fs); % number of samples
+
+    % convert TTL sample indices by the sample offset to transform into AO_spike clock / spike sample domain
+    TTL_spk_idx_Start = TTL_samp_taskStart + sample_offset; % number of samples wrt AO clock
+    TTL_spk_idx_End = TTL_samp_taskEnd + sample_offset;
+
+    % check # of clusters in spike file
+    if numel(unique(spikeClInfo.clusterIDS)) ~= 1
+        
+        % determine clust IDs
+        clust_IDs = unique(spikeClInfo.clusterIDS);
+        
+        for cii = 1:length(clust_IDs)
+            % find unique cluster ID indices
+            clust_index = ismember(spikeClInfo.clusterIDS,clust_IDs(cii));
+            clust_time = spikeClInfo.SpikeTSindex(clust_index); % samples wrt AO clock
+
+            % determine spikes in distinct clusters within movement block
+            spikes_in_move1 = clust_time > TTL_spk_idx_Start & clust_time < TTL_spk_idx_End; % logical indicating spikes w/in moveblock in AO_time
+
+            % get spike times in distinct clusters within movement block
+            clustered_spikeTimes = clust_time(spikes_in_move1);
+
+            all_clusters{clust_counter} = clustered_spikeTimes;
+
+            % increment counter
+            clust_counter = clust_counter + 1;
+        end
+
+        % find spike cluster indices
+        clust_time = spikeClInfo.SpikeTSindex; % samples wrt AO clock
+
+        % determine spikes in cluster within movement block
+        spikes_in_move1 = clust_time > TTL_spk_idx_Start & clust_time < TTL_spk_idx_End; % logical indicating spikes w/in moveblock in AO_time
+
+        % get spike times in cluster within movement block
+        clustered_spikeTimes = clust_time(spikes_in_move1);
+
+        all_clusters{clust_counter} = clustered_spikeTimes;
+
+        % increment counter
+        clust_counter = clust_counter + 1;
+
+    end
+
+    end
+
+
 
 end
 
-%% use distinct clust_time vectors as input in subsequent spike cluster analysis
 
-% load distinct spike clusters of interest
+%% next steps
+% understand this code
+% use this as template for LFP analysis
+% movement indices from raw case vids
+% 3/09/2023
+% 3/23/2023
 
-
-% define AO recording times
-AO_startTime = spikeClInfo.AOstartTS;
-
-% index of spike time that corresponds with timepoint of TTL
-spk_time_offset = TTL_clockStart - AO_startTime; % time (in seconds .. or ms) wrt TTL clock
-
-% convert time offset to sample offset
-spk_sample_offset = round(spk_time_offset*AO_fs); % number of samples wrt AO clock
-
-
-% Movement block example
-TTL_spk_Start = TTL_Down(:,501);
-TTL_spk_End = TTL_Down(:,1000);
-TTL_spk_idx_Start = TTL_spk_Start + spk_sample_offset; % number of samples wrt AO clock
-TTL_spk_idx_End = TTL_spk_End + spk_sample_offset;
-
-
-SpikeTS = spikeClInfo.SpikeTSindex; % spikes in samp # wrt AO clock
-spikes_in_move1 = SpikeTS > TTL_spk_idx_Start & SpikeTS < TTL_spk_idx_End; % logical of spikes w/in moveblock in AO_time
-
+% code to add in movement indices
 
 %% movement block structure
 % define start frame of event
 % define end frame of event
 % define offset duration before & after event
 
+
+% rec_offset = 500; % duration in ms, example
+% rec_endTime = rec_startTime + rec_offset; % frame index for AO recording start-time
 
 %% initial code
 
@@ -148,5 +219,6 @@ numSpikes = spikeClInfo.SpikeTSindex(end) - spikeClInfo.SpikeTSindex(1);
 num_seconds = numSpikes/AO_fs;
 
 % waveforms of spikes only necessary for figures
-waves = spikeClInfo.waveForms.waves; 
+waves = spikeClInfo.waveForms.waves;
+
 

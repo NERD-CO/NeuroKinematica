@@ -6,7 +6,7 @@ function [] = run_MovementProcessing_IO_v2(mainDir, casedate_hem)
 
 % Define casedate and hemisphere
 
-% casedate_hem = '03_09_2023_RSTN';
+% casedate_hem = 'IO_03_09_2023_RSTN';
 
 mainDir2 = [mainDir , filesep , casedate_hem];
 cd(mainDir2)

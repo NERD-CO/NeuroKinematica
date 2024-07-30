@@ -23,7 +23,7 @@ mainDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperati
 
 %% 2b) Process and visualize movement timeseries data - v2
 
- run_MovementProcessing_IO_v2(mainDir, casedate_hem)
+% run_MovementProcessing_IO_v2(mainDir, casedate_hem)
 
 %% 2c) Process and visualize movement timeseries data - v2
 

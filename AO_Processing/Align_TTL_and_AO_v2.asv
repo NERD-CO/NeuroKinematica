@@ -73,9 +73,8 @@ cd(ClustSpkTimesDir)
 SPKmatfiles = dir('*.mat');
 SPKmatnames = {SPKmatfiles.name};
 
-% storage container
-all_clusters = {};
-clust_counter = 1;
+% All_moveTbl = table(); % table containing spike times per motor trial
+All_moveTbl_array = {};
 
 for spk_mat_names = 1:length(SPKmatnames)
     cd(ClustSpkTimesDir)
@@ -96,20 +95,20 @@ for spk_mat_names = 1:length(SPKmatnames)
     TTL_Down = ProcEphys.TTL.Down; % TTL signal down voltage deflection     % 1 cell represents frame#, values within the cell represent sample#
     TTL_clockStart = ProcEphys.TTL.startTime; % start-time of TTL clock     (in seconds wrt AO system start)
 
-    
+
     % Find row of ao_MAT_file that corresponds with trial
     SubjectAO_row = Subject_AO(contains(Subject_AO.ao_MAT_file,ProcName),:);
-   
+
     switch SubjectAO_row.stn_loc{1}(1)
         case 'd'
             depthName = 't'
         case 'v'
             depthName = 'b'
-        otherwise 
+        otherwise
             depthName = 'c'
     end
 
-    trial_ID = [depthName, num2str(SubjectAO_row.trialNum),'_', SubjectAO_row.depth{1}];
+    move_trial_ID = [depthName, num2str(SubjectAO_row.trialNum),'_', SubjectAO_row.depth{1}];
 
     % Generate list of Motor Index CSVs
     cd(Move_CaseVideos)
@@ -119,80 +118,91 @@ for spk_mat_names = 1:length(SPKmatnames)
     % Generate list of Motor Index CSVs (filters for CSVs that contain 'Move' string)
     moveCSV = moveCSV_names(contains(moveCSV_names,'Move'));
 
-    moveTbl_name = moveCSV{contains(moveCSV, trial_ID)};
+    if ~any(contains(moveCSV, move_trial_ID))  % checking if logical is false
+        continue
+    end
+
+    moveTbl_name = moveCSV{contains(moveCSV, move_trial_ID)};
 
     moveTbl = readtable(moveTbl_name);
-    moveTbl(cellfun(@(X) ~isempty(X), moveTbl.MoveType, 'UniformOutput', true),:)
+    moveTbl = moveTbl(cellfun(@(X) ~isempty(X), moveTbl.MoveType, 'UniformOutput', true),:); % clean moveTbl (remove zeros)
+
+    spike_ID = repmat({ProcFile}, height(moveTbl), 1);
+    move_ID = repmat({move_trial_ID}, height(moveTbl), 1);
+   
 
     % loop through trials and pull out BeginF and EndF indices in MoveIndex csv per corresponding trial
     for move_i = 1:height(moveTbl)
 
-    % define frame indices based on task recording context (frame indices in TTL_Down)                    % get these from movement index csv
-    frame_startTime = moveTbl.BeginF(move_i); % index of recording initiation
-    frame_endTime = moveTbl.EndF(move_i); % index of recording termination
+        % define frame indices based on task recording context (frame indices in TTL_Down)                    % get these from movement index csv
+        frame_startTime = moveTbl.BeginF(move_i); % index of recording initiation
+        frame_endTime = moveTbl.EndF(move_i); % index of recording termination
 
-    % extract TTL signals of interest based on task context
-    TTL_samp_taskStart = TTL_Down(frame_startTime); % number of samples wrt TTL clock
-    TTL_samp_taskEnd = TTL_Down(frame_endTime);
+        % extract TTL signals of interest based on task context
+        TTL_samp_taskStart = TTL_Down(frame_startTime); % number of samples wrt TTL clock
+        TTL_samp_taskEnd = TTL_Down(frame_endTime);
 
-    % define AO recording times
-    AO_startTime = spikeClInfo.AOstartTS;
+        % define AO recording times
+        AO_startTime = spikeClInfo.AOstartTS;
 
-    % calculate difference in clock startTimes
-    time_offset = TTL_clockStart - AO_startTime; % time (seconds) wrt TTL clock
+        % calculate difference in clock startTimes
+        time_offset = TTL_clockStart - AO_startTime; % time (seconds) wrt TTL clock
 
-    % convert time offset to sample offset
-    sample_offset = round(time_offset*AO_spike_fs); % number of samples
+        % convert time offset to sample offset
+        sample_offset = round(time_offset*AO_spike_fs); % number of samples
 
-    % convert TTL sample indices by the sample offset to transform into AO_spike clock / spike sample domain
-    TTL_spk_idx_Start = TTL_samp_taskStart + sample_offset; % number of samples wrt AO clock
-    TTL_spk_idx_End = TTL_samp_taskEnd + sample_offset;
+        % convert TTL sample indices by the sample offset to transform into AO_spike clock / spike sample domain
+        TTL_spk_idx_Start = TTL_samp_taskStart + sample_offset; % number of samples wrt AO clock
+        TTL_spk_idx_End = TTL_samp_taskEnd + sample_offset;
 
-    % check # of clusters in spike file
-    if numel(unique(spikeClInfo.clusterIDS)) ~= 1
-        
-        % determine clust IDs
-        clust_IDs = unique(spikeClInfo.clusterIDS);
-        
-        for cii = 1:length(clust_IDs)
-            % find unique cluster ID indices
-            clust_index = ismember(spikeClInfo.clusterIDS,clust_IDs(cii));
-            clust_time = spikeClInfo.SpikeTSindex(clust_index); % samples wrt AO clock
+        % check # of clusters in spike file
+        if numel(unique(spikeClInfo.clusterIDS)) == 1
 
-            % determine spikes in distinct clusters within movement block
+            % find spike cluster indices
+            clust_time = spikeClInfo.SpikeTSindex; % samples wrt AO clock
+
+            % determine spikes in cluster within movement block
             spikes_in_move1 = clust_time > TTL_spk_idx_Start & clust_time < TTL_spk_idx_End; % logical indicating spikes w/in moveblock in AO_time
 
-            % get spike times in distinct clusters within movement block
+            % get spike times in cluster within movement block
             clustered_spikeTimes = clust_time(spikes_in_move1);
 
-            all_clusters{clust_counter} = clustered_spikeTimes;
+            moveTbl.('C1'){move_i} = clustered_spikeTimes;
 
-            % increment counter
-            clust_counter = clust_counter + 1;
+        else
+
+            % determine clust IDs
+            clust_IDs = unique(spikeClInfo.clusterIDS);
+
+            for cii = 1:length(clust_IDs)
+                % find unique cluster ID indices
+                clust_index = ismember(spikeClInfo.clusterIDS,clust_IDs(cii));
+                clust_time = spikeClInfo.SpikeTSindex(clust_index); % samples wrt AO clock
+
+                % determine spikes in distinct clusters within movement block
+                spikes_in_move1 = clust_time > TTL_spk_idx_Start & clust_time < TTL_spk_idx_End; % logical indicating spikes w/in moveblock in AO_time
+
+                % get spike times in distinct clusters within movement block
+                clustered_spikeTimes = clust_time(spikes_in_move1);
+
+                moveTbl.(['C', num2str(cii)]){move_i} = clustered_spikeTimes;
+            end
+
         end
 
-        % find spike cluster indices
-        clust_time = spikeClInfo.SpikeTSindex; % samples wrt AO clock
-
-        % determine spikes in cluster within movement block
-        spikes_in_move1 = clust_time > TTL_spk_idx_Start & clust_time < TTL_spk_idx_End; % logical indicating spikes w/in moveblock in AO_time
-
-        % get spike times in cluster within movement block
-        clustered_spikeTimes = clust_time(spikes_in_move1);
-
-        all_clusters{clust_counter} = clustered_spikeTimes;
-
-        % increment counter
-        clust_counter = clust_counter + 1;
-
     end
 
-    end
+    All_moveTbl_array{spk_mat_names} = moveTbl;
 
-
+    % moveTbl.spike_ID = spike_ID;
+    % moveTbl.move_ID = move_ID;
+    % All_moveTbl = [All_moveTbl; moveTbl];
 
 end
 
+% create a table containing =# rows in 
+% spike_trail_name
+% move_trial_name
 
 %% next steps
 % understand this code

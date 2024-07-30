@@ -25,7 +25,7 @@ clear
 %% Variable Inputs
 
 % isolate a specific studyID
-studyID = 2;
+studyID = 1;
 
 % specify directory where case-specific data files are located 
 
