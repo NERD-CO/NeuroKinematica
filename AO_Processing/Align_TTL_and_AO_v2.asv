@@ -50,12 +50,9 @@ Move_CaseVideos = [Move_CaseDir, filesep, 'video folder'];
 % isolate frames of movement type
 % moveType = 'Hand O/C'
 
-
 cd(Move_CaseMats)
 moveMat = dir('*.mat');
 moveMat_names = {moveMat.name};
-
-
 
 
 %% define datastream sampling rates (Alpha Omega and Video sampling fs)
@@ -73,15 +70,14 @@ cd(ClustSpkTimesDir)
 SPKmatfiles = dir('*.mat');
 SPKmatnames = {SPKmatfiles.name};
 
-% All_moveTbl = table(); % table containing spike times per motor trial
-All_moveTbl_array = {};
+All_spikesPermove = {length(SPKmatnames)};
 
-for spk_mat_names = 1:length(SPKmatnames)
+for spk_mat_name = 1:length(SPKmatnames)
+    
     cd(ClustSpkTimesDir)
+    load(SPKmatnames{spk_mat_name},'spikeClInfo')
 
-    load(SPKmatnames{spk_mat_names},'spikeClInfo')
-
-    fileparts = split(SPKmatnames{spk_mat_names},'_');
+    fileparts = split(SPKmatnames{spk_mat_name},'_');
     ProcName = fileparts{3};
 
     cd(ProcDataDir)
@@ -125,18 +121,17 @@ for spk_mat_names = 1:length(SPKmatnames)
     moveTbl_name = moveCSV{contains(moveCSV, move_trial_ID)};
 
     moveTbl = readtable(moveTbl_name);
-    moveTbl = moveTbl(cellfun(@(X) ~isempty(X), moveTbl.MoveType, 'UniformOutput', true),:); % clean moveTbl (remove zeros)
+    SpkMoveTbl = moveTbl(cellfun(@(X) ~isempty(X), moveTbl.MoveType, 'UniformOutput', true),:); % clean moveTbl (remove zeros)
 
-    spike_ID = repmat({ProcFile}, height(moveTbl), 1);
-    move_ID = repmat({move_trial_ID}, height(moveTbl), 1);
+    spike_ID = repmat({ProcFile}, height(SpkMoveTbl), 1);
+    move_ID = repmat({move_trial_ID}, height(SpkMoveTbl), 1);
    
-
     % loop through trials and pull out BeginF and EndF indices in MoveIndex csv per corresponding trial
-    for move_i = 1:height(moveTbl)
+    for move_i = 1:height(SpkMoveTbl)
 
         % define frame indices based on task recording context (frame indices in TTL_Down)                    % get these from movement index csv
-        frame_startTime = moveTbl.BeginF(move_i); % index of recording initiation
-        frame_endTime = moveTbl.EndF(move_i); % index of recording termination
+        frame_startTime = SpkMoveTbl.BeginF(move_i); % index of recording initiation
+        frame_endTime = SpkMoveTbl.EndF(move_i); % index of recording termination
 
         % extract TTL signals of interest based on task context
         TTL_samp_taskStart = TTL_Down(frame_startTime); % number of samples wrt TTL clock
@@ -167,11 +162,11 @@ for spk_mat_names = 1:length(SPKmatnames)
             % get spike times in cluster within movement block
             clustered_spikeTimes = clust_time(spikes_in_move1);
 
-            moveTbl.('C1'){move_i} = clustered_spikeTimes;
+            SpkMoveTbl.('C1'){move_i} = clustered_spikeTimes;
 
         else
 
-            % determine clust IDs
+            % determine cluster IDs
             clust_IDs = unique(spikeClInfo.clusterIDS);
 
             for cii = 1:length(clust_IDs)
@@ -185,24 +180,119 @@ for spk_mat_names = 1:length(SPKmatnames)
                 % get spike times in distinct clusters within movement block
                 clustered_spikeTimes = clust_time(spikes_in_move1);
 
-                moveTbl.(['C', num2str(cii)]){move_i} = clustered_spikeTimes;
+                SpkMoveTbl.(['C', num2str(cii)]){move_i} = clustered_spikeTimes;
             end
 
         end
 
     end
 
-    All_moveTbl_array{spk_mat_names} = moveTbl;
+    % Add spike_ID and move_ID columns
+    SpkMoveTbl.spike_ID = spike_ID;
+    SpkMoveTbl.move_ID = move_ID;
 
-    % moveTbl.spike_ID = spike_ID;
-    % moveTbl.move_ID = move_ID;
-    % All_moveTbl = [All_moveTbl; moveTbl];
+    All_spikesPermove{spk_mat_name} = SpkMoveTbl;
 
 end
 
-% create a table containing =# rows in 
-% spike_trail_name
-% move_trial_name
+
+% Define the standard column order
+standard_col_order = {'MoveN', 'MoveType', 'BeginF', 'EndF', 'spike_ID', 'move_ID'};
+
+% Get the unique cluster IDs from all tables
+cluster_ids = {};
+for tbl_i = 1:length(All_spikesPermove)
+    tbl_1 = All_spikesPermove{tbl_i};
+    if isempty(tbl_1)
+        continue
+    end
+    col_names = tbl_1.Properties.VariableNames;
+    cluster_ids = [cluster_ids, col_names(startsWith(col_names, 'C'))]; 
+end
+cluster_ids = unique(cluster_ids);
+
+% Combine standard columns with cluster IDs to create the full standard order
+standard_col_order = [standard_col_order, cluster_ids];
+
+% Initialize All_data as a cell array
+All_data = {};
+% Loop through each table in All_moveTbl_array
+for tbl_i = 1:length(All_spikesPermove)
+    tbl_1 = All_spikesPermove{tbl_i};
+    if isempty(tbl_1)
+        continue
+    end
+    
+    % Initialize temp_data with NaNs or empty cells
+    temp_data = cell(height(tbl_1), length(standard_col_order));
+    
+    % Align each table's data to the standard column order
+    for col_idx = 1:length(standard_col_order)
+        col_name = standard_col_order{col_idx};
+        if ismember(col_name, tbl_1.Properties.VariableNames)
+            temp_data(:, col_idx) = table2cell(tbl_1(:, col_name));
+        end
+    end
+    
+    % Append the aligned data to All_data
+    All_data = [All_data; temp_data];
+end
+
+% Convert All_data to a table with the standard column order
+All_SpikesPerMove_Tbl = cell2table(All_data, 'VariableNames', standard_col_order);
+
+cd(ClustSpkTimesDir)
+% save All_moveTbl to a file
+% writetable(All_moveTbl, 'All_moveTbl.csv');
+
+%% old code (cut)
+
+temp_All_col = {};
+% loop through each table in All_moveTble_array
+for tbl_i = 1:length(All_spikesPermove)
+    tbl_1 = All_spikesPermove{tbl_i};
+    if isempty(tbl_1)
+        continue
+    end
+
+    % define column names in current table iteration within All_moveTbl_array
+    col_names = tbl_1.Properties.VariableNames;
+    missing_names = matches(col_names, temp_All_col); % identifies which column names in col_names are already present in temp_All_col.
+    temp_All_col = [temp_All_col, col_names(~missing_names)]; % appends unique column names from col_names to temp_All_col
+end
+
+All_data = {};
+% loop through each table in All_moveTble_array
+for tbl_i = 1:length(All_spikesPermove)
+    tbl_1 = All_spikesPermove{tbl_i};
+    if isempty(tbl_1)
+        continue
+    end
+    col_names = tbl_1.Properties.VariableNames;
+
+    % determine location of each column name in temp_All_col
+    col_idx = matches(temp_All_col, col_names); % identifies the indices of columns in temp_All_col that match the columns in col_names
+    %col_match = strcmp(col_names, temp_All_col)
+
+    temp_data = cell(height(tbl_1), length(temp_All_col));
+    if all(col_idx)
+        new_idx = zeros(length(temp_All_col),1);
+        for i = 1:length(temp_All_col)
+            new_idx(i) = find(matches(col_names, temp_All_col{i}));
+        end
+         temp_data(:,new_idx) = table2cell(tbl_1);
+    else
+         temp_data(:,col_idx) = table2cell(tbl_1);
+   
+    end
+
+    
+    % fill temp_data
+   
+    All_data = [All_data; temp_data];
+
+end
+
 
 %% next steps
 % understand this code
@@ -211,6 +301,7 @@ end
 % 3/09/2023
 % 3/23/2023
 
+% firing rate cut off for STN spike clusters
 % code to add in movement indices
 
 %% movement block structure
