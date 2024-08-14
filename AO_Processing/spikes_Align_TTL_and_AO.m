@@ -15,7 +15,6 @@ end
 cd(IO_DataDir)
 Subject_AO = readtable('Subject_AO.xlsx');
 
-
 %% Hardcode Case-specific Data directories
 
 % isolate a specific CaseDate / studyID (StudyNum in Subject_AO csv)
@@ -50,6 +49,7 @@ Move_CaseVideos = [Move_CaseDir, filesep, 'video folder'];
 % isolate frames of movement type
 % moveType = 'Hand O/C'
 
+% for kinematic analyses
 cd(Move_CaseMats)
 moveMat = dir('*.mat');
 moveMat_names = {moveMat.name};
@@ -62,6 +62,15 @@ AO_spike_fs = 44000; % Hz
 AO_LFP_fs = 1375; % Hz
 DLC_fs = 100; % fps
 
+
+%% define offset duration
+offset_ms = 50; % milliseconds
+offset_seconds = offset_ms / 1000; % seconds
+
+% Calculate the number of TTL samples
+offset_TTLs = round(TTL_fs * offset_seconds); % ensure value is integer
+
+% for future function input: useOffset; when = 1,  offset = offset; when = 0, offset = 0
 
 %% go to ClustSpkTimesDir
 cd(ClustSpkTimesDir)
@@ -151,6 +160,9 @@ for spk_mat_name = 1:length(SPKmatnames)
         TTL_spk_idx_Start(move_i) = TTL_samp_taskStart + sample_offset; % number of samples wrt AO clock
         TTL_spk_idx_End = TTL_samp_taskEnd + sample_offset;
 
+        % incorporate offset
+        TTL_spk_idx_Start(move_i) =  TTL_spk_idx_Start(move_i) - offset_TTLs; % start [50 ms] before
+
         % check # of clusters in spike file
         if numel(unique(spikeClInfo.clusterIDS)) == 1
             % find spike cluster indices
@@ -163,6 +175,7 @@ for spk_mat_name = 1:length(SPKmatnames)
             clustered_spikeTimes = clust_time(spikes_in_move1);
 
             SpkMoveTbl.('C1'){move_i} = clustered_spikeTimes;
+
         else
             % determine cluster IDs
             clust_IDs = unique(spikeClInfo.clusterIDS);
@@ -242,7 +255,7 @@ All_SpikesPerMove_Tbl = cell2table(All_data, 'VariableNames', standard_col_order
 % save All_SpikesPerMove_Tbl to a file
 SpikesPerMove_Dir = [Case_DataDir, filesep, 'DLC_MER'];
 cd(SpikesPerMove_Dir)
-save('All_SpikesPerMove.mat',"All_SpikesPerMove_Tbl");
+save('All_SpikesPerMove_offset.mat',"All_SpikesPerMove_Tbl");
 
 
 
@@ -257,15 +270,6 @@ save('All_SpikesPerMove.mat',"All_SpikesPerMove_Tbl");
 % firing rate cut off for STN spike clusters
 % raster plots
 
-
-%% movement block structure
-% define start frame of event
-% define end frame of event
-% define offset duration before & after event
-
-
-% rec_offset = 500; % duration in ms, example
-% rec_endTime = rec_startTime + rec_offset; % frame index for AO recording start-time
 
 %% initial code
 

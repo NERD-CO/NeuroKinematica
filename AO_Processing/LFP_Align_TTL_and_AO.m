@@ -28,7 +28,6 @@ Case_DataDir = [IO_DataDir, filesep, CaseDate];
 % directories where case-specific IO ephys data are located
 RawDataDir = [Case_DataDir, filesep, 'Raw Electrophysiology MATLAB'];       % directory where raw MATLAB data files are located (case-specific)
 ProcDataDir = [Case_DataDir, filesep, 'Processed Electrophysiology'];       % directory where processed MATLAB data should be saved (case-specific)
-ClustSpkTimesDir = [ProcDataDir, filesep, 'ClusteredSpikeTimes'];           % directory where clustered spike times should be saved (case-specific)
 
 
 %% directory for movement indices
@@ -50,6 +49,7 @@ Move_CaseVideos = [Move_CaseDir, filesep, 'video folder'];
 % isolate frames of movement type
 % moveType = 'Hand O/C'
 
+% for kinematic analyses
 cd(Move_CaseMats)
 moveMat = dir('*.mat');
 moveMat_names = {moveMat.name};
@@ -63,34 +63,40 @@ AO_LFP_fs = 1375; % Hz
 DLC_fs = 100; % fps
 
 
-%% go to ClustSpkTimesDir
-cd(ClustSpkTimesDir)
+%% define offset duration
+offset_ms = 50; % milliseconds
+offset_seconds = offset_ms / 1000; % seconds
+
+% Calculate the number of TTL samples
+offset_TTLs = round(TTL_fs * offset_seconds); % ensure value is integer
+
+% for future function input: useOffset; when = 1,  offset = offset; when = 0, offset = 0
+
+%% go to ProcDataDir
+cd(ProcDataDir)
 
 % list of filename
-SPKmatfiles = dir('*.mat');
-SPKmatnames = {SPKmatfiles.name};
+LFPmatfiles = dir('*.mat');
+LFPmatnames = {LFPmatfiles.name};
 
-All_spikesPermove = {length(SPKmatnames)};
+All_LFPsPermove = {length(LFPmatnames)};
 
-for spk_mat_name = 1:length(SPKmatnames)
-    
-    cd(ClustSpkTimesDir)
-    load(SPKmatnames{spk_mat_name},'spikeClInfo')
-
-    fileparts = split(SPKmatnames{spk_mat_name},'_');
-    ProcName = fileparts{3};
+for LFP_mat_name = 1:length(LFPmatnames)
 
     cd(ProcDataDir)
-    matfiles = dir('*.mat');
-    matnames = {matfiles.name};
-    ProcFile = matnames{contains(matnames, ProcName)};
+    load(LFPmatnames{LFP_mat_name},'ProcEphys')
 
+    fileparts = split(LFPmatnames{LFP_mat_name},'_');
+    ProcName = fileparts{2};
+
+    ProcFile = LFPmatnames{contains(LFPmatnames, ProcName)};
     load(ProcFile, 'ProcEphys')
+
+    LFP_raw = ProcEphys.LFP.E2.rawData;
 
     % isolate fields of interest
     TTL_Down = ProcEphys.TTL.Down; % TTL signal down voltage deflection     % 1 cell represents frame#, values within the cell represent sample#
     TTL_clockStart = ProcEphys.TTL.startTime; % start-time of TTL clock     (in seconds wrt AO system start)
-
 
     % Find row of ao_MAT_file that corresponds with trial
     SubjectAO_row = Subject_AO(contains(Subject_AO.ao_MAT_file,ProcName),:);
@@ -120,109 +126,77 @@ for spk_mat_name = 1:length(SPKmatnames)
 
     moveTbl_name = moveCSV{contains(moveCSV, move_trial_ID)};
     moveTbl = readtable(moveTbl_name);
-    SpkMoveTbl = moveTbl(cellfun(@(X) ~isempty(X), moveTbl.MoveType, 'UniformOutput', true),:); % clean moveTbl (remove zeros)
+    LFPMoveTbl = moveTbl(cellfun(@(X) ~isempty(X), moveTbl.MoveType, 'UniformOutput', true),:); % clean moveTbl (remove zeros)
 
     % initialize arrays
-    spike_ID = repmat({ProcFile}, height(SpkMoveTbl), 1);
-    move_ID = repmat({move_trial_ID}, height(SpkMoveTbl), 1);
-    TTL_spk_idx_Start = nan(height(SpkMoveTbl), 1); 
-   
+    LFP_ID = repmat({ProcFile}, height(LFPMoveTbl), 1);
+    move_ID = repmat({move_trial_ID}, height(LFPMoveTbl), 1);
+    TTL_LFP_idx_Start = nan(height(LFPMoveTbl), 1);
+
     % loop through trials and pull out BeginF and EndF indices in MoveIndex csv per corresponding trial
-    for move_i = 1:height(SpkMoveTbl)
+    for move_i = 1:height(LFPMoveTbl)
 
         % define frame indices based on task recording context (frame indices in TTL_Down)                    % get these from movement index csv
-        frame_startTime = SpkMoveTbl.BeginF(move_i); % index of recording initiation
-        frame_endTime = SpkMoveTbl.EndF(move_i); % index of recording termination
+        frame_startTime = LFPMoveTbl.BeginF(move_i); % index of recording initiation
+        frame_endTime = LFPMoveTbl.EndF(move_i); % index of recording termination
 
         % extract TTL signals of interest based on task context
         TTL_samp_taskStart = TTL_Down(frame_startTime); % number of samples wrt TTL clock
         TTL_samp_taskEnd = TTL_Down(frame_endTime);
 
+        % downsample TTL_fs - convert ^ to time; multiply AO_LFP_fs
+        TTL_samp_taskStart = (TTL_samp_taskStart/TTL_fs)*AO_LFP_fs;
+        TTL_samp_taskEnd = (TTL_samp_taskEnd/TTL_fs)*AO_LFP_fs;
+
         % define AO recording times
-        AO_startTime = spikeClInfo.AOstartTS;
+        AO_startTime = ProcEphys.LFP.E2.startTime;
 
         % calculate difference in clock startTimes
         time_offset = TTL_clockStart - AO_startTime; % time (seconds) wrt TTL clock
 
         % convert time offset to sample offset
-        sample_offset = round(time_offset*AO_spike_fs); % number of samples
+        sample_offset = round(time_offset*AO_LFP_fs); % number of samples
 
-        % convert TTL sample indices by the sample offset to transform into AO_spike clock / spike sample domain
-        TTL_spk_idx_Start(move_i) = TTL_samp_taskStart + sample_offset; % number of samples wrt AO clock
-        TTL_spk_idx_End(move_i) = TTL_samp_taskEnd + sample_offset;
+        % convert TTL sample indices by the sample offset to transform into AO_LFP clock / LFP sample domain
+        TTL_LFP_idx_Start(move_i) = TTL_samp_taskStart + sample_offset; % number of samples wrt AO clock
+        TTL_LFP_idx_End = TTL_samp_taskEnd + sample_offset;
 
-        % check # of clusters in spike file
-        if numel(unique(spikeClInfo.clusterIDS)) == 1
-            % find spike cluster indices
-            clust_time = spikeClInfo.SpikeTSindex; % samples wrt AO clock
+        % incorporate offset
+        % TTL_LFP_idx_Start(move_i) =  TTL_LFP_idx_Start(move_i) - offset_TTLs; % start [50 ms] before
 
-            % determine spikes in cluster within movement block
-            spikes_in_move1 = clust_time > TTL_spk_idx_Start & clust_time < TTL_spk_idx_End; % logical indicating spikes w/in moveblock in AO_time
+        %%%% get LFPs in movement block
+        % LFP_raw = ProcEphys.LFP.E2.rawData;
+        % LFPs_in_move1 = 
+        % LFPMoveTbl.('LFPs'){move_i} = LFPs_in_move1;
+        
 
-            % get spike times in cluster within movement block
-            clustered_spikeTimes = clust_time(spikes_in_move1);
-
-            SpkMoveTbl.('C1'){move_i} = clustered_spikeTimes;
-        else
-            % determine cluster IDs
-            clust_IDs = unique(spikeClInfo.clusterIDS);
-
-            for cii = 1:length(clust_IDs)
-                % find unique cluster ID indices
-                clust_index = ismember(spikeClInfo.clusterIDS,clust_IDs(cii));
-                clust_time = spikeClInfo.SpikeTSindex(clust_index); % samples wrt AO clock
-
-                % determine spikes in distinct clusters within movement block
-                spikes_in_move1 = clust_time > TTL_spk_idx_Start & clust_time < TTL_spk_idx_End; % logical indicating spikes w/in moveblock in AO_time
-
-                % get spike times in distinct clusters within movement block
-                clustered_spikeTimes = clust_time(spikes_in_move1);
-
-                SpkMoveTbl.(['C', num2str(cii)]){move_i} = clustered_spikeTimes;
-            end
-        end
     end
 
-    % Add spike_ID, move_ID, and TTL_spk_idx_Start columns
-    SpkMoveTbl.spike_ID = spike_ID;
-    SpkMoveTbl.move_ID = move_ID;
-    SpkMoveTbl.TTL_spk_idx_Start = TTL_spk_idx_Start;
+    % Add LFP_ID, move_ID, and TTL_LFP_idx_Start columns
+    LFPMoveTbl.LFP_ID = LFP_ID;
+    LFPMoveTbl.move_ID = move_ID;
+    LFPMoveTbl.TTL_LFP_idx_Start = TTL_LFP_idx_Start;
 
-    All_spikesPermove{spk_mat_name} = SpkMoveTbl;
+    All_LFPsPermove{LFP_mat_name} = LFPMoveTbl;
 
 end
 
 
 % Define the standard column order
-standard_col_order = {'MoveN', 'MoveType', 'BeginF', 'EndF', 'TTL_spk_idx_Start', 'spike_ID', 'move_ID'};
-
-% Get the unique cluster IDs from all tables
-cluster_ids = {};
-for tbl_i = 1:length(All_spikesPermove)
-    tbl_1 = All_spikesPermove{tbl_i};
-    if isempty(tbl_1)
-        continue
-    end
-    col_names = tbl_1.Properties.VariableNames;
-    cluster_ids = [cluster_ids, col_names(startsWith(col_names, 'C'))]; 
-end
-cluster_ids = unique(cluster_ids);
-
-% Combine standard columns with cluster IDs to create the full standard order
-standard_col_order = [standard_col_order, cluster_ids];
+standard_col_order = {'MoveN', 'MoveType', 'BeginF', 'EndF', 'TTL_LFP_idx_Start', 'LFP_ID', 'move_ID', 'LFPs'};
 
 % Initialize All_data as a cell array
 All_data = {};
 % Loop through each table in All_moveTbl_array
-for tbl_i = 1:length(All_spikesPermove)
-    tbl_1 = All_spikesPermove{tbl_i};
+for tbl_i = 1:length(All_LFPsPermove)
+    tbl_1 = All_LFPsPermove{tbl_i};
     if isempty(tbl_1)
         continue
     end
-    
+
     % Initialize temp_data with NaNs or empty cells
     temp_data = cell(height(tbl_1), length(standard_col_order));
-    
+
     % Align each table's data to the standard column order
     for col_idx = 1:length(standard_col_order)
         col_name = standard_col_order{col_idx};
@@ -230,50 +204,25 @@ for tbl_i = 1:length(All_spikesPermove)
             temp_data(:, col_idx) = table2cell(tbl_1(:, col_name));
         end
     end
-    
+
     % Append the aligned data to All_data
     All_data = [All_data; temp_data];
 end
 
 % Convert All_data to a table with the standard column order
-All_SpikesPerMove_Tbl = cell2table(All_data, 'VariableNames', standard_col_order);
+All_LFPsPerMove_Tbl = cell2table(All_data, 'VariableNames', standard_col_order);
 
 
 % save All_SpikesPerMove_Tbl to a file
-SpikesPerMove_Dir = [Case_DataDir, filesep, 'DLC_MER'];
-cd(SpikesPerMove_Dir)
-save('All_SpikesPerMove.mat',"All_SpikesPerMove_Tbl");
+LFPsPerMove_Dir = [Case_DataDir, filesep, 'DLC_MER'];
+cd(LFPsPerMove_Dir)
+%save('All_LFPsPerMove_offset.mat',"All_LFPsPerMove_Tbl");
 
 
 
 %% next steps
 % understand this code
-% use this as template for LFP analysis
 
 % movement indices from raw case vids
 % 3/09/2023
 % 3/23/2023
-
-% firing rate cut off for STN spike clusters
-% raster plots
-
-
-%% movement block structure
-% define start frame of event
-% define end frame of event
-% define offset duration before & after event
-
-
-% rec_offset = 500; % duration in ms, example
-% rec_endTime = rec_startTime + rec_offset; % frame index for AO recording start-time
-
-%% initial code
-
-lastSpikeTS = spikeClInfo.SpikeTSindex(end);
-numSpikes = spikeClInfo.SpikeTSindex(end) - spikeClInfo.SpikeTSindex(1);
-num_seconds = numSpikes/AO_fs;
-
-% waveforms of spikes only necessary for figures
-waves = spikeClInfo.waveForms.waves;
-
-
