@@ -117,7 +117,7 @@ for LFP_mat_name = 1:length(LFPmatnames)
                 depthName = 'c'
         end
 
-        move_trial_ID = [depthName, num2str(SubjectAO_row.trialNum),'_', SubjectAO_row.depth{1}];
+        motor_trial_ID = [depthName, num2str(SubjectAO_row.trialNum),'_', SubjectAO_row.depth{1}];
 
         % Generate list of Motor Index CSVs
         cd(Move_CaseVideos)
@@ -127,19 +127,19 @@ for LFP_mat_name = 1:length(LFPmatnames)
         % Generate list of Motor Index CSVs (filters for CSVs that contain 'Move' string)
         moveCSV = moveCSV_names(contains(moveCSV_names,'Move'));
 
-        if ~any(contains(moveCSV, move_trial_ID))  % checking if logical is false
+        if ~any(contains(moveCSV, motor_trial_ID))  % checking if logical is false
             continue
         end
 
-        moveTbl_name = moveCSV{contains(moveCSV, move_trial_ID)};
+        moveTbl_name = moveCSV{contains(moveCSV, motor_trial_ID)};
         moveTbl = readtable(moveTbl_name);
         LFPMoveTbl = moveTbl(cellfun(@(X) ~isempty(X), moveTbl.MoveType, 'UniformOutput', true),:); % clean moveTbl (remove zeros)
 
         electrode_LFP_name = [ProcName,'_', electrod_names{e_names}]; %temp var
 
         % initialize arrays
-        LFP_ID = repmat({electrode_LFP_name}, height(LFPMoveTbl), 1);
-        move_ID = repmat({move_trial_ID}, height(LFPMoveTbl), 1);
+        LFP_trial_ID = repmat({electrode_LFP_name}, height(LFPMoveTbl), 1);
+        move_trial_ID = repmat({motor_trial_ID}, height(LFPMoveTbl), 1);
         TTL_LFP_idx_Start = nan(height(LFPMoveTbl), 1);
 
         % loop through trials and pull out BeginF and EndF indices in MoveIndex csv per corresponding trial
@@ -171,18 +171,19 @@ for LFP_mat_name = 1:length(LFPmatnames)
             TTL_LFP_idx_End = TTL_samp_taskEnd + sample_offset;
 
             % incorporate offset
-            TTL_LFP_idx_Start(move_i) =  TTL_LFP_idx_Start(move_i) - offset_TTLs; % start [50 ms] before
+            TTL_LFP_idx_Start(move_i) =  TTL_LFP_idx_Start(move_i) - offset_TTLs_LFP; % start [50 ms] before
 
             % determine LFPs within movement block
             LFPs_in_move1 = LFP_raw(TTL_LFP_idx_Start(move_i):TTL_LFP_idx_End); %  LFPs w/in moveblock in AO_time
 
+            % populate LFPMoveTable row with LFPs within movement block
             LFPMoveTbl.('LFPs'){move_i} = LFPs_in_move1;
 
             % Add LFP_ID, move_ID, and TTL_LFP_idx_Start columns
-            % LFPMoveTbl.LFP_ID = LFP_ID;
-            LFPMoveTbl.move_ID = move_ID;
+            LFPMoveTbl.LFP_trial_ID = LFP_trial_ID;
+            LFPMoveTbl.move_trial_ID = move_trial_ID;
             LFPMoveTbl.TTL_LFP_idx_Start = TTL_LFP_idx_Start;
-
+            
         end
 
         All_LFPsPermove{LFP_mat_name} = LFPMoveTbl;
@@ -192,7 +193,7 @@ for LFP_mat_name = 1:length(LFPmatnames)
 end
 
 % Define the standard column order
-standard_col_order = {'MoveN', 'MoveType', 'BeginF', 'EndF', 'TTL_LFP_idx_Start', 'move_ID', 'LFPs'};
+standard_col_order = {'MoveN', 'MoveType', 'BeginF', 'EndF', 'TTL_LFP_idx_Start', 'LFP_trial_ID', 'move_trial_ID', 'LFPs'};
 
 % Initialize All_data as a cell array
 All_data = {};
@@ -230,7 +231,6 @@ save('All_LFPsPerMove_offset.mat',"All_LFPsPerMove_Tbl");
 
 
 %% next steps
-% understand this code
 
 % movement indices from raw case vids
 % 3/09/2023

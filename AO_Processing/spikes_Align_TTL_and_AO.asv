@@ -228,7 +228,7 @@ for tbl_i = 1:length(All_spikesPermove)
     end
     col_names = tbl_1.Properties.VariableNames;
     cluster_ids = [cluster_ids, col_names(startsWith(col_names, 'C'))]; 
-    %clust_ts = []
+    clust_ts = []
 end
 cluster_ids = unique(cluster_ids);
 
@@ -265,7 +265,7 @@ All_SpikesPerMove_Tbl = cell2table(All_data, 'VariableNames', standard_col_order
 
 % save All_SpikesPerMove_Tbl to a file
 SpikesPerMove_Dir = [Case_DataDir, filesep, 'DLC_MER'];
-%cd(SpikesPerMove_Dir)
+cd(SpikesPerMove_Dir)
 %save('All_SpikesPerMove_offset.mat',"All_SpikesPerMove_Tbl");
 
 
