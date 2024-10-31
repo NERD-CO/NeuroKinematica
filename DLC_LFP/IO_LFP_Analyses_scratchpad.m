@@ -18,15 +18,15 @@ Subject_AO = readtable('Subject_AO.xlsx');
 %% Hardcode case-specific ephys data directories
 
 % isolate a specific CaseDate / studyID (StudyNum in Subject_AO csv)
-CaseDate = '03_09_2023'; % studyID = 1
-% CaseDate = '03_23_2023'; % studyID = 2
+% CaseDate = '03_09_2023'; % studyID = 1
+CaseDate = '03_23_2023'; % studyID = 2
 
 case_ID = CaseDate;
 
 % define case-specific data directory locations
 Case_DataDir = [IO_DataDir, filesep, CaseDate];
 ProcDataDir = [Case_DataDir, filesep, 'Processed Electrophysiology'];       % directory where processed ephys .mat data should be saved
-ephysTbl_Dir = [Case_DataDir, filesep, 'DLC_MER'];                          % directory where all ephys per move-rep tables are located
+ephysTbl_Dir = [Case_DataDir, filesep, 'DLC_Ephys'];                        % directory where all ephys per move-rep tables are located
 
 
 %% Define case-specific directories for kinematic data and movement indices
@@ -35,8 +35,8 @@ ephysTbl_Dir = [Case_DataDir, filesep, 'DLC_MER'];                          % di
 MoveDataDir = [IO_DataDir, filesep, 'Kinematic Analyses'];
 
 % specify case ID
-Move_CaseID = 'IO_03_09_2023_RSTN'; % studyID = 1
-% Move_CaseID = 'IO_03_23_2023_LSTN'; % studyID = 2
+% Move_CaseID = 'IO_03_09_2023_RSTN'; % studyID = 1
+Move_CaseID = 'IO_03_23_2023_LSTN'; % studyID = 2
 
 % isolate case-specific kinematic data directory
 Move_CaseDir = [MoveDataDir, filesep, Move_CaseID];
@@ -108,11 +108,11 @@ for LFP_mat_name = 1:length(LFPmatnames)
 
         switch SubjectAO_row.stn_loc{1}(1)
             case 'd'
-                depthName = 't'
+                depthName = 't'; % dorsal
             case 'v'
-                depthName = 'b'
+                depthName = 'b'; % ventral
             otherwise
-                depthName = 'c'
+                depthName = 'c'; % central
         end
 
         motor_trial_ID = [depthName, num2str(SubjectAO_row.trialNum),'_', SubjectAO_row.depth{1}];
@@ -140,7 +140,7 @@ for LFP_mat_name = 1:length(LFPmatnames)
 end
 
 
-%% Load all LFPs per Movement Tbl %%% fix this block later
+%% Load all LFPs per Movement Tbl %%% refine this block 
 
 addpath 'C:\Users\erinr\OneDrive\Documents\GitHub\NeuroKinematica\AO_Processing'
 
@@ -164,34 +164,38 @@ LFPsPerMove_Tbl = Tblmatnames{contains(Tblmatnames, 'All_LFPsPerMove_offset')};
 load(LFPsPerMove_Tbl, 'All_LFPsPerMove_Tbl')
 
 
-%% LFP frequency domain analysis 
+%% LFP frequency domain analysis %%% refine this block 
 
 % Define LFP segment(s) of interest:
 depth_trial_IDs = unique(All_LFPsPerMove_Tbl.move_trial_ID);
 for depth_trial_i = 1:length(depth_trial_IDs)
     depth_trial = All_LFPsPerMove_Tbl.move_trial_ID{depth_trial_i};
-
-    %%% fill in later
-
+    %%% 
 end
 
-% depth_trial = 'b1_d0p4'
-LFP_depth_trial_b1_array = table2array(All_LFPsPerMove_Tbl(1:18,8));
-LFP_depth_trial_b1 = horzcat(LFP_depth_trial_b1_array{:});
-TTL_idx_b1 = All_LFPsPerMove_Tbl{1:18,5};
+motor_trial_t3 = All_LFPsPerMove_Tbl(139:end,1:8); % 3/23/2023 dorsal
+LFP_t3_array = table2array(All_LFPsPerMove_Tbl(139:end,8));
+LFP_t3 = horzcat(LFP_t3_array{:});
+TTL_idx_t3 = motor_trial_t3{:,5};
 
-% depth_trial = 'b3_d0p4'
-LFP_depth_trial_b3_array = table2array(All_LFPsPerMove_Tbl(37:54,8));
-LFP_depth_trial_b3 = horzcat(LFP_depth_trial_b3_array{:});
-TTL_idx_b3 = All_LFPsPerMove_Tbl{37:54,5};
+motor_trial_c2 = All_LFPsPerMove_Tbl(75:92,1:8); % 3/23/2023 central
+LFP_c2_array = table2array(All_LFPsPerMove_Tbl(75:92,8));
+LFP_t2 = horzcat(LFP_c2_array{:});
+TTL_idx_c2 = motor_trial_c2{:,5};
 
-% depth_trial = 'c2_d2p0'
-LFP_depth_trial_c3_array = table2array(All_LFPsPerMove_Tbl(73:end,8));
-LFP_depth_trial_c3 = horzcat(LFP_depth_trial_c3_array{:});
-TTL_idx_c3 = All_LFPsPerMove_Tbl{73:end,5};
+motor_trial_b2 = All_LFPsPerMove_Tbl(17:36,1:8); % 3/23/2023 ventral
+LFP_b2_array = table2array(All_LFPsPerMove_Tbl(17:36,8));
+LFP_b2 = horzcat(LFP_b2_array{:});
+TTL_idx_b2 = motor_trial_b2{:,5};
+
+
+% extract raw LFP within test trials
+LFP_t = LFP_raw(:, TTL_idx_t3(1):TTL_idx_t3(end)); % top / dorsal STN
+LFP_c = LFP_raw(:, TTL_idx_c2(1):TTL_idx_c2(end)); % central STN
+LFP_b = LFP_raw(:, TTL_idx_b2(1):TTL_idx_b2(end)); % bottom / ventral STN
 
 % define test trial
-LFP_depth_test1 = LFP_raw(:, TTL_idx_c3(1):TTL_idx_c3(end)); % LFP_depth_trial_c3
+LFP_depth_test1 = LFP_t;
 
 
 %% Target signal (LFP) sampling rate (samples per sec)
@@ -200,17 +204,17 @@ t_step = 1/fs;
 ts_LFP = 0:t_step:(length(LFP_depth_test1)-1)/fs;
 
 % compute power spectral density (PSD) of LFP segment(s) - pspectrum function
-[rPxx,rFxx] = pspectrum(LFP_depth_test1,fs,'FrequencyLimits',[0 400],'FrequencyResolution',3); 
-figure;
-pspectrum(LFP_depth_test1,fs,"spectrogram",'FrequencyLimits',[0 400],'FrequencyResolution',3) % 2 or 3
+[rawPxx,rawFxx] = pspectrum(LFP_depth_test1,fs,'FrequencyLimits',[0 400],'FrequencyResolution',3); 
+% figure;
+% pspectrum(LFP_depth_test1,fs,"spectrogram",'FrequencyLimits',[0 400],'FrequencyResolution',3) % 2 or 3
 
 % normalize using the common logarithm via decibel conversion - pow2db function
-rPxxP = pow2db(rPxx);
+rawPxx_db = pow2db(rawPxx);
 
 % plot PSD for visualization
 figure;
 %plot(freq, 10*log10(power));
-plot(rFxx, rPxxP);
+plot(rawFxx, rawPxx_db);
 xlim([0 400]) 
 xlabel('Frequency (Hz)');
 ylabel('Power (dB)');
@@ -253,8 +257,8 @@ title('High-Pass Filtered LFP Signal');
 
 % compute power spectral density (PSD) of LFP segment(s) - pspectrum function
 [fPxx,fFxx] = pspectrum(LFP_dt1_hpfilt,fs,'FrequencyLimits',[0 100],'FrequencyResolution',3); 
-figure;
-pspectrum(LFP_dt1_hpfilt,fs,"spectrogram",'FrequencyLimits',[0 100],'FrequencyResolution',3) % 2 or 3
+% figure;
+% pspectrum(LFP_dt1_hpfilt,fs,"spectrogram",'FrequencyLimits',[0 100],'FrequencyResolution',3) % 2 or 3
 
 % normalize using the common logarithm via decibel conversion - pow2db function
 fPxxP = pow2db(fPxx);
@@ -282,10 +286,10 @@ beta_zerophase_filt = filtfilt(beta_bandpass_filt, LFP_dt1_hpfilt);
 
 % compute power spectral density (PSD) of LFP segment(s) - pspectrum function
 [betaPxx,betaFxx] = pspectrum(beta_zerophase_filt,fs,'FrequencyLimits',[0 50],'FrequencyResolution',3); % 2 or 3
-figure;
-pspectrum(beta_zerophase_filt,fs,"spectrogram","FrequencyLimits",[0 50], "FrequencyResolution", 3)
-figure
-pspectrum(beta_zerophase_filt,fs,"spectrogram","FrequencyLimits",[0 50], "TimeResolution", 0.50)
+% figure;
+% pspectrum(beta_zerophase_filt,fs,"spectrogram","FrequencyLimits",[0 50], "FrequencyResolution", 3)
+% figure
+% pspectrum(beta_zerophase_filt,fs,"spectrogram","FrequencyLimits",[0 50], "TimeResolution", 0.50)
 
 % normalize using the common logarithm via decibel conversion - pow2db function
 betaPxxP = pow2db(betaPxx);
@@ -294,10 +298,13 @@ betaPxxP = pow2db(betaPxx);
 figure;
 %plot(freq, 10*log10(power));
 plot(betaFxx, betaPxx);
-xlim([0 50])  % Limit x-axis to 50 Hz for better visualization
+xlim([0 42])  % Limit x-axis to 50 Hz for better visualization
+ylim([0 22])
 xlabel('Frequency (Hz)');
 ylabel('Power (dB)');
-title('Power Spectral Density of LFP beta band (13-30 Hz)');
+title('PSD of LFP beta band (13-30 Hz)');
+
+znorm_betaPxxP = normalize(betaPxx,1,"zscore");
 
 
 %% Hilbert transorm of beta-filtered signal
@@ -323,10 +330,10 @@ title('Power Spectral Density of LFP beta band (13-30 Hz)');
 % compute power spectral density (PSD) of LFP segment(s) - pspectrum function
 [lfpPxx,lfpFxx] = pspectrum(LFP_dt1_hpfilt,fs,'FrequencyLimits',[0 50],'FrequencyResolution',3); 
 
-figure;
-pspectrum(LFP_dt1_hpfilt,fs,"spectrogram","FrequencyLimits",[0 50], "FrequencyResolution", 3)
-figure
-pspectrum(LFP_dt1_hpfilt,fs,"spectrogram","FrequencyLimits",[0 50], "TimeResolution", 0.50)
+% figure;
+% pspectrum(LFP_dt1_hpfilt,fs,"spectrogram","FrequencyLimits",[0 50], "FrequencyResolution", 3)
+% figure
+% pspectrum(LFP_dt1_hpfilt,fs,"spectrogram","FrequencyLimits",[0 50], "TimeResolution", 0.50)
 
 % normalize using the common logarithm via decibel conversion - pow2db function
 lfpPxx = pow2db(lfpPxx);
@@ -346,7 +353,7 @@ title('Power Spectral Density of Filtered LFP');
 % time-frq transform via complex Morlet wavelets (f0/σf = 7, f0 = 1-45 Hz, steps of 0.25 Hz).
 
 % define 'lfp_data' as a LFP data matrix with dimensions [samples x trials]
-lfp_data_test = LFP_dt1_hpfilt;
+lfp_data_test = beta_zerophase_filt; % LFP_dt1_hpfilt
 
 % Frequency-Time Decomposition using complex Morlet wavelets
 f0 = 1:0.25:45; % center frequency range from 1-45Hz in steps of 0.25Hz
@@ -416,16 +423,16 @@ ylabel('Frequency (Hz)');
 title('Continuous Wavelet Transform');
 
 % Plot the scalogram
-[cwtCoeffs, frequencies] = cwt(lfp_data_L_trimmed, fs);
-figure;
-surface(time_trimmed, frequencies, abs(cwtCoeffs).^2);
-shading interp;
-axis tight;
-xlabel('Time (s)');
-ylabel('Frequency (Hz)');
-title('CWT Scalogram');
-% colorbar;
-% ylabel(colorbar, 'Power (µV^2/Hz)');
+% [cwtCoeffs, frequencies] = cwt(lfp_data_L_trimmed, fs);
+% figure;
+% surface(time_trimmed, frequencies, abs(cwtCoeffs).^2);
+% shading interp;
+% axis tight;
+% xlabel('Time (s)');
+% ylabel('Frequency (Hz)');
+% title('CWT Scalogram');
+% % colorbar;
+% % ylabel(colorbar, 'Power (µV^2/Hz)');
 
 
 %% Beta Burst Detection and Plotting for trimmed LFP
@@ -486,28 +493,6 @@ xlabel('Time (s)');
 ylabel('Normalized Beta Power');
 title('Beta Bursting Dynamics');
 hold off;
-
-%% Compute and Plot PSD on trimmed LFP
-
-pspectrum(lfp_data_L_trimmed,fs,'FrequencyLimits',[0 50],'FrequencyResolution',3) % 2 or 3
-[bPxx,bFxx] = pspectrum(lfp_data_L_trimmed,250,'FrequencyLimits',[0 50],'FrequencyResolution',3); %
-bPxxP = pow2db(bPxx);
-
-% Plot the power spectral density
-figure;
-%plot(freq, 10*log10(power));
-plot(bFxx, bPxxP);
-xlim([0 50])  % Limit x-axis to 50 Hz for better visualization
-xlabel('Frequency (Hz)');
-ylabel('Power (dB)');
-title('Power Spectral Density of LFP');
-
-
-
-
-
-
-
 
 
 

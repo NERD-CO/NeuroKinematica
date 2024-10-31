@@ -6,7 +6,7 @@
 % 1) LFP data - JSON Session Reports (multiple rows (stream recordings) per report [metadata informs ID of row])
 % 2) Movement data (.mat files) and Movement Indices (.csvs)
 
-clear all; close all; clc;
+clear; close all; clc;
 
 %% Directory set-up - Navigate b/t machines
 pcname = getenv('COMPUTERNAME');
@@ -881,7 +881,8 @@ ecg = perceive_ecg(LFP_HOC_OffOff', 250, 0);
 nexttile
 plot(xTime_LFP, ecg.cleandata);
 xlim([0, round(max(xTime_LFP)-1)])
-ylim([round(min(ecg.cleandata)-1), round(max(ecg.cleandata)+1)])
+% ylim([round(min(ecg.cleandata)-1), round(max(ecg.cleandata)+1)])
+ylim([-45, 27])
 ylabel('LFP Amplitude (µV)');
 title('Time Synced STN LFP Data');
 
@@ -1188,7 +1189,8 @@ ecg = perceive_ecg(LFP_HOC_OffOn', 250, 0);
 nexttile
 plot(xTime_LFP, ecg.cleandata);
 xlim([0, round(max(xTime_LFP)-1)])
-ylim([round(min(ecg.cleandata)-1), round(max(ecg.cleandata)+1)])
+% ylim([round(min(ecg.cleandata)-1), round(max(ecg.cleandata)+1)])
+ylim([-45, 26])
 ylabel('LFP Amplitude (µV)');
 title('Time Synced STN LFP Data');
 

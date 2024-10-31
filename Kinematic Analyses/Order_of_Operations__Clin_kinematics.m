@@ -13,8 +13,8 @@ mainDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\Kin
 
 % Define casedate and hemisphere
 
-%casedate_hem = '09_12_2023_LSTN';
-casedate_hem = '09_12_2023_RSTN';
+casedate_hem = '09_12_2023_LSTN';
+%casedate_hem = '09_12_2023_RSTN';
 
 
 %% 2) Process and visualize movement timeseries data
@@ -35,8 +35,8 @@ run_MovementProcessing_Clin_v2(mainDir, casedate_hem)
 
 % Define switch case inputs (for run_MovementStats_Clin_v2 function)
 
-% hemisphere = 'L';
-hemisphere = 'R';
+hemisphere = 'L';
+% hemisphere = 'R';
 
 switch hemisphere
     case 'L'

@@ -26,7 +26,7 @@ end
 
 % Define casedate and hemisphere
 
-% casedate_hem = '09_12_2023_LSTN';
+ casedate_hem = '09_12_2023_LSTN';
 % casedate_hem = '09_12_2023_RSTN';
 
 mainDir2 = [mainDir , filesep , casedate_hem];

@@ -18,8 +18,11 @@ Subject_AO = readtable('Subject_AO.xlsx');
 %% Hardcode Case-specific Data directories
 
 % isolate a specific CaseDate / studyID (StudyNum in Subject_AO csv)
-CaseDate = '03_09_2023'; % studyID = 1
-% CaseDate = '03_23_2023'; % studyID = 2
+% CaseDate = '03_09_2023'; % studyID = 1
+CaseDate = '03_23_2023'; % studyID = 2
+
+% CaseDate = '06_08_2023_bilateral';
+    % CaseDate_hem = 'LSTN'; % comment out when N/A
 
 % define case-specific data directory
 Case_DataDir = [IO_DataDir, filesep, CaseDate];
@@ -27,8 +30,9 @@ Case_DataDir = [IO_DataDir, filesep, CaseDate];
 % directories where case-specific IO ephys data are located
 RawDataDir = [Case_DataDir, filesep, 'Raw Electrophysiology MATLAB'];       % directory where raw MATLAB data files are located (case-specific)
 ProcDataDir = [Case_DataDir, filesep, 'Processed Electrophysiology'];       % directory where processed MATLAB data should be saved (case-specific)
+    % ProcDataDir = [ProcDataDir, filesep, CaseDate_hem];                     % comment out when N/A
 ClustSpkTimesDir = [ProcDataDir, filesep, 'ClusteredSpikeTimes'];           % directory where clustered spike times should be saved (case-specific)
-
+    % ClustSpkTimesDir = [ProcDataDir, filesep, 'ClusteredSpikeTimes'];       % comment out when N/A
 
 %% directory for movement indices
 
@@ -36,8 +40,10 @@ ClustSpkTimesDir = [ProcDataDir, filesep, 'ClusteredSpikeTimes'];           % di
 MoveDataDir = [IO_DataDir, filesep, 'Kinematic Analyses'];
 
 % specify case ID
-Move_CaseID = 'IO_03_09_2023_RSTN'; % studyID = 1
-% Move_CaseID = 'IO_03_23_2023_LSTN'; % studyID = 2
+% Move_CaseID = 'IO_03_09_2023_RSTN'; % studyID = 1
+Move_CaseID = 'IO_03_23_2023_LSTN'; % studyID = 2
+
+% Move_CaseID ='IO_06_08_2023_LSTN';
 
 % isolate case-specific kinematic data directory
 Move_CaseDir = [MoveDataDir, filesep, Move_CaseID];
@@ -45,14 +51,12 @@ Move_CaseDir = [MoveDataDir, filesep, Move_CaseID];
 % data subfolders:
 Move_CaseMats = [Move_CaseDir, filesep, 'mat folder'];
 Move_CaseVideos = [Move_CaseDir, filesep, 'video folder'];
+cd(Move_CaseVideos)
 
-% isolate frames of movement type
-% moveType = 'Hand O/C'
-
-% for kinematic analyses
-cd(Move_CaseMats)
-moveMat = dir('*.mat');
-moveMat_names = {moveMat.name};
+% % for kinematic analyses
+% cd(Move_CaseMats)
+% moveMat = dir('*.mat');
+% moveMat_names = {moveMat.name};
 
 
 %% define datastream sampling rates (Alpha Omega and Video sampling fs)
@@ -202,9 +206,6 @@ for spk_mat_name = 1:length(SPKmatnames)
         end
     end
 
-    %temp_spks = temp_row.C1{1};
-    %temp_seconds = transpose(((temp_spks - temp_row.TTL_spk_idx_Start)/AO_spike_fs) - 0.05); % incorporate this in All_SpikesPerMove_Tbl
-
     % Add spike_ID, move_ID, and TTL_spk_idx_Start columns
     SpkMoveTbl.spike_trial_ID = spike_trial_ID;
     SpkMoveTbl.move_trial_ID = move_trial_ID;
@@ -264,9 +265,10 @@ All_SpikesPerMove_Tbl = cell2table(All_data, 'VariableNames', standard_col_order
 
 
 % save All_SpikesPerMove_Tbl to a file
-SpikesPerMove_Dir = [Case_DataDir, filesep, 'DLC_MER'];
-%cd(SpikesPerMove_Dir)
-%save('All_SpikesPerMove_offset.mat',"All_SpikesPerMove_Tbl");
+SpikesPerMove_Dir = [Case_DataDir, filesep, 'DLC_Ephys'];
+    % SpikesPerMove_Dir = [Case_DataDir, filesep, 'DLC_Ephys', filesep, CaseDate_hem]; % comment out when N/A
+cd(SpikesPerMove_Dir)
+% save('All_SpikesPerMove_offset.mat',"All_SpikesPerMove_Tbl");
 
 
 
@@ -290,6 +292,6 @@ num_seconds = numSpikes/AO_spike_fs;
 
 % waveforms of spikes only necessary for figures
 waves = spikeClInfo.waveForms.waves;
+figure;
 plot(waves)
-
 

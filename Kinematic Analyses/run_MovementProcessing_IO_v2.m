@@ -147,7 +147,8 @@ for csv_i = 1:length(moveCSV)
     %  stackedplot(euclidTT)
 
     % Average the computed distances related to fingertip movements
-    % fTipAverage = mean(fTipEuclid,2);
+    fTipEuclid = euclidall(:, 7:11);
+    fTipAverage = mean(fTipEuclid,2);
     % elbowAverage = mean(elBlowEuclid,2);
 
     % Process dlcDAT MAT files using MoveIndex CSV files to select specific portions of the averaged fingertip distances
@@ -203,7 +204,7 @@ for csv_i = 1:length(moveCSV)
                     MinPeakHeight=mean(smoothed_moveAveBlk), MinPeakDistance=15,...
                     MinPeakProminence=ampThresh, Annotate ='extents');
 
-                close all
+                %close all
                 figure;
 
                 findpeaks(smoothed_moveAveBlk,...
@@ -221,7 +222,7 @@ for csv_i = 1:length(moveCSV)
                     MinPeakHeight=mean(smoothed_moveAveBlk), MinPeakDistance=10,...
                     MinPeakProminence=ampThresh, Annotate ='extents');
 
-                close all
+                %close all
                 figure;
 
                 findpeaks(smoothed_moveAveBlk,...
@@ -233,7 +234,7 @@ for csv_i = 1:length(moveCSV)
                 [peaks, locs, widths, prominences] = findpeaks(smoothed_moveAveBlk,...
                     MinPeakHeight=mean(smoothed_moveAveBlk)*1.2, MinPeakDistance=20, Annotate ='extents');
 
-                close all
+                %close all
                 figure;
 
                 findpeaks(smoothed_moveAveBlk,...
@@ -247,7 +248,7 @@ for csv_i = 1:length(moveCSV)
         fileNAME = [moveTypeIDs{mmi}, ' ', sessID , ' ' , runID];
         title(fileNAME)
         cd(outputDir)
-        legend('none')
+        legend('Location','northeastoutside')
 
         saveas(gcf,fileNAME,'png')
     end

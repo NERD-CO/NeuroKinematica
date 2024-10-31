@@ -6,7 +6,7 @@
 % 1) LFP data - JSON Session Reports (multiple rows (stream recordings) per report [metadata informs ID of row])
 % 2) Movement data (.mat files) and Movement Indices (.csvs)
 
-clear all; close all; clc;
+clear; close all; clc;
 
 %% Directory set-up - Navigate b/t machines
 pcname = getenv('COMPUTERNAME');
@@ -356,10 +356,10 @@ inst_phase = angle(hilbert);
 inst_freq = diff(unwrap(inst_phase))/(2*pi*t);
 
 % Filter instantaneous frequency for 13-30 Hz
-bandpass_filt = designfilt('bandpassiir','FilterOrder',4, ...
+beta_bandpass_filt = designfilt('bandpassiir','FilterOrder',4, ...
     'HalfPowerFrequency1',13,'HalfPowerFrequency2',30, ...
     'SampleRate',fs);
-inst_freq_filtered = filtfilt(bandpass_filt, inst_freq);
+inst_freq_filtered = filtfilt(beta_bandpass_filt, inst_freq);
 inst_freq_filtered2 = [inst_freq_filtered , 0];
 
 figure;
@@ -369,6 +369,94 @@ ylabel('frequency (Hz)')
 xlabel('time (seconds)')
 title('Instantaneous Frequency of Filtered LFP Beta Band (13-30 Hz)');
 
+% Apply the bandpass filter
+betaLFP = filtfilt(beta_bandpass_filt, L_streamOfInt_OffOff);
+
+% % Compute the power of the beta band signal
+% betaLFP_power = abs(hilbert(betaLFP)).^2;
+% 
+% % Calculate the mean and standard deviation
+% mean_beta_power = mean(betaLFP_power);
+% std_beta_power = std(betaLFP_power);
+
+
+
+%% LFP filtering
+%%% fix this %%%
+
+% remove 60 Hz line noise and harmonics via 2nd-order infinite impulse response (IIR) notch and comb filters
+% Notch Filter centered at 60Hz
+f_notch = 60;  % Notch frequency
+Q = 35;   % Quality factor, q = ω0/bw where ω0 is the frequency to remove from the signal
+[b_notch, a_notch] = iirnotch(f_notch/(fs/2), f_notch/(fs/2)/Q); % 2nd order infinite impulse response (IIR) notch filter
+LFP_notchfilt = filtfilt(b_notch, a_notch, cleanLFP_OnOff); % Apply notch filter to remove 60Hz line noise
+
+% Comb Filter centered at 60Hz and its harmonics (120Hz, 180Hz, 240Hz, 300Hz, 360Hz, etc.) 
+bw = f_notch / Q;  % Bandwidth, bw = (fo/(fs/2))/q;
+n_harmonics = floor((fs/2) / f_notch);  % Number of harmonics within Nyquist frequency
+[b_comb, a_comb] = iircomb(floor(fs/f_notch), bw/(fs/2), 'notch');  % Design comb filter
+LFP_combfilt = filtfilt(b_comb, a_comb, cleanLFP_OnOff); % Apply comb filter to remove harmonics
+
+
+% attenuate low frequency components in LFP via 4th order Butterworth or IIR high-pass filter
+% High-pass filter 
+cutoff_freq = 2; % Hz, attenuate frequency components below cutoff frequency 
+hp_filter = designfilt('highpassiir', 'FilterOrder', 4, ... 
+    'HalfPowerFrequency', cutoff_freq, 'SampleRate', fs); % Design 4th order Butterworth or IIR hp-filter
+LFP_hpfilt = filtfilt(hp_filter, LFP_combfilt); % Apply high-pass filter to notch/comb-filtered LFP signal
+
+% Plot the filtered LFP signal
+figure;
+plot(ts_LFP, LFP_hpfilt);
+xlabel('Time (s)');
+ylabel('Amplitude');
+title('High-Pass Filtered LFP Signal');
+
+
+% compute power spectral density (PSD) of LFP segment(s) - pspectrum function
+[fPxx,fFxx] = pspectrum(LFP_hpfilt,fs,'FrequencyLimits',[0 100],'FrequencyResolution',3); 
+
+% normalize using the common logarithm via decibel conversion - pow2db function
+fPxxP = pow2db(fPxx);
+
+% plot PSD for visualization
+figure;
+%plot(freq, 10*log10(power));
+plot(fFxx, fPxxP);
+xlim([0 100]) 
+xlabel('Frequency (Hz)');
+ylabel('Power (dB)');
+title('Power Spectral Density of Filtered LFP');
+
+%% Beta Bandpass Filtering + log normalizing
+
+% extract beta band using a 4th order IIR bandpass filter between 13-30 Hz - designfilt function
+beta_bandpass_filt = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',13,'HalfPowerFrequency2',30, ...
+    'SampleRate',fs);
+
+% pass beta band-filtered LFP signal through a zero-phase digital filter - filtfilt function (to minimize phase distortion and transients)
+beta_zerophase_filt = filtfilt(beta_bandpass_filt, LFP_hpfilt);
+% beta_zerophase_filt2 = [beta_zerophase_filt, 0];
+
+% compute power spectral density (PSD) of LFP segment(s) - pspectrum function
+[betaPxx,betaFxx] = pspectrum(beta_zerophase_filt,fs,'FrequencyLimits',[0 50],'FrequencyResolution',3); % 2 or 3
+figure;
+pspectrum(beta_zerophase_filt,fs,"spectrogram","FrequencyLimits",[0 50], "FrequencyResolution", 3)
+figure
+pspectrum(beta_zerophase_filt,fs,"spectrogram","FrequencyLimits",[0 50], "TimeResolution", 0.50)
+
+% normalize using the common logarithm via decibel conversion - pow2db function
+betaPxxP = pow2db(betaPxx);
+
+% plot normalized PSD of beta band
+figure;
+%plot(freq, 10*log10(power));
+plot(betaFxx, betaPxx);
+xlim([0 50])  % Limit x-axis to 50 Hz for better visualization
+xlabel('Frequency (Hz)');
+ylabel('Power (dB)');
+title('Power Spectral Density of LFP beta band (13-30 Hz)');
 
 %% Compute and Plot Power Spectral Density (PSD), (On Med, Off Stim @ 0 mA))
 % Use pspectrum to compute the power spectral density
@@ -392,7 +480,7 @@ title('Power Spectral Density of LFP (untrimmed)');
 % time-frq transform via complex Morlet wavelets (f0/σf = 7, f0 = 1-45 Hz, steps of 0.25 Hz).
 
 % define 'lfp_data' as a LFP data matrix with dimensions [samples x trials]
-lfp_data_L = cleanLFP_OnOff;
+lfp_data_L = LFP_hpfilt;
 
 fs = 250; % sampling rate
 f0 = 1:0.25:45; % center frequency range from 1-45Hz in steps of 0.25Hz
@@ -808,7 +896,8 @@ ecg = perceive_ecg(LFP_HOC_OnOff', 250, 0);
 nexttile
 plot(xTime_LFP, ecg.cleandata);
 xlim([0, round(max(xTime_LFP)-1)])
-ylim([round(min(ecg.cleandata)-1), round(max(ecg.cleandata)+1)])
+% ylim([round(min(ecg.cleandata)-1), round(max(ecg.cleandata)+1)])
+ylim([-50, 25])
 ylabel('LFP Amplitude (µV)');
 title('Time Synced STN LFP Data');
 
@@ -1114,7 +1203,8 @@ ecg = perceive_ecg(LFP_HOC_OnOn', 250, 0);
 nexttile
 plot(xTime_LFP, ecg.cleandata);
 xlim([0, round(max(xTime_LFP)-1)])
-ylim([round(min(ecg.cleandata)-1), round(max(ecg.cleandata)+1)])
+% ylim([round(min(ecg.cleandata)-1), round(max(ecg.cleandata)+1)])
+ylim([-50, 35])
 ylabel('LFP Amplitude (µV)');
 title('Time Synced STN LFP Data');
 

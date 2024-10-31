@@ -19,8 +19,11 @@ Subject_AO = readtable('Subject_AO.xlsx');
 %% Hardcode Case-specific Data directories
 
 % isolate a specific CaseDate / studyID (StudyNum in Subject_AO csv)
-CaseDate = '03_09_2023'; % studyID = 1
-% CaseDate = '03_23_2023'; % studyID = 2
+% CaseDate = '03_09_2023'; % studyID = 1
+CaseDate = '03_23_2023'; % studyID = 2
+
+% CaseDate = '06_08_2023_bilateral';
+    % CaseDate_hem = 'LSTN'; % comment out when N/A
 
 % define case-specific data directory
 Case_DataDir = [IO_DataDir, filesep, CaseDate];
@@ -28,7 +31,7 @@ Case_DataDir = [IO_DataDir, filesep, CaseDate];
 % directories where case-specific IO ephys data are located
 RawDataDir = [Case_DataDir, filesep, 'Raw Electrophysiology MATLAB'];       % directory where raw MATLAB data files are located (case-specific)
 ProcDataDir = [Case_DataDir, filesep, 'Processed Electrophysiology'];       % directory where processed MATLAB data should be saved (case-specific)
-
+    % ProcDataDir = [ProcDataDir, filesep, CaseDate_hem];                     % comment out when N/A
 
 %% directory for movement indices
 
@@ -36,8 +39,10 @@ ProcDataDir = [Case_DataDir, filesep, 'Processed Electrophysiology'];       % di
 MoveDataDir = [IO_DataDir, filesep, 'Kinematic Analyses'];
 
 % specify case ID
-Move_CaseID = 'IO_03_09_2023_RSTN'; % studyID = 1
-% Move_CaseID = 'IO_03_23_2023_LSTN'; % studyID = 2
+% Move_CaseID = 'IO_03_09_2023_RSTN'; % studyID = 1
+Move_CaseID = 'IO_03_23_2023_LSTN'; % studyID = 2
+
+% Move_CaseID ='IO_06_08_2023_LSTN';
 
 % isolate case-specific kinematic data directory
 Move_CaseDir = [MoveDataDir, filesep, Move_CaseID];
@@ -46,13 +51,10 @@ Move_CaseDir = [MoveDataDir, filesep, Move_CaseID];
 Move_CaseMats = [Move_CaseDir, filesep, 'mat folder'];
 Move_CaseVideos = [Move_CaseDir, filesep, 'video folder'];
 
-% isolate frames of movement type
-% moveType = 'Hand O/C'
-
-% for kinematic analyses
-cd(Move_CaseMats)
-moveMat = dir('*.mat');
-moveMat_names = {moveMat.name};
+% % for kinematic analyses
+% cd(Move_CaseMats)
+% moveMat = dir('*.mat');
+% moveMat_names = {moveMat.name};
 
 
 %% define datastream sampling rates (Alpha Omega and Video sampling fs)
@@ -224,14 +226,9 @@ All_LFPsPerMove_Tbl = cell2table(All_data, 'VariableNames', standard_col_order);
 
 
 % save All_SpikesPerMove_Tbl to a file
-LFPsPerMove_Dir = [Case_DataDir, filesep, 'DLC_MER'];
+LFPsPerMove_Dir = [Case_DataDir, filesep, 'DLC_Ephys'];
+    % LFPsPerMove_Dir = [Case_DataDir, filesep, 'DLC_Ephys', filesep, CaseDate_hem]; % comment out when N/A
 cd(LFPsPerMove_Dir)
-save('All_LFPsPerMove_offset.mat',"All_LFPsPerMove_Tbl");
+%save('All_LFPsPerMove_offset.mat',"All_LFPsPerMove_Tbl");
 
 
-
-%% next steps
-
-% movement indices from raw case vids
-% 3/09/2023
-% 3/23/2023
