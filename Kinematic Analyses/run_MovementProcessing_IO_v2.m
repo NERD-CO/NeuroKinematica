@@ -6,7 +6,7 @@ function [] = run_MovementProcessing_IO_v2(mainDir, casedate_hem)
 
 % Define casedate and hemisphere
 
-% casedate_hem = '03_09_2023_RSTN';
+% casedate_hem = 'IO_03_09_2023_RSTN';
 
 mainDir2 = [mainDir , filesep , casedate_hem];
 cd(mainDir2)
@@ -44,7 +44,7 @@ eucINDICIES = readtable("EUC_Indicies.xlsx");
 %% Define time conversion factor and distance conversion factor
 
 % Define framerate of videos (time conversion factor)
-fps = 60; % frames per second
+fps = 100; % frames per second
 
 % Convert distance units to mm (distance conversion factor)
 pixels_to_mm = 2.109; % 232 mm / 110 pxl = 2.1091 mm per pixel
@@ -241,7 +241,7 @@ for csv_i = 1:length(moveCSV)
 
         end
 
-        xlabel('time (frames), fps=60');
+        xlabel('time (frames), 100 fps');
         ylabel('amplitude');
         hold off
         fileNAME = [moveTypeIDs{mmi}, ' ', sessID , ' ' , runID];
