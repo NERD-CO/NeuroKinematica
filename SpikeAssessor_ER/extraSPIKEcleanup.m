@@ -95,6 +95,8 @@ testFS = round(ProcEphys.LFP.E1.Hz*1000);
 [pxx , fxx] = pspectrum(testLFP,testFS,"power","FrequencyLimits",[1 55],...
     'FrequencyResolution',1.25);
 
+save('testFreq.mat','pxx','fxx')
+
 pxx2 = pow2db(pxx);
 
 %%
