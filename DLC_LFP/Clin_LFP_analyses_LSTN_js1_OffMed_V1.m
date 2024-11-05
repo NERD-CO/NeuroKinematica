@@ -9,18 +9,19 @@
 clear; close all; clc;
 
 %% Directory set-up - Navigate b/t machines
-pcname = getenv('COMPUTERNAME');
+pcName = getenv('COMPUTERNAME');
 
-switch pcname
-    case 'DESKTOP-I5CPDO7'   %%% JAT Desktop
-
-        % mainDir = '';
+switch pcName
 
     case 'DSKTP-JTLAB-EMR'   %%% ER Desktop
 
         mainDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\DLC_LFP';
 
-    case 'NSG-M-FQBPFK3'     %%% ER PC
+    case 'NSG-M-FQBPFK3'     %%% ER PC 1
+
+        mainDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\DLC_LFP';
+
+    case 'NSG-M-H8J3X34'     %%% ER PC 2
 
         mainDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\DLC_LFP';
 end

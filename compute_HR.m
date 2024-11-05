@@ -1,6 +1,6 @@
 % Determine participant's heartrate (HR) goal based on their age
 
-Pt_age = 65; % input age for each participant
+Pt_age = 66; % input age for each participant
 
 [Pt_maxHR, Pt_goalHR, Pt_HR75, Pt_HR85] = compute_HRs(Pt_age);
 
