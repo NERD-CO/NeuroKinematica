@@ -73,7 +73,7 @@ switch plot_ID
         cd(ephysTbl_Dir)
         Tbl_list = dir('*.mat');
         Tbl_names = {Tbl_list.name};
-
+        
         if ephys_offset     % offset = 50ms before trial start
             search_index = contains(Tbl_names, 'Spikes') & contains(Tbl_names, 'offset');
         else
@@ -85,11 +85,10 @@ switch plot_ID
         % % for 3_23_2023 case - remove duplicates / only plot for primary electrode  %%%% comment out / adjust for other cases
         % All_SpikesPerMove_Tbl = All_SpikesPerMove_Tbl(165:end,1:13);
 
-        % determine count and unique ID(s) of Motor task reps
+        % plot all 3 depths
         moveType_num = numel(unique(All_SpikesPerMove_Tbl.MoveType));
         moveType_ids = unique(All_SpikesPerMove_Tbl.MoveType);
 
-        % plot for all 3 depths
         figure;
         tiledlayout(1,moveType_num)
         for fig_i = 1:moveType_num
@@ -255,9 +254,9 @@ end
 % ventralSTN_tbl = [All_SpikesPerMove_Tbl(1:24,1:9)]; % move_trial_ID contains 'b'
 
 % 06/08/23, LSTN case
-dorsalSTN_tbl = All_SpikesPerMove_Tbl(73:end,1:9); % move_trial_ID contains 't'(singleTrial)
-centralSTN_tbl = All_SpikesPerMove_Tbl(20:38,1:9); % move_trial_ID contains 'c'(singleTrial)
-ventralSTN_tbl = All_SpikesPerMove_Tbl(1:19,1:9); % move_trial_ID contains 'b' (singleTrial)
+dorsalSTN_tbl = All_SpikesPerMove_Tbl(71:end,1:9); % move_trial_ID contains 't'(singleTrial)
+centralSTN_tbl = All_SpikesPerMove_Tbl(19:36,1:9); % move_trial_ID contains 'c'(singleTrial)
+ventralSTN_tbl = All_SpikesPerMove_Tbl(1:18,1:9); % move_trial_ID contains 'b' (singleTrial)
 
 % % 07_13_2023, LSTN case
 % dorsalSTN_tbl = [All_SpikesPerMove_Tbl(38:end,1:9)]; % move_trial_ID contains 't'

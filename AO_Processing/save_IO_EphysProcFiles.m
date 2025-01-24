@@ -25,7 +25,7 @@ clear
 %% Variable Inputs
 
 % isolate a specific studyID
-studyID = 1;
+studyID = 10;
 
 % specify directory where case-specific data files are located 
 
@@ -33,10 +33,10 @@ curPCname = getenv('COMPUTERNAME'); % for windows
 
 switch curPCname
     case 'DESKTOP-I5CPDO7'
-        Case_DataDir = 'X:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_09_2023'; 
+        Case_DataDir = 'X:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_31_2023'; 
         IO_DataDir = 'X:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';  
     case 'DSKTP-JTLAB-EMR'
-        Case_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_23_2023'; 
+        Case_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_31_2023'; 
         IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';  
 end
 
