@@ -312,12 +312,16 @@ for depth_field = fieldnames(depth_specific_tables)'
         results.(depth).(matlab.lang.makeValidName(move_type)).mean_FR = mean_FR;
         results.(depth).(matlab.lang.makeValidName(move_type)).std_FR = std_FR;
 
-        % Example: Plot FR histogram
-        figure;
-        bar(edges_FR(1:end-1), mean_FR);
-        xlabel('Time (s) from movement onset');
-        ylabel('Firing Rate (spikes/s)');
-        title(sprintf('FR for %s at %s STN', move_type, depth));
+        % Print summary in the command window
+        fprintf('Depth: %s, Movement Type: %s -> Mean FR = %.2f spikes/s, Std FR = %.2f spikes/s\n', ...
+                depth, move_type, mean(mean_FR), mean(std_FR));
+
+        % % Plot FR histogram
+        % figure;
+        % bar(edges_FR(1:end-1), mean_FR);
+        % xlabel('Time (s) from movement onset');
+        % ylabel('Firing Rate (spikes/s)');
+        % title(sprintf('FR for %s at %s STN', move_type, depth));
     end
 end
 
