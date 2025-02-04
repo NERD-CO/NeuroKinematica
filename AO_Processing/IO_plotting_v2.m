@@ -308,13 +308,22 @@ for depth_field = fieldnames(depth_specific_tables)'
         mean_FR = mean(FR_all_trials, 1);
         std_FR = std(FR_all_trials, 0, 1);
 
+        % check / compare to old method 
+        FR_perMoveRep = transpose(mean_FR);
+        mean_FR_perDepth = mean(vertcat(results.(depth).(move_type).FR_perMoveRep), 1);
+        mean_FR_perMoveRep = mean(mean_FR_perDepth);
+        [s_FR, m_FR] = std(FR_perMoveRep);
+
         % Save results in a struct
         results.(depth).(matlab.lang.makeValidName(move_type)).mean_FR = mean_FR;
         results.(depth).(matlab.lang.makeValidName(move_type)).std_FR = std_FR;
+        results.(depth).(matlab.lang.makeValidName(move_type)).FR_perMoveRep = FR_perMoveRep;
+        results.(depth).(matlab.lang.makeValidName(move_type)).mean_FR_perMoveRep = mean_FR_perMoveRep;
+        results.(depth).(matlab.lang.makeValidName(move_type)).std_FR_perMoveRep = s_FR;
 
         % Print summary in the command window
         fprintf('Depth: %s, Movement Type: %s -> Mean FR = %.2f spikes/s, Std FR = %.2f spikes/s\n', ...
-                depth, move_type, mean(mean_FR), mean(std_FR));
+            depth, move_type, mean(mean_FR), mean(std_FR));
 
         % % Plot FR histogram
         % figure;
@@ -415,84 +424,84 @@ end
 
 % move_subtbl = dorsalSTN_tbl; % main - motor trial condition
 % % rest_subtble = dorsal_REST_tbl; % rest - baseline condition
-% 
+%
 % % Initialize results container
 % results_dorsal = struct(); % Struct to store results for each moveType
-% 
+%
 % % Iterate over each movement type
 % for movT_i = 1:moveType_num
 %     moveType = moveType_ids{movT_i};
-% 
+%
 %     % Filter table for the current moveType
 %     move_subtbl = dorsalSTN_tbl(matches(dorsalSTN_tbl.MoveType, moveType), :);
 %     if isempty(move_subtbl)
 %         warning('No trials found for movement type: %s', moveType);
 %         continue;
 %     end
-% 
+%
 %     % run code within loop above (starting with depth_num2)
-% 
+%
 %     % Initialize variables for FR calculations
 %     FR_all_trials = [];
 %     depth_num3 = cellfun(@(x) x(1), move_subtbl.move_trial_ID, 'UniformOutput', false);
 %     depth_ids = unique(depth_num3); % Get unique depth identifiers
-% 
+%
 %     for depth_i = 1:length(depth_ids)
 %         % temp_trialID = [move_subtbl.move_trial_ID{depth_i},'_',move_subtbl.MoveType{depth_i},'_',num2str(move_subtbl.MoveN(depth_i))];
 %         % Filter rows in move_subtbl for the current depth
 %         temp_depth_idx = matches(depth_num3, depth_ids{depth_i});
 %         move_depth_tbl = move_subtbl(temp_depth_idx, :);
-% 
+%
 %         % Iterate over rows in the filtered table
 %         for row_i = 1:height(move_depth_tbl)
 %             temp_depth_row = move_subtbl(depth_i,:);
 %             temp_depth_spks = temp_depth_row.C1{1};
-% 
+%
 %             % Skip if there are no spikes for the current trial
 %             if isempty(temp_depth_spks)
 %                 warning('No spike data for trial %d at depth %s. Skipping...', row_i, depth_ids{depth_i});
 %                 continue;
 %             end
-% 
+%
 %             % Convert spike times to seconds
 %             temp_depth_seconds = transpose(((temp_depth_spks - temp_depth_row.TTL_spk_idx_Start)/AO_spike_fs) - 0.05); % incorporate this in All_SpikesPerMove_Tbl
-% 
+%
 %             % Extract spike times for current trial
 %             spikeTimes = temp_depth_seconds;
-% 
+%
 %             % Compute firing rate (FR)
 %             spikeCounts_FR = histcounts(spikeTimes, edges_FR);
 %             FR_moverep = spikeCounts_FR/binSize_FR;
-% 
+%
 %             % Store FR for move trial
 %             FR_all_trials = [FR_all_trials; FR_moverep];
 %         end
 %     end
-% 
+%
 %     % Compute mean and standard deviation firing rate across all trials
 %     d_mean_FR = mean(FR_all_trials, 1);
 %     d_std_FR = std(FR_all_trials, 0, 1);
-% 
+%
 %     % Print output
 %     % fprintf('Movement type %s: Mean FR (dorsal) = %f\n', moveType_ids{movT_i}, mean(d_mean_FR));
-% 
+%
 %     % Compute depth-specific mean FR per move rep
 %     dorsal_FR_perMoveRep = transpose(d_mean_FR);
 %     mean_dorsalFR = mean(dorsal_FR_perMoveRep);
 %     [s_dFR, m_dFR] = std(dorsal_FR_perMoveRep);
-% 
+%
 %     % Sanitize the moveType to create a valid struct field name
 %     sanitizedMoveType = matlab.lang.makeValidName(moveType);
-% 
+%
 %     % Save results for the current moveType in a struct
 %     results_dorsal.(sanitizedMoveType).dorsal_FR_perMoveRep = dorsal_FR_perMoveRep;
 %     results_dorsal.(sanitizedMoveType).mean_dorsalFR = mean_dorsalFR;
 %     results_dorsal.(sanitizedMoveType).std_dorsalFR = s_dFR;
 %     results_dorsal.(sanitizedMoveType).m_dorsalFR = m_dFR;
-% 
+%
 %     % Print summary
 %     fprintf('Movement type %s: Mean FR (dorsal) = %f\n', moveType, mean_dorsalFR);
-% 
+%
 % end
 
 
@@ -500,84 +509,84 @@ end
 
 % move_subtbl = centralSTN_tbl;
 % % rest_subtble = central_REST_tbl;
-% 
+%
 % % Initialize results container
 % results_central = struct(); % Struct to store results for each moveType
-% 
+%
 % % Iterate over each movement type
 % for movT_i = 1:moveType_num
 %     moveType = moveType_ids{movT_i};
-% 
+%
 %     % Filter table for the current moveType
 %     move_subtbl = centralSTN_tbl(matches(centralSTN_tbl.MoveType, moveType), :);
 %     if isempty(move_subtbl)
 %         warning('No trials found for movement type: %s', moveType);
 %         continue;
 %     end
-% 
+%
 %     % run code within loop above (starting with depth_num2)
-% 
+%
 %     % Initialize variables for FR calculations
 %     FR_all_trials = [];
 %     depth_num3 = cellfun(@(x) x(1), move_subtbl.move_trial_ID, 'UniformOutput', false);
 %     depth_ids = unique(depth_num3); % Get unique depth identifiers
-% 
+%
 %     for depth_i = 1:length(depth_ids)
 %         % temp_trialID = [move_subtbl.move_trial_ID{depth_i},'_',move_subtbl.MoveType{depth_i},'_',num2str(move_subtbl.MoveN(depth_i))];
 %         % Filter rows in move_subtbl for the current depth
 %         temp_depth_idx = matches(depth_num3, depth_ids{depth_i});
 %         move_depth_tbl = move_subtbl(temp_depth_idx, :);
-% 
+%
 %         % Iterate over rows in the filtered table
 %         for row_i = 1:height(move_depth_tbl)
 %             temp_depth_row = move_subtbl(depth_i,:);
 %             temp_depth_spks = temp_depth_row.C1{1};
-% 
+%
 %             % Skip if there are no spikes for the current trial
 %             if isempty(temp_depth_spks)
 %                 warning('No spike data for trial %d at depth %s. Skipping...', row_i, depth_ids{depth_i});
 %                 continue;
 %             end
-% 
+%
 %             % Convert spike times to seconds
 %             temp_depth_seconds = transpose(((temp_depth_spks - temp_depth_row.TTL_spk_idx_Start)/AO_spike_fs) - 0.05); % incorporate this in All_SpikesPerMove_Tbl
-% 
+%
 %             % Extract spike times for current trial
 %             spikeTimes = temp_depth_seconds;
-% 
+%
 %             % Compute firing rate (FR)
 %             spikeCounts_FR = histcounts(spikeTimes, edges_FR);
 %             FR_moverep = spikeCounts_FR/binSize_FR;
-% 
+%
 %             % Store FR for move trial
 %             FR_all_trials = [FR_all_trials; FR_moverep];
 %         end
 %     end
-% 
+%
 %     % Compute mean and standard deviation firing rate across all trials
 %     c_mean_FR = mean(FR_all_trials, 1);
 %     c_std_FR = std(FR_all_trials, 0, 1);
-% 
+%
 %     % Print output
 %     % fprintf('Movement type %s: Mean FR (central) = %f\n', moveType_ids{movT_i}, mean(c_mean_FR));
-% 
+%
 %     % compute depth-specific mean FR per move rep
 %     central_FR_perMoveRep = transpose(c_mean_FR);
 %     mean_centralFR = mean(central_FR_perMoveRep);
 %     [s_cFR, m_cFR] = std(central_FR_perMoveRep);
-% 
+%
 %     % Sanitize the moveType to create a valid struct field name
 %     sanitizedMoveType = matlab.lang.makeValidName(moveType);
-% 
+%
 %     % Save results for the current moveType in a struct
 %     results_central.(sanitizedMoveType).central_FR_perMoveRep = central_FR_perMoveRep;
 %     results_central.(sanitizedMoveType).mean_centralFR = mean_centralFR;
 %     results_central.(sanitizedMoveType).std_centralFR = s_cFR;
 %     results_central.(sanitizedMoveType).m_centralFR = m_cFR;
-% 
+%
 %     % Print summary
 %     fprintf('Movement type %s: Mean FR (central) = %f\n', moveType, mean_centralFR);
-% 
+%
 % end
 
 
@@ -585,80 +594,80 @@ end
 
 % move_subtbl = ventralSTN_tbl;
 % % rest_subtble = ventral_REST_tbl;
-% 
+%
 % % Initialize results container
 % results_ventral = struct(); % Struct to store results for each moveType
-% 
+%
 % % Iterate over each movement type
 % for movT_i = 1:moveType_num
 %     moveType = moveType_ids{movT_i};
-% 
+%
 %     % Filter table for the current moveType
 %     move_subtbl = ventralSTN_tbl(matches(ventralSTN_tbl.MoveType, moveType), :);
 %     if isempty(move_subtbl)
 %         warning('No trials found for movement type: %s', moveType);
 %         continue;
 %     end
-% 
+%
 %     % % run code within loop above ^
 %     % Initialize variables for FR calculations
 %     FR_all_trials = [];
 %     depth_num3 = cellfun(@(x) x(1), move_subtbl.move_trial_ID, 'UniformOutput', false);
 %     depth_ids = unique(depth_num3); % Get unique depth identifiers
-% 
+%
 %     for depth_i = 1:length(depth_ids)
 %         % temp_trialID = [move_subtbl.move_trial_ID{depth_i},'_',move_subtbl.MoveType{depth_i},'_',num2str(move_subtbl.MoveN(depth_i))];
 %         % Filter rows in move_subtbl for the current depth
 %         temp_depth_idx = matches(depth_num3, depth_ids{depth_i});
 %         move_depth_tbl = move_subtbl(temp_depth_idx, :);
-% 
+%
 %         % Iterate over rows in the filtered table
 %         for row_i = 1:height(move_depth_tbl)
 %             temp_depth_row = move_subtbl(depth_i,:);
 %             temp_depth_spks = temp_depth_row.C1{1};
-% 
+%
 %             % Skip if there are no spikes for the current trial
 %             if isempty(temp_depth_spks)
 %                 warning('No spike data for trial %d at depth %s. Skipping...', row_i, depth_ids{depth_i});
 %                 continue;
 %             end
-% 
+%
 %             % Convert spike times to seconds
 %             temp_depth_seconds = transpose(((temp_depth_spks - temp_depth_row.TTL_spk_idx_Start)/AO_spike_fs) - 0.05); % incorporate this in All_SpikesPerMove_Tbl
-% 
+%
 %             % Extract spike times for current trial
 %             spikeTimes = temp_depth_seconds;
-% 
+%
 %             % Compute firing rate (FR)
 %             spikeCounts_FR = histcounts(spikeTimes, edges_FR);
 %             FR_moverep = spikeCounts_FR/binSize_FR;
-% 
+%
 %             % Store FR for move trial
 %             FR_all_trials = [FR_all_trials; FR_moverep];
 %         end
 %     end
-% 
+%
 %     % Compute mean and standard deviation firing rate across all trials
 %     v_mean_FR = mean(FR_all_trials, 1);
 %     v_std_FR = std(FR_all_trials, 0, 1);
-% 
+%
 %     % Print output
 %     % fprintf('Movement type %s: Mean FR (ventral) = %f\n', moveType_ids{movT_i}, mean(v_mean_FR));
-% 
+%
 %     % % compute depth-specific mean FR per move rep
 %     ventral_FR_perMoveRep = transpose(v_mean_FR);
 %     mean_ventralFR = mean(ventral_FR_perMoveRep);
 %     [s_vFR, m_vFR] = std(ventral_FR_perMoveRep);
-% 
+%
 %     % Sanitize the moveType to create a valid struct field name
 %     sanitizedMoveType = matlab.lang.makeValidName(moveType);
-% 
+%
 %     % Save results for the current moveType in a struct
 %     results_ventral.(sanitizedMoveType).ventral_FR_perMoveRep = ventral_FR_perMoveRep;
 %     results_ventral.(sanitizedMoveType).mean_ventralFR = mean_ventralFR;
 %     results_ventral.(sanitizedMoveType).std_ventralFR = s_vFR;
 %     results_ventral.(sanitizedMoveType).m_ventralFR = m_vFR;
-% 
+%
 %     % Print summary
 %     fprintf('Movement type %s: Mean FR (ventral) = %f\n', moveType, mean_ventralFR);
 % end
