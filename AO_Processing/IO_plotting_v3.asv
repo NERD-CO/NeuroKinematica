@@ -382,8 +382,6 @@ end
 % 2. latency b/t last start time of move rep trial and time of 1st spike in
 % move rep trial
 
-% save using '-append'
-
 
 end
 
