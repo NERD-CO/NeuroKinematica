@@ -32,8 +32,8 @@ cd(Clin_Kin_DataDir)
 % case_hem = '09_12_2023_LSTN';
 % case_hem = '09_12_2023_RSTN';
 
- case_hem = 'MDTII_MDT5_LSTN';
-% case_hem = 'MDTII_MDT5_RSTN';
+% case_hem = 'MDTII_MDT5_LSTN';
+case_hem = 'MDTII_MDT5_RSTN';
 
 caseDir = [Clin_Kin_DataDir , filesep , case_hem];
 cd(caseDir)
@@ -62,7 +62,7 @@ if ~exist(outputDir, 'dir')
 end
 
 % Initialize overall results table for condition-wise statistics
-Likelihood_PerCondition = table();
+Likelihood_ResultsPerCondition = table();
 
 % Loop through CSV files - Raw Data Processing
 for csv_i = 1:length(moveCSV)
@@ -139,7 +139,7 @@ for csv_i = 1:length(moveCSV)
     avg_std_likelihood = mean(Likelihood_resultsTable.STD_Likelihood, 'omitnan');
 
     % Store in overall results table
-    Likelihood_PerCondition = [Likelihood_PerCondition; table({tmpCSV}, avg_mean_likelihood, avg_se_likelihood, avg_std_likelihood, ...
+    Likelihood_ResultsPerCondition = [Likelihood_ResultsPerCondition; table({tmpCSV}, avg_mean_likelihood, avg_se_likelihood, avg_std_likelihood, ...
                    'VariableNames', {'Condition', 'Avg_Mean_Likelihood', 'Avg_SE_Likelihood', 'Avg_STD_Likelihood'})];
 
     % Display values in command window
@@ -150,8 +150,8 @@ for csv_i = 1:length(moveCSV)
 end
 
 % Save overall summary results as CSV
-overallResultsFile = fullfile(outputDir, 'Likelihood_PerCondition_Summary.csv');
-writetable(Likelihood_PerCondition, overallResultsFile);
+overallResultsFile = fullfile(outputDir, 'Overall_Likelihood_Summary.csv');
+writetable(overallResults, overallResultsFile);
 
 cd(outputDir);
 
