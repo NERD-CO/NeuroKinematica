@@ -25,18 +25,16 @@ clear
 %% Variable Inputs
 
 % isolate a specific studyID
-studyID = 10;
+studyID = 19;
 
 % specify directory where case-specific data files are located 
 
 curPCname = getenv('COMPUTERNAME'); % for windows
 
 switch curPCname
-    case 'DESKTOP-I5CPDO7'
-        Case_DataDir = 'X:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_31_2023'; 
+    case 'DESKTOP-I5CPDO7' 
         IO_DataDir = 'X:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';  
-    case 'DSKTP-JTLAB-EMR'
-        Case_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_31_2023'; 
+    case 'DSKTP-JTLAB-EMR' 
         IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';  
 end
 
@@ -60,7 +58,10 @@ end
 % 16: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\07_13_2023_bilateral'; *ACC
 % 17: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\07_20_2023'; *ACC
 % 18: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\07_26_2023'; *ACC
+% 19: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\08_10_2023_bilateral'; *ACC
 
+CaseDate = '08_10_2023_bilateral';
+Case_DataDir = [IO_DataDir, filesep, CaseDate];
 
 %% Hardcode directories
 
@@ -88,3 +89,4 @@ summaryXLSX = readtable("Subject_AO.xlsx");
 % extract relevant info from relevant .mat files in mat_filelist
 save_IO_mat_ProcFiles(mat_filelist, Case_DataDir, ACC_check);
 
+cd(IO_DataDir);

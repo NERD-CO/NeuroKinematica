@@ -26,7 +26,7 @@ Subject_AO = readtable('Subject_AO.xlsx');
 
 % CaseDate = '03_09_2023'; % studyID = 1, ptID 1
 
-% CaseDate = '03_23_2023'; % studyID = 2, ptID 2    *
+ CaseDate = '03_23_2023'; % studyID = 2, ptID 2    *
 % CaseDate = '04_05_2023'; % studyID = 3, ptID 2    *
 
 % CaseDate = '04_13_2023_bilateral'; % studyID = 4(L*), 5(R), ptID 3
@@ -38,7 +38,7 @@ Subject_AO = readtable('Subject_AO.xlsx');
 
 % CaseDate = '05_31_2023';  % studyID = 10, ptID 6
 
- CaseDate = '06_08_2023_bilateral'; % studyID = 11(L*), 12(R), ptID = 7
+% CaseDate = '06_08_2023_bilateral'; % studyID = 11(L*), 12(R), ptID = 7
 
 % CaseDate = '07_13_2023_bilateral'; % studyID = 15(L), 16(R), ptID = 9
 
@@ -53,10 +53,10 @@ ephysTbl_Dir = [Case_DataDir, filesep, 'DLC_Ephys'];
 
 %% For Bialteral cases, specify hemisphere + corresponding dir
 
- CaseDate_hem = 'LSTN'; % comment out when N/A
+% CaseDate_hem = 'LSTN'; % comment out when N/A
 % CaseDate_hem = 'RSTN'; % comment out when N/A
 
- ephysTbl_Dir = [ephysTbl_Dir, filesep, CaseDate_hem]; % comment out when N/A
+% ephysTbl_Dir = [ephysTbl_Dir, filesep, CaseDate_hem]; % comment out when N/A
 
 
 %% Define sampling rates (Alpha Omega and Video sampling fs)
@@ -103,8 +103,8 @@ switch plot_ID
         load(spk_case, 'All_SpikesPerMove_Tbl');
 
         % %% Case-specific modifications %%
-        % % for 3_23_2023 case only: Remove duplicates / only plot for primary electrode  %%%% comment out / adjust for other cases
-        % All_SpikesPerMove_Tbl = All_SpikesPerMove_Tbl(165:end,1:13);  % 3_23_2023: Remove duplicates / only plot for primary electrode
+         % for 3_23_2023 case only: Remove duplicates / only plot for primary electrode  %%%% comment out / adjust for other cases
+         All_SpikesPerMove_Tbl = All_SpikesPerMove_Tbl(165:end,1:13);  % 3_23_2023: Remove duplicates / only plot for primary electrode
 
         % Automatically extract depth-specific tables sub-indexed by movement type
         depth_specific_tables = extract_STN_depth_tables(All_SpikesPerMove_Tbl);

@@ -26,13 +26,13 @@ Subject_AO = readtable('Subject_AO.xlsx');
 % CaseDate = '04_13_2023_bilateral'; % studyID = 4(L), 5(R), ptID 3
 
 % CaseDate = '05_11_2023'; % studyID = 6, ptID 4
-% CaseDate = '05_18_2023_a'; % studyID = 7, ptID 4
+  CaseDate = '05_18_2023_a'; % studyID = 7, ptID 4
 
 % CaseDate = '05_18_2023_b_bilateral'; % studyID = 8(L*), 9(R), ptID = 5
 
 % CaseDate = '05_31_2023';  % studyID = 10, ptID 6
 
-CaseDate = '06_08_2023_bilateral'; % studyID = 11(L), 12(R), ptID = 7
+% CaseDate = '06_08_2023_bilateral'; % studyID = 11(L), 12(R), ptID = 7
 
 % CaseDate = '07_13_2023_bilateral'; % studyID = 15(L), 16(R), ptID = 9
 
@@ -45,10 +45,10 @@ ProcDataDir = [Case_DataDir, filesep, 'Processed Electrophysiology'];       % di
 
 %% For Bialteral cases:
 
- CaseDate_hem = 'LSTN'; % comment out when N/A
+% CaseDate_hem = 'LSTN'; % comment out when N/A
 % CaseDate_hem = 'RSTN'; % comment out when N/A
 
-ProcDataDir = [ProcDataDir, filesep, CaseDate_hem]; % comment out when N/A
+% ProcDataDir = [ProcDataDir, filesep, CaseDate_hem]; % comment out when N/A
 
 ClustSpkTimesDir = [ProcDataDir, filesep, 'ClusteredSpikeTimes'];           % directory where clustered spike times should be saved (case-specific)
 cd(ClustSpkTimesDir)
@@ -67,14 +67,14 @@ MoveDataDir = [IO_DataDir, filesep, 'Kinematic Analyses'];
 % Move_CaseID = 'IO_04_13_2023_RSTN'; % studyID = 5, ptID 3
 
 % Move_CaseID = 'IO_05_11_2023_LSTN'; % studyID = 6, ptID 4 (processed, incomplete case)
-% Move_CaseID = 'IO_05_18_2023_a_RSTN'; % studyID = 7, ptID 4
+ Move_CaseID = 'IO_05_18_2023_a_RSTN'; % studyID = 7, ptID 4
 
 % Move_CaseID = 'IO_05_18_2023_b_LSTN'; % studyID = 8, ptID 5 (processed, complete case) *
 % Move_CaseID = 'IO_05_18_2023_b_RSTN'; % studyID = 9, ptID 5
 
 % Move_CaseID = 'IO_05_31_2023_LSTN'; % studyID = 10, ptID 6
 
-Move_CaseID ='IO_06_08_2023_LSTN'; % studyID = 11, ptID = 7 (processed, complete case) 
+% Move_CaseID ='IO_06_08_2023_LSTN'; % studyID = 11, ptID = 7 (processed, complete case) 
 % Move_CaseID ='IO_06_08_2023_RSTN'; % studyID = 12, ptID = 7 (processed, incomplete case)
 
 % Move_CaseID ='IO_07_13_2023_LSTN'; % studyID = 15, ptID = 9  
@@ -106,6 +106,7 @@ DLC_fs = 100; % fps
 
 
 %% define offset duration
+
 offset_ms = 50; % milliseconds
 offset_seconds = offset_ms / 1000; % seconds
 

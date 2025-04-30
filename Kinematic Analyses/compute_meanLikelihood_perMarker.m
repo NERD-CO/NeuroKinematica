@@ -1,3 +1,5 @@
+function [] = compute_meanLikelihood_perMarker(mainDir, case_hem)
+
 %% Compute mean likelihood per marker 
 
 % Notes-to-self: Data Dirs (for Karen)
@@ -32,7 +34,7 @@ cd(Clin_Kin_DataDir)
 % case_hem = '09_12_2023_LSTN';
 % case_hem = '09_12_2023_RSTN';
 
- case_hem = 'MDTII_MDT5_LSTN';
+  case_hem = 'MDTII_MDT5_LSTN';
 % case_hem = 'MDTII_MDT5_RSTN';
 
 caseDir = [Clin_Kin_DataDir , filesep , case_hem];
@@ -155,6 +157,7 @@ writetable(Likelihood_PerCondition, overallResultsFile);
 
 cd(outputDir);
 
+end
 
 %% Artifact Rejection
 

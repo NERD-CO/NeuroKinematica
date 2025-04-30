@@ -1,39 +1,33 @@
-function [] = run_MovementProcessing_Clin_v2(mainDir, casedate_hem)
+function [] = run_MovementProcessing_Clin_v2(mainDir, case_hem)
 
 % Goal: Process and visualize movement timeseries data based on videos that have been anatomically labeled (13pt per frame) and analyzed via a trained DeepLabCut model
 
 %% Directory set-up - Navigate b/t machines
 pcname = getenv('COMPUTERNAME');
 
-switch pcname
-    case 'DESKTOP-I5CPDO7'   %%% JAT Desktop
+% specify directory where case-specific data files are located
+curPCname = getenv('COMPUTERNAME');
 
-        % mainDir = '';
-
-    case 'DSKTP-JTLAB-EMR'   %%% ER Desktop
-
-        mainDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\Kinematic Analyses';
-
-    case 'NSG-M-FQBPFK3'     %%% ER PC
-
-        mainDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\Kinematic Analyses';
+switch curPCname
+    case 'DESKTOP-I5CPDO7'  % PC_1
+        Clin_Kin_DataDir = 'X:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\Kinematic Analyses';
+    case 'DSKTP-JTLAB-EMR'  % Lab Desktop
+        Clin_Kin_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\Kinematic Analyses';
+    case 'NSG-M-H8J3X34'    % PC_2
+        Clin_Kin_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\Kinematic Analyses';
 end
 
+cd(Clin_Kin_DataDir)
 
-%% Analyze data isolated by casedate and hemisphere
+%% Analyze participant data isolated by caseID and hemisphere
 
-mainDir2 = [mainDir , filesep , casedate_hem];
-cd(mainDir2)
+% Define caseID (date or subjectID) and hemisphere
+
+caseDir = [Clin_Kin_DataDir , filesep , case_hem];
+cd(caseDir)
 
 % EUC indicies
 % eucINDICIES = readtable("EUC_Indicies.xlsx");
-
-
-% mainDir_VID = [mainDir2 , filesep , 'video folder'];
-% mainDir_MAT = [mainDir2 , filesep , 'mat folder'];
-% mainDir_CSV = [mainDir2 , filesep , 'csv folder'];
-
-
 
 %% Isolate dlc outputs of interest
 
@@ -59,7 +53,7 @@ pixels_to_mm = 2.109; % 232 mm / 110 pxl = 2.1091 mm per pixel
 % US adult male, 50th percentile: Avg. = 23.2 cm, 9.1 inches
 % Subject in video frames: Avg. = 110 pixels
 
-% *** define distance conversion factor on standardized calibration measure 
+% *** define distance conversion factor on standardized calibration measure
 % moving forward
 
 
@@ -77,7 +71,7 @@ pixels_to_mm = 2.109; % 232 mm / 110 pxl = 2.1091 mm per pixel
 %% Main function
 
 % create an outputs directory
-outputDir = [mainDir2 filesep 'processedMovement'];
+outputDir = [caseDir filesep 'processedMovement'];
 if ~exist(outputDir, 'dir')
     mkdir(outputDir);
 end
@@ -100,7 +94,7 @@ for csv_i = 1:length(moveCSV)
     matName = mainMAT2{matInd};
     load(matName)
 
-    % Call artifact rejection function 
+    % Call artifact rejection function
     CT = 0.5; % Set confidence threshold (CT) for accepting/rejecting frames (default CT = 0.5), adjust
     [outDATA_NaN] = artifactRejection(outDATA, CT); % Use outDATA_NaN instead of outDATA for further processing
 
@@ -108,18 +102,27 @@ for csv_i = 1:length(moveCSV)
     colNames = outDATA.Properties.VariableNames; % outDATA should be a table containing labeled coordinate data from DeepLabCut
     colNames2 = cellfun(@(x) split(x,'_'), colNames,...
         'UniformOutput',false);
-    colNames3 = unique(cellfun(@(x) x{1}, colNames2,...
-        'UniformOutput',false));
-    colNames4 = colNames3(~matches(colNames3,'frames'));
+    uniqueMarkers = unique(cellfun(@(x) x{1}, colNames2, 'UniformOutput', false));
+    uniqueMarkers = uniqueMarkers(~matches(uniqueMarkers, 'frames')); % Remove 'frames' column if present
 
     % Initialize 'euclidall' to store Euclidean distances between successive points
-    euclidall = zeros(height(outDATA)-1,length(colNames4));
+    euclidall = zeros(height(outDATA)-1,length(uniqueMarkers));
+
+    
+    % run PCA to determinine components (uniqueMarkers) that contrib. most variance
+    [coeff,score,latent,tsquared,explained,mu] = pca(euclidall); %  returns the principal component 
+    % scores in score and the variances in latent.
+    % also returns the Hotelling's T-squared statistic for each observation in X.
+    % also returns explained, the percentage of the total variance explained by each principal component 
+    % and mu, the estimated mean of each variable in X.
+    biplot(coeff(:,1:2),'scores',score(:,1:2));
+
 
     % Iterate over each label and compute Euclidean distance for each frame
-    for label_i = 1:length(colNames4)
+    for label_i = 1:length(uniqueMarkers)
 
-        tmpLabel_x = [colNames4{label_i} , '_x'];
-        tmpLabel_y = [colNames4{label_i} , '_y'];
+        tmpLabel_x = [uniqueMarkers{label_i} , '_x'];
+        tmpLabel_y = [uniqueMarkers{label_i} , '_y'];
 
         tmpXdata = outDATA.(tmpLabel_x);
         tmpYdata = outDATA.(tmpLabel_y);
@@ -139,7 +142,7 @@ for csv_i = 1:length(moveCSV)
     euclidall = euclidall * pixels_to_mm; % converting euclidean distances to mm
 
     % Filter the computed distances related to fingertip movements
-    fTipInds = contains(colNames4,'fTip');
+    fTipInds = contains(uniqueMarkers,'fTip');
     fTipEuclid = euclidall(:,fTipInds);
 
     % Average the computed distances related to fingertip movements
@@ -161,11 +164,11 @@ for csv_i = 1:length(moveCSV)
     window_Width = 5; % set windowWidth as needed
     smoothed_fTipAveBlk = smoothdata(fTipAveBlk, 'gaussian', window_Width); % read documentation, window overlap
 
-    % set thresholds based on mean +/- 3xStd
+    % set thresholds based on mean +/- #xStd
     MinPeakHeight = mean(smoothed_fTipAveBlk);
     MinPeakProminence = mean(smoothed_fTipAveBlk)*2;
-                
-   
+
+
     % Rubric for movement type -OR- iterative algorthmic approach
     % MinPeakDistance_HandMov =
     ampMEAN = mean(smoothed_fTipAveBlk,'omitnan');
@@ -178,7 +181,7 @@ for csv_i = 1:length(moveCSV)
 
     % Find peak amplitudes and compute widths -- findpeaks function [review documentation]
     [peaks_fs, locs_fs, widths_fs, prominences_fs] = findpeaks(smoothed_fTipAveBlk, fps, MinPeakHeight=mean(smoothed_fTipAveBlk), MinPeakDistance=0.20, MinPeakProminence=ampThresh, Annotate ='extents');
-    [peaks, locs, widths, prominences] = findpeaks(smoothed_fTipAveBlk, MinPeakHeight=mean(smoothed_fTipAveBlk), MinPeakDistance=, MinPeakProminence=ampThresh, Annotate ='extents');
+    [peaks, locs, widths, prominences] = findpeaks(smoothed_fTipAveBlk, MinPeakHeight=mean(smoothed_fTipAveBlk), MinPeakDistance=20, MinPeakProminence=ampThresh, Annotate ='extents');
 
     % Convert distance variables to mm usng distance conversion factor
     amplitudes = peaks * pixels_to_mm; % converting amplitudes to mm
@@ -195,16 +198,17 @@ for csv_i = 1:length(moveCSV)
     halfWidths = widths_fps / 2;
     % slope
 
-    % normalize within patient - relative to bl (Off, off)
+    % % % normalize within patient - relative to bl (Off, off) % % %
 
     % Compute timepoints for all indices
     timepoints__fTipAveBlk = (1:length(smoothed_fTipAveBlk))/fps;
 
     % Plot smooth movement for each CSV iteration
+    figure;
     subplot(length(moveCSV), 1, csv_i);
     hold on
     % Adjust the parameters in findpeaks
-    findpeaks(smoothed_fTipAveBlk, timepoints__fTipAveBlk, MinPeakHeight=mean(smoothed_fTipAveBlk), MinPeakDistance=0.15, MinPeakProminence=ampThresh, Annotate ='extents');
+    findpeaks(smoothed_fTipAveBlk, timepoints__fTipAveBlk, MinPeakHeight=mean(smoothed_fTipAveBlk), MinPeakDistance=0.20, MinPeakProminence=ampThresh, Annotate ='extents');
     % define axes labels and subplot titles
     xlabel('time (s)');
     ylabel('amplitude');

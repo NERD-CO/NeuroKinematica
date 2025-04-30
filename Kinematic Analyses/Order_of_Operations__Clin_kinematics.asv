@@ -20,33 +20,35 @@ addpath 'C:\Users\erinr\OneDrive\Documents\GitHub\NeuroKinematica\Kinematic Anal
 %% 1) Define function inputs
 
 % Define mainDir
-
 mainDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\Kinematic Analyses';
 
 % Define caseID (date or subjectID) and hemisphere
-
 % case_hem = '09_12_2023_LSTN';
 % case_hem = '09_12_2023_RSTN';
 
-% case_hem = 'MDTII_MDT5_LSTN';
+case_hem = 'MDTII_MDT5_LSTN';
 % case_hem = 'MDTII_MDT5_RSTN';
 
+%% 2) Compute mean likelihood value per marker (incorporates artifact rejection)
 
-%% 2) Process and visualize movement timeseries data
+% run 'compute_meanLikelihood_perMarker.m'
+compute_meanLikelihood_perMarker(mainDir, case_hem)
+
+%% 3) Process and visualize movement timeseries data
 
 run_MovementProcessing_Clin_v2(mainDir, case_hem)
 
-%% 3) by movement type
+%% 4) by movement type
 
-%run_MovementProcessing_Clin_v3(mainDir, casedate_hem)
+% run_MovementProcessing_Clin_v3(mainDir, case_hem)
 
 
 %% Optional: Process and visualize movement timeseries data cleaned by artifact rejection function
 
-% run_MovementProcessing_Clin_artifactRejection(mainDir, casedate_hem)
+run_MovementProcessing_Clin_artifactRejection(mainDir, case_hem)
 
 
-%% 3) stats
+%% 5) stats (needs to be updated)
 
 % Define switch case inputs (for run_MovementStats_Clin_v2 function)
 
@@ -56,15 +58,15 @@ hemisphere = 'L';
 switch hemisphere
     case 'L'
 
-        mainDir2 = [mainDir , filesep , '09_12_2023_LSTN'];
+        mainDir2 = [mainDir , filesep , 'MDTII_MDT5_LSTN'];
 
     case 'R'
 
-        mainDir2 = [mainDir , filesep , '09_12_2023_RSTN'];
+        mainDir2 = [mainDir , filesep , 'MDTII_MDT5_RSTN'];
 end
 
 
-run_MovementStats_Clin_v2(mainDir, casedate_hem, hemisphere)
+run_MovementStats_Clin_v2(mainDir, case_hem, hemisphere)
 
 % fix lines 87-91 in ttest_plot_2States_RandTrim s.t. output files save
 % within specified outDataDir folder (movementStats)

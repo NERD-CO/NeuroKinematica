@@ -1,34 +1,57 @@
+%% Goal: Update Subject_AO excel file with trialNum iteration per STN depth based on defined criteria
+
+% specify directory where case-specific data files are located
+curPCname = getenv('COMPUTERNAME');
+
+switch curPCname
+    case 'DESKTOP-I5CPDO7'  % PC_1
+        IO_DataDir = 'X:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
+    case 'DSKTP-JTLAB-EMR'  % Lab Desktop
+        IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
+    case 'NSG-M-H8J3X34'    % PC_2
+        IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
+end
 
 % navigate to summaryXLSX file location (IO_DataDir)
-xlsxLoc = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
-cd(xlsxLoc) 
+cd(IO_DataDir)
 
-% read in summaryXLSX table 
+% read in summaryXLSX table (Subject_AO)
 summaryXLSX = readtable("Subject_AO.xlsx");
 
+
 %% Inputs: isolate a specific subject/case date
-studyID = 15;
-studyMatDataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\07_06_2023_bilateral\Raw Electrophysiology MATLAB';
+
+studyID = 1;
+studyMatDataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_09_2023\Raw Electrophysiology MATLAB';
 
 %% Completed subjects/cases:
-% 1: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_09_2023\Raw Electrophysiology MATLAB'
-% 2: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_23_2023\Raw Electrophysiology MATLAB'
-% 3: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\04_05_2023\Raw Electrophysiology MATLAB'
-% 4: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\04_13_2023\Raw Electrophysiology MATLAB\LH'
-% 5: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\04_13_2023\Raw Electrophysiology MATLAB\RH'
-% 6: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_11_2023\Raw Electrophysiology MATLAB'
-% 7: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_18_2023_a\Raw Electrophysiology MATLAB'
-% 8: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_18_2023_b\Raw Electrophysiology MATLAB\LH'
-% 9: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_18_2023_b\Raw Electrophysiology MATLAB\RH'
-% 10: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_31_2023\Raw Electrophysiology MATLAB'
-% 11: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\06_08_2023\Raw Electrophysiology MATLAB'
-% 12: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\06_08_2023\Raw Electrophysiology MATLAB'
-% 13: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\07_06_2023_bilateral\Raw Electrophysiology MATLAB'
-% 14: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\07_06_2023_bilateral\Raw Electrophysiology MATLAB'
-% 15: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\07_13_2023_bilateral\Raw Electrophysiology MATLAB'
-% 16: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\07_13_2023_bilateral\Raw Electrophysiology MATLAB'
-% 17:
-% 18:
+
+% sc1 = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_09_2023\Raw Electrophysiology MATLAB';
+% sc2 = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_23_2023\Raw Electrophysiology MATLAB';
+% sc3 = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\04_05_2023\Raw Electrophysiology MATLAB';
+% sc4 = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\04_13_2023\Raw Electrophysiology MATLAB\LH';
+% sc5 = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\04_13_2023\Raw Electrophysiology MATLAB\RH';
+% sc6 = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_11_2023\Raw Electrophysiology MATLAB';
+% sc7 = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_18_2023_a\Raw Electrophysiology MATLAB';
+% sc8 = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_18_2023_b\Raw Electrophysiology MATLAB\LH';
+% sc9 = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_18_2023_b\Raw Electrophysiology MATLAB\RH';
+% sc10 = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_31_2023\Raw Electrophysiology MATLAB';
+% sc11 = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\06_08_2023\Raw Electrophysiology MATLAB';
+% sc12 = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\06_08_2023\Raw Electrophysiology MATLAB';
+% sc13 = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\07_06_2023_bilateral\Raw Electrophysiology MATLAB';
+% sc14 = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\07_06_2023_bilateral\Raw Electrophysiology MATLAB';
+% sc15 = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\07_13_2023_bilateral\Raw Electrophysiology MATLAB';
+% sc16 = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\07_13_2023_bilateral\Raw Electrophysiology MATLAB';
+% sc17 = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\07_20_2023\Raw Electrophysiology MATLAB';
+% sc18 = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\07_26_2023\Raw Electrophysiology MATLAB';
+% sc19 = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\08_10_2023_bilateral\Raw Electrophysiology MATLAB';
+
+
+%% Define Case-specific Data Directories %%% next step for streamlining script into function %%%
+
+% Case Date = 
+% Case_DataDir = [IO_DataDir, filesep, CaseDate];
+% cd(Case_DataDir)
 
 %% function
 
@@ -97,8 +120,10 @@ for sti = 1:length(stn_locs)
 end
 
 % save new CSV with trial ID
-cd(xlsxLoc) 
+cd(IO_DataDir) 
 writetable(summaryXLSX,'Subject_AO.xlsx') % fill trial column
 
-% output: csv file with trialNum column filled with relevant experimental iteration (per STN location)
+%%
+
+% output: updated Subject_AO.xlsx file with trialNum column filled with relevant/qualifying experimental iteration per STN location
 

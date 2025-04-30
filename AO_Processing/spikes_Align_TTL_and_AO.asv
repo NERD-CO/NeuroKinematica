@@ -26,7 +26,7 @@ Subject_AO = readtable('Subject_AO.xlsx');
 % CaseDate = '04_13_2023_bilateral'; % studyID = 4(L), 5(R), ptID 3
 
 % CaseDate = '05_11_2023'; % studyID = 6, ptID 4
-% CaseDate = '05_18_2023_a'; % studyID = 7, ptID 4
+  CaseDate = '05_18_2023_a'; % studyID = 7, ptID 4
 
 % CaseDate = '05_18_2023_b_bilateral'; % studyID = 8(L*), 9(R), ptID = 5
 
@@ -34,11 +34,7 @@ Subject_AO = readtable('Subject_AO.xlsx');
 
 % CaseDate = '06_08_2023_bilateral'; % studyID = 11(L), 12(R), ptID = 7
 
-CaseDate = '07_13_2023_bilateral'; % studyID = 15(L), 16(R), ptID = 9
-
-% % For Bialteral cases, specify hemisphere:
-% CaseDate_hem = 'LSTN'; % comment out when N/A
-CaseDate_hem = 'RSTN'; % comment out when N/A
+% CaseDate = '07_13_2023_bilateral'; % studyID = 15(L), 16(R), ptID = 9
 
 % define case-specific data directory
 Case_DataDir = [IO_DataDir, filesep, CaseDate];
@@ -47,14 +43,14 @@ Case_DataDir = [IO_DataDir, filesep, CaseDate];
 RawDataDir = [Case_DataDir, filesep, 'Raw Electrophysiology MATLAB'];       % directory where raw MATLAB data files are located (case-specific)
 ProcDataDir = [Case_DataDir, filesep, 'Processed Electrophysiology'];       % directory where processed MATLAB data should be saved (case-specific)
 
-% % For Bialteral cases:
+%% For Bialteral cases:
+
+% CaseDate_hem = 'LSTN'; % comment out when N/A
+% CaseDate_hem = 'RSTN'; % comment out when N/A
+
 ProcDataDir = [ProcDataDir, filesep, CaseDate_hem]; % comment out when N/A
 
 ClustSpkTimesDir = [ProcDataDir, filesep, 'ClusteredSpikeTimes'];           % directory where clustered spike times should be saved (case-specific)
-
-% % For Bialteral cases:
-ClustSpkTimesDir = [ProcDataDir, filesep, 'ClusteredSpikeTimes']; % comment out when N/A
-
 cd(ClustSpkTimesDir)
 
 %% Define case-specific kinematic data directory
@@ -78,11 +74,11 @@ MoveDataDir = [IO_DataDir, filesep, 'Kinematic Analyses'];
 
 % Move_CaseID = 'IO_05_31_2023_LSTN'; % studyID = 10, ptID 6
 
-% Move_CaseID ='IO_06_08_2023_LSTN'; % studyID = 11, ptID = 7 (processed, complete case) 
+Move_CaseID ='IO_06_08_2023_LSTN'; % studyID = 11, ptID = 7 (processed, complete case) 
 % Move_CaseID ='IO_06_08_2023_RSTN'; % studyID = 12, ptID = 7 (processed, incomplete case)
 
 % Move_CaseID ='IO_07_13_2023_LSTN'; % studyID = 15, ptID = 9  
- Move_CaseID ='IO_07_13_2023_RSTN'; % studyID = 16, ptID = 9 
+% Move_CaseID ='IO_07_13_2023_RSTN'; % studyID = 16, ptID = 9 
 
 
 %% Directory for movement indices
@@ -336,9 +332,9 @@ save('All_SpikesPerMove_offset.mat',"All_SpikesPerMove_Tbl");
 
 % movement indices from raw case vids
 % 3/09/2023     - incomplete case contexts, revisit (Ruby)
-% 3/23/2023     - complete, aweso :)
+% 3/23/2023     - complete, awesome case :)
 % 4/05/2023     - partially complete
-% 4/13/2023_L   - complete
+% 4/13/2023_L   - complete, odd results, revisit
 % 4/13/2023_R   - incomplete case contexts
 % 5/11/2023     - incomplete case contexts, revisit (Ruby)
 % ...

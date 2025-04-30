@@ -20,33 +20,40 @@ addpath 'C:\Users\erinr\OneDrive\Documents\GitHub\NeuroKinematica\Kinematic Anal
 %% 1) Define function inputs
 
 % Define mainDir
-
 mainDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\Kinematic Analyses';
 
 % Define caseID (date or subjectID) and hemisphere
 
+% Thesis (Aim 2) cases
 % case_hem = '09_12_2023_LSTN';
 % case_hem = '09_12_2023_RSTN';
 
+% MDTII cases
 case_hem = 'MDTII_MDT5_LSTN';
 % case_hem = 'MDTII_MDT5_RSTN';
 
+% aDBS for Exercise (new Thesis Aim 2) cases
 
-%% 2) Process and visualize movement timeseries data
+%% 2) Compute mean likelihood value per marker (incorporates artifact rejection)
+
+% run 'compute_meanLikelihood_perMarker.m'
+compute_meanLikelihood_perMarker(mainDir, case_hem)
+
+%% 3) Process and visualize movement timeseries data
 
 run_MovementProcessing_Clin_v2(mainDir, case_hem)
 
-%% 3) by movement type
+%% 4) by movement type
 
-%run_MovementProcessing_Clin_v3(mainDir, casedate_hem)
+% run_MovementProcessing_Clin_v3(mainDir, case_hem)
 
 
-%% Optional: Process and visualize movement timeseries data cleaned by artifact rejection function
+%% 5 (Optional): Process and visualize movement timeseries data cleaned by artifact rejection function
 
 run_MovementProcessing_Clin_artifactRejection(mainDir, case_hem)
 
 
-%% 3) stats
+%% 5) stats (*needs to be updated)
 
 % Define switch case inputs (for run_MovementStats_Clin_v2 function)
 
