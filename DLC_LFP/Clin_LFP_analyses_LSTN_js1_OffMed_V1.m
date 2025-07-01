@@ -39,8 +39,8 @@ cd(mainDir2)
 %% Navigate to LFP time domain data in JSON Session Reports
 
 % Load JSON Session Reports
-JSON_name1 = 'Report_Json_Session_Report_20230912T115956.json';
-JSON_name2 = 'Report_Json_Session_Report_20230912T115939.json';
+% JSON_name1 = 'Report_Json_Session_Report_20230912T115956.json';
+% JSON_name2 = 'Report_Json_Session_Report_20230912T115939.json';
 
 % Create array of JSON Session Report file names
 JSON_filenames = {JSON_name1, JSON_name2};
