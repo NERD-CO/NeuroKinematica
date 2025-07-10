@@ -1,43 +1,78 @@
-%% Order of Operations - IO Kinematic Analyses
+%% Order of Operations - IO Kinematic Data Processing & Analyses
 
-% cd 'C:\Users\erinr\OneDrive\Documents\GitHub\NeuroKinematica\Kinematic Analyses'
-addpath 'C:\Users\erinr\OneDrive\Documents\GitHub\NeuroKinematica\Kinematic Analyses'
+% addpath C:\Users\erinr\OneDrive\Documents\GitHub\NeuroKinematica\DLC_Processing
+addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\DLC_Processing'
+
+% addpath 'C:\Users\erinr\OneDrive\Documents\GitHub\NeuroKinematica\Kinematic Analyses'
+addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\Kinematic Analyses'
+
+% Folder for all processed DLC cases 
+IO_procDLC = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\Processed DLC';
+Clin_procDLC = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\post_DLCproc';
+
+% Folder for all kinematic analyses  
+IO_kinematicData = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\Kinematic Analyses'; 
+Clin_kinematicData = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\Kinematic Analyses';
+
+cd(IO_procDLC);
+% cd(Clin_procDLC);
 
 %% 1) Define function inputs
 
-% Define mainDir
-
-mainDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\Kinematic Analyses';
-
-% Define casedate and hemisphere
+% Define casedate and hemisphere:
 
 % casedate_hem = 'IO_03_09_2023_RSTN';   % does not work  
+% casedate_hem = 'IO_03_23_2023_LSTN';
+% casedate_hem = 'IO_04_05_2023_RSTN';
 % casedate_hem = 'IO_05_11_2023_LSTN';
- casedate_hem = 'IO_06_08_2023_LSTN';
+% casedate_hem = 'IO_06_08_2023_LSTN';
 % casedate_hem = 'IO_06_08_2023_RSTN';
 
 
-%% 2a) Process and visualize movement timeseries data - v1
+% Define case-specific kinematic data dir
+Case_DataDir = [IO_procDLC, filesep, casedate_hem];
+cd(Case_DataDir)
+
+
+%% 2) Convert DLC timeseries data per video from .csv to .mat
+
+% run_dlc_processCSV2 --> turn this into a function
+run_DLC_Processing(Case_DataDir)
+
+%% 3) Generate Movement Indices for each video
+
+% run ER_DLC_MoveCheck_Dual_v4.mlapp
+MovIndexGUI_dir = 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\DLC_VideoCheck_GUI';
+cd(MovIndexGUI_dir)
+
+
+%% 4a) Process and visualize movement timeseries data - v1
 
 % run_MovementProcessing_IO_v1(mainDir, casedate_hem)
 
-%% 2b) Process and visualize movement timeseries data - v2
+%% 4b) Process and visualize movement timeseries data - v2
 
  run_MovementProcessing_IO_v2(mainDir, casedate_hem)
 
-%% 2c) Process and visualize movement timeseries data - v2
+%% 4c) Process and visualize movement timeseries data - jat
 
 % run_MovementProcessing_IO_jatv1(mainDir, casedate_hem)
 
 
-%% Optional: Process and visualize movement timeseries data cleaned by artifact rejection function
+%% 5) Optional: Process and visualize movement timeseries data cleaned by artifact rejection function
 
 % run_MovementProcessing_IO_artifactRejection(mainDir, casedate_hem)
 
 
-%% 3) stats
+%% 6) stats
 
 % run_MovementStats_IO_v1(mainDir, casedate_hem)
+
+
+
+
+
+
 
 
 
