@@ -10,6 +10,8 @@ cd(RawDataDir)
 % extract relevant info from relevant .mat files in mat_filelist
 for i = 1:height(mat_filelist)
 
+    disp(['file ' num2str(i)])
+
     % Added 7/31/2023
     cd(RawDataDir)
 
@@ -27,6 +29,8 @@ for i = 1:height(mat_filelist)
     % isolate fields of interest per filetype
     for f = 1:length(ftypes) % 1:6
         Ftype = ftypes{f};
+
+        disp(Ftype)
 
         % use getFILEinfo function to process the data based on the ftype - look at code in GitHub repo: save_DLCprocFiles_er
         outStruct = getFILEinfo(Ftype, matFileVars2, tmpFilename, ACC_IO(i)); % create new struct containing fields of interest

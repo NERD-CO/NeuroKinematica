@@ -1,5 +1,12 @@
 %% Goal: Update Subject_AO excel file with trialNum iteration per STN depth based on defined criteria
 
+%% CCC
+clc
+close 
+clear
+
+%% Machine-specific data directory Input
+
 % specify directory where case-specific data files are located
 curPCname = getenv('COMPUTERNAME');
 
@@ -19,17 +26,18 @@ cd(IO_DataDir)
 summaryXLSX = readtable("Subject_AO.xlsx");
 
 
-%% Inputs: isolate a specific subject/case date
+%% Subject-specific data directory Inputs
 
-studyID = 20;
-studyMatDataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\08_10_2023_bilateral\Raw Electrophysiology MATLAB';
+% Isolate a specific subject/case date & case-specific data directories
+studyID = 30;
+CaseDate = '12_06_2023_bilateral';
 
+Case_DataDir = [IO_DataDir, filesep, CaseDate];
+cd(Case_DataDir)
 
-%% Define Case-specific Data Directories %%% next step for streamlining script into function %%%
+MatDataDir = [Case_DataDir, filesep, 'Raw Electrophysiology MATLAB'];
 
-% Case Date = 
-% Case_DataDir = [IO_DataDir, filesep, CaseDate];
-% cd(Case_DataDir)
+%%% next step for streamlining script into function %%%
 
 %% function
 
@@ -59,7 +67,7 @@ for sti = 1:length(stn_locs)
         temp_file = stnlTable.ao_MAT_file{stf};
         % find loc of temp file
         fileTblIndex = matches(summaryXLSX.ao_MAT_file,temp_file); % notes row to save relvant experimental rec. ID 
-        temp_dir = [studyMatDataDir,filesep,temp_file];
+        temp_dir = [MatDataDir,filesep,temp_file];
         % load(temp_dir)
 
         % do we care about this depth?
@@ -101,7 +109,8 @@ end
 cd(IO_DataDir) 
 writetable(summaryXLSX,'Subject_AO.xlsx') % fill trial column
 
-%%
 
-% output: updated Subject_AO.xlsx file with trialNum column filled with relevant/qualifying experimental iteration per STN location
+%% Output:
+
+% updated Subject_AO.xlsx file with trialNum column filled with relevant/qualifying experimental iteration per STN location
 

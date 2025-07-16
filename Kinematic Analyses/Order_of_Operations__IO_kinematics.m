@@ -17,33 +17,46 @@ Clin_kinematicData = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\C
 cd(IO_procDLC);
 % cd(Clin_procDLC);
 
-%% 1) Define function inputs
+%% 1) Define DLC processing function inputs
 
 % Define casedate and hemisphere:
 
-% casedate_hem = 'IO_03_09_2023_RSTN';   % does not work  
+% casedate_hem = 'IO_03_09_2023_RSTN';  
 % casedate_hem = 'IO_03_23_2023_LSTN';
-% casedate_hem = 'IO_04_05_2023_RSTN';
+casedate_hem = 'IO_04_05_2023_RSTN';
 % casedate_hem = 'IO_05_11_2023_LSTN';
 % casedate_hem = 'IO_06_08_2023_LSTN';
 % casedate_hem = 'IO_06_08_2023_RSTN';
 
 
 % Define case-specific kinematic data dir
-Case_DataDir = [IO_procDLC, filesep, casedate_hem];
-cd(Case_DataDir)
+Case_ProcDataDir = [IO_procDLC, filesep, casedate_hem];
+cd(Case_ProcDataDir)
 
 
 %% 2) Convert DLC timeseries data per video from .csv to .mat
 
 % run_dlc_processCSV2 --> turn this into a function
-run_DLC_Processing(Case_DataDir)
+run_DLC_Processing(Case_ProcDataDir)
+
 
 %% 3) Generate Movement Indices for each video
 
 % run ER_DLC_MoveCheck_Dual_v4.mlapp
 MovIndexGUI_dir = 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\DLC_VideoCheck_GUI';
 cd(MovIndexGUI_dir)
+
+%% 5) Generate Euc Indices
+
+% Movement_IO_EUC_index_v2
+
+%% 4) Define Kinematic processing/analysis function inputs
+
+cd(IO_kinematicData)
+
+% Define case-specific kinematic data dir
+Case_KinDataDir = [IO_kinematicData, filesep, casedate_hem];
+cd(Case_KinDataDir)
 
 
 %% 4a) Process and visualize movement timeseries data - v1
@@ -52,7 +65,9 @@ cd(MovIndexGUI_dir)
 
 %% 4b) Process and visualize movement timeseries data - v2
 
- run_MovementProcessing_IO_v2(mainDir, casedate_hem)
+% run_MovementProcessing_IO_v2(mainDir, casedate_hem)
+
+%%
 
 %% 4c) Process and visualize movement timeseries data - jat
 

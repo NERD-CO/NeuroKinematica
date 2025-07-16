@@ -16,61 +16,68 @@
     % Directories for raw data locs
     % Directories for saving post-processed data
 
+
 %% CCC
 
 clc
 close 
 clear
 
-
-%% Variable Inputs
-
-% isolate a specific studyID
-studyID = 21;
+%% Machine-specific data directory Input
 
 % specify directory where case-specific data files are located 
-
 curPCname = getenv('COMPUTERNAME'); % for windows
 
 switch curPCname
     case 'DESKTOP-I5CPDO7' 
         IO_DataDir = 'X:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';  
-    case 'NSG-M-H8J3X34'
+    case 'NSG-M-H8J3X34'   % EMR PC (Precision 5490)
         IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative'; 
-    case 'DSKTP-JTLAB-EMR' 
+    case 'DSKTP-JTLAB-EMR' % EMR Lab Desktop (DigitalStorm Lumos)
         IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';  
 end
 
+%% Subject-specific data directory Inputs
 
-CaseDate = '08_23_2023';
+% isolate a specific studyID and CaseDate
+studyID = 29;
+CaseDate = '12_06_2023_bilateral';
+
 Case_DataDir = [IO_DataDir, filesep, CaseDate];
 
 
 %% Completed cases:
 
-% 1: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_09_2023'
-% 2: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\03_23_2023'
-% 3: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\04_05_2023'
-% 4: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\04_13_2023'
-% 5: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\04_13_2023'
-% 6: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_11_2023'; *ACC
-% 7: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_18_2023_a'; *ACC
-% 8: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_18_2023_b'
-% 9: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_18_2023_b'
-% 10: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\05_31_2023'; *ACC
-% 11: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\06_08_2023'; *ACC
-% 12: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\06_08_2023'; *ACC
-% 13: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\07_06_2023_bilateral';
-% 14: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\07_06_2023_bilateral'; *ACC
-% 15: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\07_13_2023_bilateral'; *ACC
-% 16: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\07_13_2023_bilateral'; *ACC
-% 17: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\07_20_2023'; *ACC
-% 18: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\07_26_2023'; *ACC
-% 19: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\08_10_2023_bilateral'; *ACC 
-% 20: 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\08_10_2023_bilateral'; *ACC
-%%% fails for '08_10_2023_bilateral' %%%
-
-
+% 1: '03_09_2023'
+% 2: '03_23_2023'
+% 3: '04_05_2023'
+% 4: '04_13_2023'
+% 5: '04_13_2023'
+% 6: '05_11_2023'; *ACC
+% 7: '05_18_2023_a'; *ACC
+% 8: '05_18_2023_b'
+% 9: '05_18_2023_b'
+% 10: '05_31_2023'; *ACC
+% 11: '06_08_2023'; *ACC
+% 12: '06_08_2023'; *ACC
+% 13: '07_06_2023_bilateral';
+% 14: '07_06_2023_bilateral'; *ACC
+% 15: '07_13_2023_bilateral'; *ACC
+% 16: '07_13_2023_bilateral'; *ACC
+% 17: '07_20_2023'; *ACC
+% 18: '07_26_2023'; *ACC
+% 19: '08_10_2023_bilateral'; 
+% 20: '08_10_2023_bilateral'; 
+% 21: '08_23_2023'
+% 22: '08_24_2023
+% 23: '10_04_2023'
+% 24: '11_01_2023' *ACC
+% 25: '11_08_2023' *ACC
+% 26: '11_09_2023' *ACC
+% 27: '11_30_2023_bilateral' *ACC
+% 28: '11_30_2023_bilateral' *ACC
+% 29: '12_06_2023_bilateral' *ACC
+% 30: '12_06_2023_bilateral' *ACC
 
 
 %% Hardcode directories
@@ -101,3 +108,5 @@ summaryXLSX = readtable("Subject_AO.xlsx");
 save_IO_mat_ProcFiles(mat_filelist, Case_DataDir, ACC_check);
 
 cd(IO_DataDir);
+
+%% Ephys Processing done :)

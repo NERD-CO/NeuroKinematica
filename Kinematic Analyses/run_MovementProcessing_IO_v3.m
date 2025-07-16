@@ -1,43 +1,33 @@
-function [] = run_MovementProcessing_IO_v2(mainDir, casedate_hem)
+function [] = run_MovementProcessing_IO_v2(Case_ProcDataDir, Case_KinDataDir)
 
 % Goal: Process and visualize movement timeseries data based on videos that have been anatomically labeled (13pt per frame) and analyzed via a trained DeepLabCut model
 
-%% Analyze data isolated by casedate and hemisphere
+%% Analyze kinematic data (DLC CSVs) isolated by casedate and hemisphere
 
-% Define casedate and hemisphere
-% casedate_hem = 'IO_03_09_2023_RSTN';
+cd(Case_ProcDataDir)
 
-mainDir = Case_KinDataDir;
-mainDir2 = [mainDir , filesep , casedate_hem];
-cd(mainDir2)
-
-%%
-mainDir_VID = [mainDir2 , filesep , 'video folder'];
-mainDir_MAT = [mainDir2 , filesep , 'mat folder'];
-mainDir_CSV = [mainDir2 , filesep , 'csv folder'];
+procDir_vid = [Case_ProcDataDir , filesep , 'video folder'];
+procDir_mat = [Case_ProcDataDir , filesep , 'mat folder'];
+procDir_csv = [Case_ProcDataDir , filesep , 'csv folder'];
 
 
 %% Isolate dlc outputs of interest
 
-% Generate list of dlc-video-labeled CSV files
-cd(mainDir_CSV)
-% mainCSV = dir('*.csv');
-% mainCSV2 = {mainCSV.name};
-
 % Generate list of dlc-video-labeled MAT files
-cd(mainDir_MAT)
-mainMat = dir('*.mat');
-mainMAT2 = {mainMat.name};
+cd(procDir_mat)
+dlcMAT1 = dir('*.mat');
+dlcMAT2 = {dlcMAT1.name};
 
-cd(mainDir_VID)
-mainCSVb = dir('*.csv');
-mainCSVb2 = {mainCSVb.name};
+% Generate list of Motor Index CSVs (filter for CSVs that contain 'Move')
+cd(procDir_vid)
+moveCSV1 = dir('*.csv');
+moveCSV2 = {moveCSV1.name};
+moveCSV = moveCSV2(contains(moveCSV2,'Move'));
 
-% Generate list of Motor Index CSVs (filters for CSVs that contain 'Move' string)
-moveCSV = mainCSVb2(contains(mainCSVb2,'Move'));
 
-% EUC indicies
-cd(mainDir2)
+%% EUC indicies
+
+cd(Case_KinDataDir)
 eucINDICIES = readtable("EUC_Indicies.xlsx");
 
 
@@ -66,7 +56,7 @@ pixels_to_mm = 2.109; % 232 mm / 110 pxl = 2.1091 mm per pixel
 %% Main function
 
 % create an outputs directory
-outputDir = [mainDir2 filesep 'processedMovement'];
+outputDir = [Case_KinDataDir filesep 'processedMovement'];
 if ~exist(outputDir, 'dir')
     mkdir(outputDir);
 end
@@ -87,9 +77,9 @@ for csv_i = 1:length(moveCSV)
 
     % Find and load corresponding dlcDAT MAT file
     matTempfind = [dateID , '_' , sessID,'_',runID,'_',camID];
-    matInd = contains(mainMAT2 , matTempfind);
-    matName = mainMAT2{matInd};
-    cd(mainDir_MAT)
+    matInd = contains(dlcMAT2 , matTempfind);
+    matName = dlcMAT2{matInd};
+    cd(procDir_mat)
     load(matName , 'outDATA')
 
     % Call artifact rejection function
@@ -152,7 +142,7 @@ for csv_i = 1:length(moveCSV)
     % elbowAverage = mean(elBlowEuclid,2);
 
     % Process dlcDAT MAT files using MoveIndex CSV files to select specific portions of the averaged fingertip distances
-    cd(mainDir_VID)
+    cd(procDir_vid)
     moveINDtab = readtable(tmpCSV);
     moveINDtab = moveINDtab(~moveINDtab.BeginF == 0,:); % clean up - filters out rows in moveINDtab where the BeginF field is zero.
     moveINDtab = moveINDtab(~moveINDtab.EndF == 0,:); % clean up - filters out rows in moveINDtab where the EndF field is zero.
