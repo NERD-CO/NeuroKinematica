@@ -8,8 +8,7 @@ cd(DLC_Processing_Dir)
 
 %% Input - define case
 
-casID = 'IO_05_18_2023_b_LSTN';
-Case_DataDir = [DLC_Processing_Dir, filesep, casID];
+Case_DataDir = IO_05_18_2023_b_LSTN;
 
 
 %% Define case-specific subfolders (csv = input; mat = output)
@@ -48,7 +47,6 @@ end
 % 03_23_2023 - LSTN (P2, StudyID 2)
 % 04_05_2023 - RSTN (P2, StudyID 3)
 % 04_13_2023 - LSTN (P3, StudyID 4)
-% 05_18_2023_b - LSTN
 
 
 %% completed Clin (Thesis Aim 2, v1) cases 

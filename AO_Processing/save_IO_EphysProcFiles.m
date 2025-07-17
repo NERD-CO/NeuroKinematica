@@ -37,11 +37,13 @@ switch curPCname
         IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';  
 end
 
+cd(IO_DataDir)
+
 %% Subject-specific data directory Inputs
 
 % isolate a specific studyID and CaseDate
-studyID = 29;
-CaseDate = '12_06_2023_bilateral';
+studyID = 28;
+CaseDate = '11_30_2023_bilateral';
 
 Case_DataDir = [IO_DataDir, filesep, CaseDate];
 
