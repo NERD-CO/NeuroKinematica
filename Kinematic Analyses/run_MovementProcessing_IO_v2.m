@@ -93,7 +93,7 @@ for csv_i = 1:length(moveCSV)
     load(matName , 'outDATA')
 
     % Call artifact rejection function
-    CT = 0.5; % Set confidence threshold (CT) for accepting/rejecting frames (default CT = 0.5), adjust
+    CT = 0.6; % Set confidence threshold (CT) for accepting/rejecting frames (default CT = 0.5), adjust
     [outDATA_NaN] = artifactRejection(outDATA, CT); % Use outDATA_NaN instead of outDATA for further processing
 
     % Process dlcDAT MAT file (all points, all frames) per vid first (Split column names of outDATA)

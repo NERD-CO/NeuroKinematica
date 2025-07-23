@@ -1,3 +1,8 @@
+%% Align IO spike data segments with corresponding movement data segments
+
+clear; clc;
+addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\IO_FR_Analysis'
+
 %% Environment / Directory Set-up
 
 % specify directory where case-specific data files are located
@@ -20,15 +25,16 @@ Subject_AO = readtable('Subject_AO.xlsx');
 % Isolate specific CaseDate / studyID (StudyNum in Subject_AO csv)
 % CaseDate = '03_09_2023'; % studyID = 1, ptID 1
 
-% CaseDate = '03_23_2023'; % studyID = 2, ptID 2    *
-% CaseDate = '04_05_2023'; % studyID = 3, ptID 2    *
+% CaseDate = '03_23_2023'; % studyID = 2, ptID 2    * % Use for INS 2025
+% CaseDate = '04_05_2023'; % studyID = 3, ptID 2    * % Use for INS 2025
 
 % CaseDate = '04_13_2023_bilateral'; % studyID = 4(L), 5(R), ptID 3
 
 % CaseDate = '05_11_2023'; % studyID = 6, ptID 4
-  CaseDate = '05_18_2023_a'; % studyID = 7, ptID 4
+%  CaseDate = '05_18_2023_a'; % studyID = 7, ptID 4
 
-% CaseDate = '05_18_2023_b_bilateral'; % studyID = 8(L*), 9(R), ptID = 5
+CaseDate = '05_18_2023_b_bilateral'; % LSTN: studyID = 8, ptID = 5    % Use for INS 2025
+% RSTN: studyID = 9, ptID = 5
 
 % CaseDate = '05_31_2023';  % studyID = 10, ptID 6
 
@@ -43,19 +49,46 @@ Case_DataDir = [IO_DataDir, filesep, CaseDate];
 RawDataDir = [Case_DataDir, filesep, 'Raw Electrophysiology MATLAB'];       % directory where raw MATLAB data files are located (case-specific)
 ProcDataDir = [Case_DataDir, filesep, 'Processed Electrophysiology'];       % directory where processed MATLAB data should be saved (case-specific)
 
-%% For Bialteral cases:
 
-% CaseDate_hem = 'LSTN'; % comment out when N/A
-% CaseDate_hem = 'RSTN'; % comment out when N/A
+%% Handle bilateral cases and hemisphere selection
 
-% ProcDataDir = [ProcDataDir, filesep, CaseDate_hem]; % comment out when N/A
+isBilateral = contains(CaseDate, 'bilateral', 'IgnoreCase', true);
 
-ClustSpkTimesDir = [ProcDataDir, filesep, 'ClusteredSpikeTimes'];           % directory where clustered spike times should be saved (case-specific)
-cd(ClustSpkTimesDir)
+if isBilateral
+    fprintf('[INFO] Bilateral case detected: %s\n', CaseDate);
+    
+    % Prompt user for hemisphere choice (LSTN or RSTN)
+    CaseDate_hem = input('Enter hemisphere (LSTN or RSTN): ', 's');
+    
+    % Validate input
+    validHems = {'LSTN','RSTN'};
+    if ~ismember(CaseDate_hem, validHems)
+        error('Invalid input. Please enter LSTN or RSTN.');
+    end
+else
+    CaseDate_hem = ''; % No hemisphere for unilateral cases
+end
+
+% Append hemisphere folder if needed
+if ~isempty(CaseDate_hem)
+    ProcDataDir = fullfile(ProcDataDir, CaseDate_hem);
+    fprintf('[INFO] Hemisphere-specific directory set: %s\n', ProcDataDir);
+else
+    fprintf('[INFO] Using base processed directory: %s\n', ProcDataDir);
+end
+
+% Define Clustered Spike Times directory
+ClustSpkTimesDir = fullfile(ProcDataDir, 'ClusteredSpikeTimes'); % directory where clustered spike times should be saved (case-specific)
+if ~isfolder(ClustSpkTimesDir)
+    error('[ERROR] ClustSpkTimesDir does not exist: %s', ClustSpkTimesDir);
+end
+cd(ClustSpkTimesDir);
+
 
 %% Define case-specific kinematic data directory
 
-MoveDataDir = [IO_DataDir, filesep, 'Kinematic Analyses'];
+MoveDataDir = [IO_DataDir, filesep, 'Processed DLC'];
+cd(MoveDataDir)
 
 % % Specify case ID
 % Move_CaseID = 'IO_03_09_2023_RSTN'; % studyID = 1, ptID 1 (processed, incomplete case)
@@ -67,9 +100,9 @@ MoveDataDir = [IO_DataDir, filesep, 'Kinematic Analyses'];
 % Move_CaseID = 'IO_04_13_2023_RSTN'; % studyID = 5, ptID 3
 
 % Move_CaseID = 'IO_05_11_2023_LSTN'; % studyID = 6, ptID 4 (processed, incomplete case)
- Move_CaseID = 'IO_05_18_2023_a_RSTN'; % studyID = 7, ptID 4
+% Move_CaseID = 'IO_05_18_2023_a_RSTN'; % studyID = 7, ptID 4
 
-% Move_CaseID = 'IO_05_18_2023_b_LSTN'; % studyID = 8, ptID 5 (processed, complete case) *
+Move_CaseID = 'IO_05_18_2023_b_LSTN'; % studyID = 8, ptID 5 (processed, complete case) *
 % Move_CaseID = 'IO_05_18_2023_b_RSTN'; % studyID = 9, ptID 5
 
 % Move_CaseID = 'IO_05_31_2023_LSTN'; % studyID = 10, ptID 6
@@ -322,7 +355,7 @@ All_SpikesPerMove_Tbl = cell2table(All_data, 'VariableNames', standard_col_order
 SpikesPerMove_Dir = [Case_DataDir, filesep, 'DLC_Ephys'];
 
 % % For Bialteral cases:
-SpikesPerMove_Dir = [Case_DataDir, filesep, 'DLC_Ephys', filesep, CaseDate_hem]; % comment out when N/A
+ SpikesPerMove_Dir = [Case_DataDir, filesep, 'DLC_Ephys', filesep, CaseDate_hem]; % comment out when N/A
 
 cd(SpikesPerMove_Dir)
 

@@ -8,7 +8,7 @@ cd(DLC_Processing_Dir)
 
 %% Input - define case
 
-casID = 'IO_05_18_2023_b_LSTN';
+casID = 'IO_2023-08-23_RSTN';
 Case_DataDir = [DLC_Processing_Dir, filesep, casID];
 
 

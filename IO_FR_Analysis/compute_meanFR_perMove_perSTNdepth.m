@@ -1,6 +1,6 @@
 %% Compute FR mean and stdev per STN depth in All_SpikesPerMove_Tbl
 
-addpath 'C:\Users\erinr\OneDrive\Documents\GitHub\NeuroKinematica\AO_Processing'
+addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\IO_FR_Analysis'
 
 % Specify directory where case-specific data files are located
 curPCname = getenv('COMPUTERNAME');
@@ -23,7 +23,7 @@ Subject_AO = readtable('Subject_AO.xlsx');
 % Isolate specific CaseDate / studyID (StudyNum in Subject_AO csv)
 % CaseDate = '03_09_2023'; % studyID = 1, ptID 1
 
-% CaseDate = '03_23_2023'; % studyID = 2, ptID 2    *
+CaseDate = '03_23_2023'; % studyID = 2, ptID 2    *
 % CaseDate = '04_05_2023'; % studyID = 3, ptID 2    *
 
 % CaseDate = '04_13_2023_bilateral'; % studyID = 4(L*), 5(R), ptID 3
@@ -37,11 +37,11 @@ Subject_AO = readtable('Subject_AO.xlsx');
 
 % CaseDate = '06_08_2023_bilateral'; % studyID = 11(L*), 12(R), ptID = 7
 
-CaseDate = '07_13_2023_bilateral'; % studyID = 15(L), 16(R), ptID = 9
+% CaseDate = '07_13_2023_bilateral'; % studyID = 15(L), 16(R), ptID = 9
 
 % % For Bialteral cases, specify hemisphere:
 % CaseDate_hem = 'LSTN'; % comment out when N/A
-CaseDate_hem = 'RSTN'; % comment out when N/A
+% CaseDate_hem = 'RSTN'; % comment out when N/A
 
 case_ID = CaseDate;
 
@@ -50,7 +50,7 @@ Case_DataDir = [IO_DataDir, filesep, CaseDate];
 ephysTbl_Dir = [Case_DataDir, filesep, 'DLC_Ephys'];
 
 % % For Bialteral cases:
-ephysTbl_Dir = [ephysTbl_Dir, filesep, CaseDate_hem]; % comment out when N/A
+% ephysTbl_Dir = [ephysTbl_Dir, filesep, CaseDate_hem]; % comment out when N/A
 
 %% define datastream sampling rates (Alpha Omega and Video sampling fs)
 
@@ -79,7 +79,7 @@ load(spk_case, 'All_SpikesPerMove_Tbl');
 %% Case-specific modifications
 
 % for 3_23_2023 case - remove duplicates / only plot for primary electrode
-% All_SpikesPerMove_Tbl = All_SpikesPerMove_Tbl(158:end,1:13); % for 3_23_2023 case %%% comment out / adjust for other cases
+ All_SpikesPerMove_Tbl = All_SpikesPerMove_Tbl(158:end,1:13); % for 3_23_2023 case %%% comment out / adjust for other cases
 
 
 %% Compute mean FR for each trial per Motor Task type across STN depths
@@ -173,9 +173,9 @@ end
 % ventralSTN_tbl = All_SpikesPerMove_Tbl(1:54,1:9);
 
 % % 03/23/23 case   *
-% dorsalSTN_tbl = All_SpikesPerMove_Tbl(111:end,1:9); % move_trial_ID contains 't'
-% centralSTN_tbl = All_SpikesPerMove_Tbl(55:110,1:9); % move_trial_ID contains 'c'
-% ventralSTN_tbl = All_SpikesPerMove_Tbl(1:54,1:9); % move_trial_ID contains 'b'
+dorsalSTN_tbl = All_SpikesPerMove_Tbl(111:end,1:9); % move_trial_ID contains 't'
+centralSTN_tbl = All_SpikesPerMove_Tbl(55:110,1:9); % move_trial_ID contains 'c'
+ventralSTN_tbl = All_SpikesPerMove_Tbl(1:54,1:9); % move_trial_ID contains 'b'
 
 % % 04/05/23 case   *
 % dorsal_REST_tbl = [All_SpikesPerMove_Tbl(23,1:9); All_SpikesPerMove_Tbl(46,1:9)];
@@ -217,12 +217,12 @@ end
 % ventralSTN_tbl = [All_SpikesPerMove_Tbl(1:7,1:9); All_SpikesPerMove_Tbl(9:14,1:9)]; % move_trial_ID contains 'b'
 
 % % 07_13_2023, RSTN case     *
-dorsal_REST_tbl = [All_SpikesPerMove_Tbl(17,1:9)]; % move_trial_ID contains 't'
-dorsalSTN_tbl = [All_SpikesPerMove_Tbl(18:24,1:9)]; % move_trial_ID contains 't'
-central_REST_tbl = [All_SpikesPerMove_Tbl(9,1:9)]; % move_trial_ID contains 'c'
-centralSTN_tbl = [All_SpikesPerMove_Tbl(10:16,1:9)]; % move_trial_ID contains 'c'
-ventral_REST_tbl = [All_SpikesPerMove_Tbl(1,1:9)]; % move_trial_ID contains 'b'
-ventralSTN_tbl = [All_SpikesPerMove_Tbl(2:8,1:9)]; % move_trial_ID contains 'b'
+% dorsal_REST_tbl = [All_SpikesPerMove_Tbl(17,1:9)]; % move_trial_ID contains 't'
+% dorsalSTN_tbl = [All_SpikesPerMove_Tbl(18:24,1:9)]; % move_trial_ID contains 't'
+% central_REST_tbl = [All_SpikesPerMove_Tbl(9,1:9)]; % move_trial_ID contains 'c'
+% centralSTN_tbl = [All_SpikesPerMove_Tbl(10:16,1:9)]; % move_trial_ID contains 'c'
+% ventral_REST_tbl = [All_SpikesPerMove_Tbl(1,1:9)]; % move_trial_ID contains 'b'
+% ventralSTN_tbl = [All_SpikesPerMove_Tbl(2:8,1:9)]; % move_trial_ID contains 'b'
 
 
 %% Define STN depth of interest
@@ -269,11 +269,11 @@ for movT_i = 1:moveType_num
         spikeTimes = temp_depth_seconds;
 
         % Create histogram of spike times
-        spikeCounts_PSTH = histcounts(spikeTimes, edges_PSTH);
+        %spikeCounts_PSTH = histcounts(spikeTimes, edges_PSTH);
         spikeCounts_FR = histcounts(spikeTimes, edges_FR);
 
         % Store PSTH for this trials
-        PSTH_all_trials = [PSTH_all_trials; spikeCounts_PSTH];
+        %PSTH_all_trials = [PSTH_all_trials; spikeCounts_PSTH];
 
         % Convert spike counts to FR (spikes per second)
         FR_moverep = spikeCounts_FR/binSize_FR;

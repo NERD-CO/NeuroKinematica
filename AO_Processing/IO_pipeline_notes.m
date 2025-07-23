@@ -25,6 +25,11 @@
 % > CluterReviewer.mlapp
 
 % FR Analysis
+% > spikes_Align_TTL_and_AO
+% > compute_meanFR_perMove_perSTNdepth_v2
+
+% FR Raster Plotting
+
 
 % LFP Analyisis
 
