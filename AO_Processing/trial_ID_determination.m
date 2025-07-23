@@ -29,8 +29,8 @@ summaryXLSX = readtable("Subject_AO.xlsx");
 %% Subject-specific data directory Inputs
 
 % Isolate a specific subject/case date & case-specific data directories
-studyID = 30;
-CaseDate = '12_06_2023_bilateral';
+studyID = 28;
+CaseDate = '11_30_2023_bilateral';
 
 Case_DataDir = [IO_DataDir, filesep, CaseDate];
 cd(Case_DataDir)
