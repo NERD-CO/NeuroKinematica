@@ -1,10 +1,11 @@
 function [] = IO_plotting_v3(case_ID, plot_ID, ephys_offset)
 
+clear; clc;
+addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\IO_FR_Analysis'
+
 % comps_IO_plotting(CaseDate, 'raster_fig', 1)
 
-% case_ID = ;
-plot_ID = 'raster_fig';
-ephys_offset = 1;
+%% Directory Setup
 
 % specify directory where case-specific data files are located
 curPCname = getenv('COMPUTERNAME');
@@ -22,11 +23,16 @@ cd(IO_DataDir)
 Subject_AO = readtable('Subject_AO.xlsx');
 
 
+%% Inputs:
+
+plot_ID = 'raster_fig';
+ephys_offset = 1;
+
 %% Isolate specific CaseDate / studyID (StudyNum in Subject_AO csv)
 
 % CaseDate = '03_09_2023'; % studyID = 1, ptID 1
 
- CaseDate = '03_23_2023'; % studyID = 2, ptID 2    *
+% CaseDate = '03_23_2023'; % studyID = 2, ptID 2    *
 % CaseDate = '04_05_2023'; % studyID = 3, ptID 2    *
 
 % CaseDate = '04_13_2023_bilateral'; % studyID = 4(L*), 5(R), ptID 3
@@ -34,14 +40,13 @@ Subject_AO = readtable('Subject_AO.xlsx');
 % CaseDate = '05_11_2023'; % studyID = 6, ptID 4
 % CaseDate = '05_18_2023_a'; % studyID = 7, ptID 4
 
-% CaseDate = '05_18_2023_b_bilateral'; % studyID = 8(L*), 9(R), ptID = 5
+ CaseDate = '05_18_2023_b_bilateral'; % studyID = 8(L*), 9(R), ptID = 5
 
 % CaseDate = '05_31_2023';  % studyID = 10, ptID 6
 
 % CaseDate = '06_08_2023_bilateral'; % studyID = 11(L*), 12(R), ptID = 7
 
 % CaseDate = '07_13_2023_bilateral'; % studyID = 15(L), 16(R), ptID = 9
-
 
 case_ID = CaseDate;
 
@@ -50,13 +55,28 @@ case_ID = CaseDate;
 Case_DataDir = [IO_DataDir, filesep, CaseDate];
 ephysTbl_Dir = [Case_DataDir, filesep, 'DLC_Ephys'];
 
+% Handle bilateral cases and hemisphere selection
+isBilateral = contains(CaseDate, 'bilateral', 'IgnoreCase', true);
 
-%% For Bialteral cases, specify hemisphere + corresponding dir
-
-% CaseDate_hem = 'LSTN'; % comment out when N/A
-% CaseDate_hem = 'RSTN'; % comment out when N/A
-
-% ephysTbl_Dir = [ephysTbl_Dir, filesep, CaseDate_hem]; % comment out when N/A
+if isBilateral
+    fprintf('[INFO] Bilateral case detected: %s\n', CaseDate);
+    
+    % Prompt user for hemisphere choice (LSTN or RSTN)
+    CaseDate_hem = input('Enter hemisphere (LSTN or RSTN): ', 's');
+    
+    % Validate input
+    validHems = {'LSTN','RSTN'};
+    if ~ismember(CaseDate_hem, validHems)
+        error('Invalid input. Please enter LSTN or RSTN.');
+    end
+    
+    % Append hemisphere-specific folder
+    ephysTbl_Dir = fullfile(ephysTbl_Dir, CaseDate_hem);
+    fprintf('[INFO] Hemisphere-specific directory set: %s\n', ephysTbl_Dir);
+else
+    CaseDate_hem = ''; % No hemisphere for unilateral cases
+    fprintf('[INFO] Using base processed directory: %s\n', ephysTbl_Dir);
+end
 
 
 %% Define sampling rates (Alpha Omega and Video sampling fs)
@@ -102,9 +122,15 @@ switch plot_ID
         spk_case = Tbl_names{search_index};
         load(spk_case, 'All_SpikesPerMove_Tbl');
 
-        % %% Case-specific modifications %%
-         % for 3_23_2023 case only: Remove duplicates / only plot for primary electrode  %%%% comment out / adjust for other cases
-         All_SpikesPerMove_Tbl = All_SpikesPerMove_Tbl(165:end,1:13);  % 3_23_2023: Remove duplicates / only plot for primary electrode
+
+        %%% Case-specific modifications %%%
+        % for 3_23_2023 case only: Remove duplicates / only plot for primary electrode  %%%% comment out / adjust for other cases
+        % if CaseDate == '03_23_2023'
+        %     All_SpikesPerMove_Tbl = All_SpikesPerMove_Tbl(165:end,1:13);  % 3_23_2023: Remove duplicates / only plot for primary electrode
+        % else
+        %     All_SpikesPerMove_Tbl = All_SpikesPerMove_Tbl;
+        % end
+         
 
         % Automatically extract depth-specific tables sub-indexed by movement type
         depth_specific_tables = extract_STN_depth_tables(All_SpikesPerMove_Tbl);
