@@ -54,7 +54,9 @@ end
 Case_DataDir = fullfile(IO_DataDir,CaseDate);
 ephysTbl_Dir = fullfile(Case_DataDir,'DLC_Ephys');
 
-% Handle bilateral cases
+
+%% Handle bilateral cases
+
 isBilateral = contains(CaseDate,'bilateral','IgnoreCase',true);
 if isBilateral
     fprintf('[INFO] Bilateral case detected: %s\n',CaseDate);

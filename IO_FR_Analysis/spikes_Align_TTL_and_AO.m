@@ -25,7 +25,7 @@ Subject_AO = readtable('Subject_AO.xlsx');
 % Isolate specific CaseDate / studyID (StudyNum in Subject_AO csv)
 % CaseDate = '03_09_2023'; % studyID = 1, ptID 1
 
-% CaseDate = '03_23_2023'; % studyID = 2, ptID 2    * % Use for INS 2025
+CaseDate = '03_23_2023'; % studyID = 2, ptID 2    * % Use for INS 2025
 % CaseDate = '04_05_2023'; % studyID = 3, ptID 2    * % Use for INS 2025
 
 % CaseDate = '04_13_2023_bilateral'; % studyID = 4(L), 5(R), ptID 3
@@ -33,7 +33,7 @@ Subject_AO = readtable('Subject_AO.xlsx');
 % CaseDate = '05_11_2023'; % studyID = 6, ptID 4
 %  CaseDate = '05_18_2023_a'; % studyID = 7, ptID 4
 
-CaseDate = '05_18_2023_b_bilateral'; % LSTN: studyID = 8, ptID = 5    % Use for INS 2025
+% CaseDate = '05_18_2023_b_bilateral'; % LSTN: studyID = 8, ptID = 5    % Use for INS 2025
 % RSTN: studyID = 9, ptID = 5
 
 % CaseDate = '05_31_2023';  % studyID = 10, ptID 6
@@ -93,7 +93,7 @@ cd(MoveDataDir)
 % % Specify case ID
 % Move_CaseID = 'IO_03_09_2023_RSTN'; % studyID = 1, ptID 1 (processed, incomplete case)
 
-% Move_CaseID = 'IO_03_23_2023_LSTN'; % studyID = 2, ptID 2 (processed, complete case) *
+ Move_CaseID = 'IO_03_23_2023_LSTN'; % studyID = 2, ptID 2 (processed, complete case) *
 % Move_CaseID = 'IO_04_05_2023_RSTN'; % studyID = 3, ptID 2 (processed, complete case) *
 
 % Move_CaseID = 'IO_04_13_2023_LSTN'; % studyID = 4, ptID 3 (processed, complete case) 
@@ -102,7 +102,7 @@ cd(MoveDataDir)
 % Move_CaseID = 'IO_05_11_2023_LSTN'; % studyID = 6, ptID 4 (processed, incomplete case)
 % Move_CaseID = 'IO_05_18_2023_a_RSTN'; % studyID = 7, ptID 4
 
-Move_CaseID = 'IO_05_18_2023_b_LSTN'; % studyID = 8, ptID 5 (processed, complete case) *
+% Move_CaseID = 'IO_05_18_2023_b_LSTN'; % studyID = 8, ptID 5 (processed, complete case) *
 % Move_CaseID = 'IO_05_18_2023_b_RSTN'; % studyID = 9, ptID 5
 
 % Move_CaseID = 'IO_05_31_2023_LSTN'; % studyID = 10, ptID 6

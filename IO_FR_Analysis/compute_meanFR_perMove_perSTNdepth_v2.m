@@ -18,8 +18,9 @@ Subject_AO = readtable('Subject_AO.xlsx');
 
 %% Specify Case
 
-CaseDate = '05_18_2023_b_bilateral';
+CaseDate = '03_23_2023'; 
 % '03_23_2023'; 
+'05_18_2023_b_bilateral';
 
 case_ID = CaseDate;
 Case_DataDir = fullfile(IO_DataDir, CaseDate);
@@ -169,3 +170,5 @@ writetable(FR_Full_Table, fullFile);
 save(['FR_Results_' CaseDate '.mat'], 'FR_Results');
 
 fprintf('\n[INFO] Exported:\n - %s\n - %s\n - FR_Results_%s.mat\n', summaryFile, fullFile, CaseDate);
+
+%%
