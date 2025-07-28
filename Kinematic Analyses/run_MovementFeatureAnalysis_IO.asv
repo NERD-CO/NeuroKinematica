@@ -1,0 +1,116 @@
+function kinTbl = run_MovementFeatureAnalysis_IO(CaseDate, CaseDate_hem, MoveDir_CaseID, fps, px_to_mm)
+
+% Extract movement features from DLC-labeled kinematic CSVs and Movement Index files
+
+fprintf('[INFO] Running movement feature analysis for: %s\n', MoveDir_CaseID);
+
+%% Directory Setup
+switch getenv('COMPUTERNAME')
+    case 'DESKTOP-I5CPDO7'
+        IO_DataDir = 'X:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
+    otherwise
+        IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
+end
+
+MoveDataDir = fullfile(IO_DataDir, 'Processed DLC');
+caseDir = fullfile(MoveDataDir, MoveDir_CaseID);
+vidDir = fullfile(caseDir, 'video folder');
+csvDir = fullfile(caseDir, 'csv folder');
+
+outDir = fullfile(IO_DataDir,'Kinematic Analyses',[CaseDate '_' CaseDate_hem]);
+if ~exist(outDir, 'dir'), mkdir(outDir); end
+
+%% File Listing
+moveFiles = dir(fullfile(vidDir, '*Move*.csv'));
+fprintf('[INFO] Found %d Move Index files\n', numel(moveFiles));
+
+kinTbl = table(); % Initialize output table
+
+%% Loop through trials
+for i = 1:numel(moveFiles)
+    moveFile = moveFiles(i).name;
+    movePath = fullfile(vidDir, moveFile);
+    
+    % Extract base prefix for matching
+    [~, basePrefix, ~] = fileparts(moveFile);
+    coreID = extractBefore(basePrefix, '_MoveIndex');
+
+    % Find corresponding DLC CSV
+    dlcMatch = dir(fullfile(csvDir, [coreID, '*DLC*.csv']));
+    if isempty(dlcMatch)
+        warning('[SKIP] DLC CSV not found for %s', basePrefix);
+        continue;
+    end
+
+    try
+        moveIndex = readtable(movePath);
+        moveIndex = moveIndex(moveIndex.BeginF > 0 & moveIndex.EndF > 0, :);
+
+        rawDLC = readtable(fullfile(csvDir, dlcMatch(1).name));
+        if any(contains(rawDLC.Properties.VariableNames, 'likelihood'))
+            rawDLC = cleanLowConfidence(rawDLC, 0.6);
+        end
+
+        % Track index fingertip
+        X = rawDLC.index_tip_x;
+        Y = rawDLC.index_tip_y;
+        dist_mm = sqrt(diff(X).^2 + diff(Y).^2) * px_to_mm;
+        time_sec = (1:length(dist_mm)) / fps;
+        smoothed = smoothdata(dist_mm, 'gaussian', 15);
+
+        for j = 1:height(moveIndex)
+            beginF = moveIndex.BeginF(j);
+            endF   = min(moveIndex.EndF(j), length(smoothed));
+
+            seg = smoothed(beginF:endF);
+            seg_t = time_sec(beginF:endF);
+
+            [pks, locs, widths, proms] = findpeaks(seg, ...
+                'MinPeakProminence', std(seg)*0.5, ...
+                'MinPeakDistance', round(0.15 * fps));
+
+            if isempty(pks), continue; end
+
+            ampMean = mean(pks);
+            ampSTD = std(pks);
+            if numel(locs) > 1
+                repDur = diff(locs) / fps;
+                interDur = repDur(1:end-1);
+            else
+                repDur = NaN;
+                interDur = NaN;
+            end
+            vel = ampMean ./ (widths / fps);
+
+            kinTbl = [kinTbl; ...
+                table(moveIndex.MoveN(j), string(moveIndex.MoveType{j}), beginF, endF, ...
+                      ampMean, mean(repDur,'omitnan'), mean(interDur,'omitnan'), mean(vel), ...
+                      'VariableNames', {'MoveN', 'MoveType', 'BeginF', 'EndF', ...
+                                        'MeanAmp', 'MeanRepDur', 'MeanInterRepDur', 'MeanVel'})];
+        end
+    catch ME
+        warning('[ERROR] Problem processing %s: %s', moveFile, ME.message);
+    end
+end
+
+fprintf('[DONE] Processed %d entries into kinTbl.\n', height(kinTbl));
+
+% Save result
+kinTbl_outfile = fullfile(outDir, sprintf('kinTbl_%s.csv', MoveDir_CaseID));
+writetable(kinTbl, kinTbl_outfile);
+fprintf('[SAVED] kinTbl saved to: %s\n', kinTbl_outfile);
+
+end
+
+%% Subfunction: Clean low-confidence DLC values
+function dataOut = cleanLowConfidence(dataIn, threshold)
+    dataOut = dataIn;
+    markerCols = dataIn.Properties.VariableNames;
+    for i = 1:3:length(markerCols)
+        if i+2 > numel(markerCols), break; end
+        likelihood = dataIn{:, i+2};
+        lowConf = likelihood < threshold;
+        dataOut{lowConf, i}   = NaN;
+        dataOut{lowConf, i+1} = NaN;
+    end
+end
