@@ -64,7 +64,8 @@ fps = 100; % IO video frame rate
 % calibration / conversion metric
 px_to_mm      = 2.109; % distance conversion factor
 
-% update to calibration-image based method later
+%% update to calibration-image based method later
+
 % % Load checkerboard image
 % I = imread('calibration_frame.png');
 % [imagePoints, boardSize] = detectCheckerboardPoints(I);
@@ -75,7 +76,8 @@ px_to_mm      = 2.109; % distance conversion factor
 % avg_square_px = mean(diff(imagePoints(:,1)));
 % pixels_to_mm = squareSize_mm / avg_square_px;
 
-%% Loop over movement trials
+
+%% Main Loop over movement trials
 
 for i = 1:numel(moveFiles)
     moveFile = moveFiles(i).name;
@@ -107,42 +109,99 @@ for i = 1:numel(moveFiles)
                 markerUsed = preferredMarkers{k}; markerFound = true; break;
             end
         end
+
         if ~markerFound
-            warning('[SKIP] No valid marker found in: %s', moveFile); continue;
+            warning('[SKIP] No valid marker found in: %s', moveFile);
+            continue;
         end
 
+        % Compute smoothed_data after confirming marker is found
         dist_mm = sqrt(diff(X).^2 + diff(Y).^2) * px_to_mm;
         time_sec = (1:length(dist_mm)) / fps;
         smoothed_data = smoothdata(dist_mm, 'gaussian', 15);
+
+    catch ME
+        warning('[ERROR] Problem processing %s: %s', moveFile, ME.message);
+        continue;
     end
+
 
     % Per-repetition loop
     repDurAll = [];
     interDurAll = [];
     storedPlot = false;  % flag to save only one peak plot per MoveType
+
     for j = 1:height(moveIndex)
         beginF = moveIndex.BeginF(j);
         endF = min(moveIndex.EndF(j), length(smoothed_data));
         MovSeg = smoothed_data(beginF:endF);
         MoveSeg_t = time_sec(beginF:endF);
 
-        minDist = max(1, min(round(0.15 * fps), length(MovSeg)-1));
-        [pks, locs, widths, proms] = findpeaks(MovSeg, ...
-            'MinPeakProminence', std(MovSeg)*0.5, ...
-            'MinPeakDistance', minDist);
+        % Pre-check: Skip short segments before calling findpeaks
+        if length(MovSeg) < 3  % adjust threshold as needed
+            SkippedTbl = [SkippedTbl; table(string(coreID), moveIndex.MoveN(j), string(moveIndex.MoveType{j}), ...
+                sprintf("Segment too short: %d frames", length(MovSeg)), ...
+                'VariableNames', {'TrialID','MoveN','MoveType','Reason'})];
+            continue;
+        end
 
+        % Compute MinPeakDistance in seconds
+        minDist = max(1, min(round(0.15 * fps), length(MovSeg)-1));
+        minDist_sec = minDist / fps;
+
+        % Check if time span is too short for peak detection
+        if MoveSeg_t(end) - MoveSeg_t(1) <= minDist_sec
+            SkippedTbl = [SkippedTbl; table(string(coreID), moveIndex.MoveN(j), string(moveIndex.MoveType{j}), ...
+                sprintf("MinPeakDistance too large (%.3f sec) for segment time span (%.3f sec)", ...
+                minDist_sec, MoveSeg_t(end) - MoveSeg_t(1)), ...
+                'VariableNames', {'TrialID','MoveN','MoveType','Reason'})];
+            continue;
+        end
+
+
+        % Peak detection: findpeaks
+        [pks, locs, widths, proms] = findpeaks(MovSeg, MoveSeg_t, ...
+            'MinPeakProminence', std(MovSeg)*0.5, ...
+            'MinPeakDistance', minDist_sec);
+
+
+        % Post-check: Skip segments without peaks
         if isempty(pks)
             SkippedTbl = [SkippedTbl; table(string(coreID), moveIndex.MoveN(j), string(moveIndex.MoveType{j}), ...
                 "Too few peaks", 'VariableNames', {'TrialID','MoveN','MoveType','Reason'})];
             continue;
         end
 
-        % Feature calc
-        ampMean = mean(pks); ampStd = std(pks);
+
+        % Kinematic feature calc
+        if isempty(pks)
+            ampMean = NaN;
+            ampStd = NaN;
+        else
+            ampMean = mean(pks);
+            ampStd = std(pks);
+        end
+
+        % Ensure vel is a numeric vector with finite values only
         vel = pks ./ (widths / fps);
-        velMean = mean(vel); velStd = std(vel);
+        valid_vel = vel(isfinite(vel) & ~isnan(vel));
+        if isempty(valid_vel)
+            velMean = NaN;
+            velStd = NaN;
+        else
+            velMean = mean(valid_vel);
+            velStd = std(valid_vel);
+        end
         repDur = diff(locs) / fps;
         interDur = repDur(1:end-1);
+
+        % % Force all variables being inserted into kinTbl to be scalars, with fallback defaults if empty
+        % if isempty(ampMean), ampMean = NaN; end
+        % if isempty(ampStd), ampStd = NaN; end
+        % if isempty(velMean), velMean = NaN; end
+        % if isempty(velStd), velStd = NaN; end
+
+        disp([ampMean, ampStd, velMean, velStd])
 
         % Store trial-wise metrics
         kinTbl = [kinTbl; ...
@@ -151,13 +210,14 @@ for i = 1:numel(moveFiles)
             'VariableNames', {'TrialID','MoveN','MoveType','BeginF','EndF','MeanAmp','StdAmp','MeanVel','StdVel'})];
 
         % Accumulate rep/inter-rep durations
-        repDurAll = [repDurAll, repDur];
-        interDurAll = [interDurAll, interDur];
+        repDurAll = [repDurAll, repDur(:)'];
+        interDurAll = [interDurAll, interDur(:)'];
 
         % Save a plot only once per MoveType per trial
         if ~storedPlot
             f = figure('Visible','off'); hold on
-            plot(MoveSeg_t, MovSeg, 'k'); plot(MoveSeg_t(locs), pks, 'ro');
+            plot(MoveSeg_t, MovSeg, 'k');
+            plot(locs, pks, 'ro');  % locs already contains time values when x-data is passed to findpeaks
             xlabel('Time (s)'); ylabel('Displacement (mm)');
             title(sprintf('%s - %s', coreID, moveIndex.MoveType{j}));
             saveas(f, fullfile(output_kinAnalysisDir, sprintf('%s_%s_peaks_summary.png', ...
@@ -189,28 +249,30 @@ for i = 1:numel(moveFiles)
 
 end
 
-%% Helper: Reconstruct DLC Header
-    function dlcTable = readDLCwithReconstructedHeader(dlcFilePath)
-        raw = readcell(dlcFilePath, 'NumHeaderLines', 0);
-        markerNames = raw(2,2:end); coordTypes = raw(3,2:end);
-        newColNames = strcat(markerNames, "_", coordTypes);
-        newColNames = matlab.lang.makeValidName(newColNames, 'ReplacementStyle','delete');
-        opts = detectImportOptions(dlcFilePath, 'NumHeaderLines', 3);
-        opts.VariableNames = [{'frame'}, newColNames];
-        dlcTable = readtable(dlcFilePath, opts);
-    end
+end
 
-%% Helper: Clean low-confidence values
-    function dataOut = cleanLowConfidence(dataIn, threshold)
-        dataOut = dataIn;
-        vars = dataIn.Properties.VariableNames;
-        for i = 1:3:length(vars)
-            if i+2 > numel(vars), break; end
-            conf = dataIn{:, i+2};
-            lowConf = conf < threshold;
-            dataOut{lowConf, i} = NaN;
-            dataOut{lowConf, i+1} = NaN;
-        end
-    end
+% ======= Helper Functions =======
 
+%% Subfunction: Reconstruct DLC Header
+function dlcTable = readDLCwithReconstructedHeader(dlcFilePath)
+raw = readcell(dlcFilePath, 'NumHeaderLines', 0);
+markerNames = raw(2,2:end); coordTypes = raw(3,2:end);
+newColNames = strcat(markerNames, "_", coordTypes);
+newColNames = matlab.lang.makeValidName(newColNames, 'ReplacementStyle','delete');
+opts = detectImportOptions(dlcFilePath, 'NumHeaderLines', 3);
+opts.VariableNames = [{'frame'}, newColNames];
+dlcTable = readtable(dlcFilePath, opts);
+end
+
+%% Subfunction: Clean low-confidence DLC values
+function dataOut = cleanLowConfidence(dataIn, threshold)
+dataOut = dataIn;
+vars = dataIn.Properties.VariableNames;
+for i = 1:3:length(vars)
+    if i+2 > numel(vars), break; end
+    conf = dataIn{:, i+2};
+    lowConf = conf < threshold;
+    dataOut{lowConf, i} = NaN;
+    dataOut{lowConf, i+1} = NaN;
+end
 end

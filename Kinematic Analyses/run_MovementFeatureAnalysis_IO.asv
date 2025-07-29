@@ -64,7 +64,8 @@ fps = 100; % IO video frame rate
 % calibration / conversion metric
 px_to_mm      = 2.109; % distance conversion factor
 
-% update to calibration-image based method later
+%% update to calibration-image based method later
+
 % % Load checkerboard image
 % I = imread('calibration_frame.png');
 % [imagePoints, boardSize] = detectCheckerboardPoints(I);
@@ -75,7 +76,8 @@ px_to_mm      = 2.109; % distance conversion factor
 % avg_square_px = mean(diff(imagePoints(:,1)));
 % pixels_to_mm = squareSize_mm / avg_square_px;
 
-%% Loop over movement trials
+
+%% Main Loop over movement trials
 
 for i = 1:numel(moveFiles)
     moveFile = moveFiles(i).name;
@@ -107,82 +109,128 @@ for i = 1:numel(moveFiles)
                 markerUsed = preferredMarkers{k}; markerFound = true; break;
             end
         end
+
         if ~markerFound
-            warning('[SKIP] No valid marker found in: %s', moveFile); continue;
+            warning('[SKIP] No valid marker found in: %s', moveFile);
+            continue;
         end
 
+        % Compute smoothed_data after confirming marker is found
         dist_mm = sqrt(diff(X).^2 + diff(Y).^2) * px_to_mm;
         time_sec = (1:length(dist_mm)) / fps;
-        smoothed = smoothdata(dist_mm, 'gaussian', 15);
+        smoothed_data = smoothdata(dist_mm, 'gaussian', 15);
 
-        % Per-repetition loop
-        for j = 1:height(moveIndex)
-            beginF = moveIndex.BeginF(j);
-            endF   = min(moveIndex.EndF(j), length(smoothed));
+    catch ME
+        warning('[ERROR] Problem processing %s: %s', moveFile, ME.message);
+        continue;
+    end
 
-            MovSeg = smoothed(beginF:endF);
-            MoveSeg_t = time_sec(beginF:endF);
 
+    % Per-repetition loop
+    repDurAll = [];
+    interDurAll = [];
+    storedPlot = false;  % flag to save only one peak plot per MoveType
+
+    for j = 1:height(moveIndex)
+        beginF = moveIndex.BeginF(j);
+        endF = min(moveIndex.EndF(j), length(smoothed_data));
+        MovSeg = smoothed_data(beginF:endF);
+        MoveSeg_t = time_sec(beginF:endF);
+
+        % pre-check to skip short segments before calling findpeaks
+        if length(MovSeg) < 3  % adjust threshold as needed
+            SkippedTbl = [SkippedTbl; table(string(coreID), moveIndex.MoveN(j), string(moveIndex.MoveType{j}), ...
+                sprintf("Segment too short: %d frames", length(MovSeg)), ...
+                'VariableNames', {'TrialID','MoveN','MoveType','Reason'})];
+            continue;
+        end
+
+        % Determine MinPeakDistance safely
+        try
             minDist = max(1, min(round(0.15 * fps), length(MovSeg)-1));
-            [pks, locs, widths, proms] = findpeaks(MovSeg, ...
-                'MinPeakProminence', std(MovSeg)*0.5, ...
-                'MinPeakDistance', minDist);
-
-            if isempty(pks)
-                repDurLog = [repDurLog; {coreID, moveIndex.MoveN(j), moveIndex.MoveType{j}, 'Too few peaks'}];
+            if minDist >= length(MovSeg)
+                SkippedTbl = [SkippedTbl; table(string(coreID), moveIndex.MoveN(j), string(moveIndex.MoveType{j}), ...
+                    sprintf("MinPeakDistance too large (%d) for segment length (%d)", minDist, length(MovSeg)), ...
+                    'VariableNames', {'TrialID','MoveN','MoveType','Reason'})];
                 continue;
             end
+        catch
+            SkippedTbl = [SkippedTbl; table(string(coreID), moveIndex.MoveN(j), string(moveIndex.MoveType{j}), ...
+                "Error computing MinPeakDistance", ...
+                'VariableNames', {'TrialID','MoveN','MoveType','Reason'})];
+            continue;
+        end
 
-            % Feature calc
-            ampMean = mean(pks); ampStd = std(pks);
-            vel = pks ./ (widths / fps);
-            velMean = mean(vel); velStd = std(vel);
-            repDur = diff(locs) / fps;
-            interDur = repDur(1:end-1);
 
-            % Store trial-wise metrics
-            kinTbl = [kinTbl; ...
-                table(string(coreID), moveIndex.MoveN(j), string(moveIndex.MoveType{j}), beginF, endF, ...
-                ampMean, ampStd, velMean, velStd, ...
-                'VariableNames', {'TrialID','MoveN','MoveType','BeginF','EndF','MeanAmp','StdAmp','MeanVel','StdVel'})];
+        % findpeaks
+        [pks, locs, widths, proms] = findpeaks(MovSeg, ...
+            'MinPeakProminence', std(MovSeg)*0.5, ...
+            'MinPeakDistance', minDist);
 
-            % Store rep duration summary for this movement context
-            if numel(repDur) >= 1
-                RepSummaryTbl = table(string(coreID), string(moveIndex.MoveType{j}), ...
-                    mean(repDur), mean(interDur, 'omitnan'), ...
-                    'VariableNames', {'TrialID','MoveType','MeanRepDur','MeanInterRepDur'});
-                repDurLog = [repDurLog; RepSummaryTbl];
-            end
+        if isempty(pks)
+            SkippedTbl = [SkippedTbl; table(string(coreID), moveIndex.MoveN(j), string(moveIndex.MoveType{j}), ...
+                "Too few peaks", 'VariableNames', {'TrialID','MoveN','MoveType','Reason'})];
+            continue;
+        end
 
-            % Plot & save
+        % Feature calc
+        ampMean = mean(pks); ampStd = std(pks);
+        vel = pks ./ (widths / fps);
+        velMean = mean(vel); velStd = std(vel);
+        repDur = diff(locs) / fps;
+        interDur = repDur(1:end-1);
+
+        % Store trial-wise metrics
+        kinTbl = [kinTbl; ...
+            table(string(coreID), moveIndex.MoveN(j), string(moveIndex.MoveType{j}), beginF, endF, ...
+            ampMean, ampStd, velMean, velStd, ...
+            'VariableNames', {'TrialID','MoveN','MoveType','BeginF','EndF','MeanAmp','StdAmp','MeanVel','StdVel'})];
+
+        % Accumulate rep/inter-rep durations
+        repDurAll = [repDurAll, repDur(:)'];
+        interDurAll = [interDurAll, interDur(:)'];
+
+
+        % Save a plot only once per MoveType per trial
+        if ~storedPlot
             f = figure('Visible','off'); hold on
             plot(MoveSeg_t, MovSeg, 'k'); plot(MoveSeg_t(locs), pks, 'ro');
             xlabel('Time (s)'); ylabel('Displacement (mm)');
-            title(sprintf('%s - %s rep %d', coreID, moveIndex.MoveType{j}, moveIndex.MoveN(j)));
-            saveas(f, fullfile(output_kinAnalysisDir, sprintf('%s_%s_rep%d_peaks.png', ...
-                coreID, moveIndex.MoveType{j}, moveIndex.MoveN(j))));
+            title(sprintf('%s - %s', coreID, moveIndex.MoveType{j}));
+            saveas(f, fullfile(output_kinAnalysisDir, sprintf('%s_%s_peaks_summary.png', ...
+                coreID, moveIndex.MoveType{j})));
             close(f);
+            storedPlot = true;
         end
-    catch ME
-        warning('[ERROR] Problem processing %s: %s', moveFile, ME.message);
     end
+
+    % After full trial loop, store 1 row per (TrialID, MoveType)
+    if ~isempty(repDurAll)
+        RepSummaryTbl = [RepSummaryTbl; ...
+            table(string(coreID), string(moveIndex.MoveType{1}), ...
+            mean(repDurAll, 'omitnan'), mean(interDurAll, 'omitnan'), ...
+            'VariableNames', {'TrialID','MoveType','MeanRepDur','MeanInterRepDur'})];
+    end
+
+    %% Format outputs
+    fprintf('[DONE] Processed %d entries into kinTbl.\n', height(kinTbl));
+
+    % Save outputs
+    writetable(kinTbl, fullfile(output_kinAnalysisDir, sprintf('kinTbl_%s.csv', MoveDir_CaseID)));
+    writetable(RepSummaryTbl, fullfile(output_kinAnalysisDir, sprintf('RepSummaryTbl_%s.csv', MoveDir_CaseID)));
+
+    if ~isempty(SkippedTbl)
+        writetable(SkippedTbl, fullfile(output_kinAnalysisDir, sprintf('SkippedTbl_%s.csv', MoveDir_CaseID)));
+    end
+    fprintf('[SAVED] All feature tables written to: %s\n', output_kinAnalysisDir);
+
 end
 
-%% Format outputs
-fprintf('[DONE] Processed %d entries into kinTbl.\n', height(kinTbl));
-
-% Save outputs
-writetable(kinTbl, fullfile(output_kinAnalysisDir, sprintf('kinTbl_%s.csv', MoveDir_CaseID)));
-writetable(RepSummaryTbl, fullfile(output_kinAnalysisDir, sprintf('RepSummaryTbl_%s.csv', MoveDir_CaseID)));
-
-if ~isempty(SkippedTbl)
-    writetable(SkippedTbl, fullfile(output_kinAnalysisDir, sprintf('SkippedTbl_%s.csv', MoveDir_CaseID)));
-end
-fprintf('[SAVED] All feature tables written to: %s\n', output_kinAnalysisDir);
-
 end
 
-%% Helper: Reconstruct DLC Header
+% ======= Helper Functions =======
+
+%% Subfunction: Reconstruct DLC Header
 function dlcTable = readDLCwithReconstructedHeader(dlcFilePath)
 raw = readcell(dlcFilePath, 'NumHeaderLines', 0);
 markerNames = raw(2,2:end); coordTypes = raw(3,2:end);
@@ -193,7 +241,7 @@ opts.VariableNames = [{'frame'}, newColNames];
 dlcTable = readtable(dlcFilePath, opts);
 end
 
-%% Helper: Clean low-confidence values
+%% Subfunction: Clean low-confidence DLC values
 function dataOut = cleanLowConfidence(dataIn, threshold)
 dataOut = dataIn;
 vars = dataIn.Properties.VariableNames;
