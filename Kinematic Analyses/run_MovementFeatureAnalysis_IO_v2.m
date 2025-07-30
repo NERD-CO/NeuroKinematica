@@ -1,0 +1,303 @@
+function [kinTbl, RepSummaryTbl] = run_MovementFeatureAnalysis_IO_v2(CaseDate, CaseDate_hem, MoveDataDir, MoveDir_CaseID, fps, px_to_mm, zscoreKin)
+
+% run_MovementFeatureAnalysis_IO
+% Extract movement features from DLC-labeled kinematic CSVs using Movement Index files
+% Computes per-trial kinematic features for intraoperative motor recordings.
+
+% Inputs:
+% - CaseDate: e.g. '03_23_2023'
+% - CaseDate_hem: 'LSTN' or 'RSTN'
+% - MoveDataDir: full path to top-level 'Processed DLC' directory
+% - MoveDir_CaseID: subfolder with movement CSVs, e.g., 'IO_03_23_2023_LSTN'
+% - fps: video framerate (e.g. 100)
+% - px_to_mm: scale conversion (e.g. 2.109 mm/px)
+% - zscoreKin: true/false toggle to z-score output features
+
+% Outputs:
+%   kinTbl - trial-wise feature table with MeanAmp, StdAmp, MeanVel, StdVel
+%   RepSummaryTbl - summary of MeanRepDur & MeanInterRepDur per MoveType and trial ID
+
+% close all; clc;
+
+clearvars -except CaseDate CaseDate_hem ephys_offset; clc;
+
+%% Directory Setup
+
+curPC = getenv('COMPUTERNAME');
+switch curPC
+    case 'DESKTOP-I5CPDO7'
+        IO_DataDir = 'X:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
+    otherwise
+        IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
+end
+
+% Define MoveData dirs
+MoveDir_CaseID = 'IO_03_23_2023_LSTN';
+MoveDataDir = fullfile(IO_DataDir, 'Processed DLC');
+fprintf('[INFO] Running movement feature analysis for: %s\n', MoveDir_CaseID);
+
+% Define MoveData subdirs
+caseDir = fullfile(MoveDataDir, MoveDir_CaseID);
+vidDir  = fullfile(caseDir, 'video folder');
+csvDir  = fullfile(caseDir, 'csv folder');
+
+moveFiles = dir(fullfile(vidDir, '*Move*.csv'));
+fprintf('[INFO] Found %d Move Index files\n', numel(moveFiles));
+
+
+%% Define output dir
+output_kinAnalysisDir = fullfile(IO_DataDir, 'Kinematic Analyses', MoveDir_CaseID);
+if ~exist(output_kinAnalysisDir, 'dir')
+    mkdir(output_kinAnalysisDir);
+end
+
+% Initialize output storage containers
+kinTbl = table();
+RepSummaryTbl = table();   % For storing per trial+type repetition durations
+SkippedTbl = table();      % For logging short/failed peak trials
+
+%% Sampling rates and Calibration
+
+AO_spike_fs = 44000; % MER sampling rate
+fps = 100; % IO video frame rate
+
+% calibration / conversion metric
+px_to_mm      = 2.109; % distance conversion factor
+
+% update to calibration-image based method later
+% % Load checkerboard image
+% I = imread('calibration_frame.png');
+% [imagePoints, boardSize] = detectCheckerboardPoints(I);
+% squareSize_mm = 25.4;
+% pixels_to_mm = squareSize_mm; % assuming 1 square in image = 25.4 mm
+%
+% % Or estimate from image width:
+% avg_square_px = mean(diff(imagePoints(:,1)));
+% pixels_to_mm = squareSize_mm / avg_square_px;
+
+
+%% Main Loop over movement trials
+
+for i = 1:numel(moveFiles)
+    moveFile = moveFiles(i).name;
+    [~, basePrefix, ~] = fileparts(moveFile);
+    tokens = regexp(basePrefix, '(20\d{6}_[bct]\d+_d\d+p\d+_session\d+)', 'tokens');
+    if isempty(tokens), continue; end
+    coreID = tokens{1}{1};
+
+    dlcMatch = dir(fullfile(csvDir, [coreID, '*DLC*.csv']));
+    if isempty(dlcMatch), warning('[SKIP] DLC CSV not found for %s', basePrefix); continue; end
+
+    try
+        moveIndex = readtable(fullfile(vidDir, moveFile));
+        moveIndex = moveIndex(moveIndex.BeginF > 0 & moveIndex.EndF > 0, :);
+        rawDLC = readDLCwithReconstructedHeader(fullfile(csvDir, dlcMatch(1).name));
+        rawDLC = cleanLowConfidence(rawDLC, 0.6);
+
+        preferredMarkers = {'PalmBase', 'fTip1','fTip2','fTip3','fTip4','fTip5'}; % update / change back to MH PCs
+        markerFound = false;
+        for k = 1:length(preferredMarkers)
+            xVar = sprintf('%s_x', preferredMarkers{k});
+            yVar = sprintf('%s_y', preferredMarkers{k});
+            if all(ismember({xVar, yVar}, rawDLC.Properties.VariableNames))
+                X = rawDLC.(xVar); Y = rawDLC.(yVar);
+                markerUsed = preferredMarkers{k}; markerFound = true; break;
+            end
+        end
+        if ~markerFound, warning('[SKIP] No valid marker found in: %s', moveFile); continue; end
+
+        dist_mm = sqrt(diff(X).^2 + diff(Y).^2) * px_to_mm;
+        time_sec = (1:length(dist_mm)) / fps;
+        smoothed_data = smoothdata(dist_mm, 'gaussian', 20);
+
+        uniqueMoveTypes = unique(moveIndex.MoveType);
+        for m = 1:numel(uniqueMoveTypes)
+            moveType = uniqueMoveTypes{m};
+            moveSubset = moveIndex(strcmpi(moveIndex.MoveType, moveType), :);
+
+            allReps = table();  % store per-rep kinematic metrics
+            repDurAll = []; interDurAll = []; velAll = []; ampAll = [];
+
+            firstFrame = moveSubset.BeginF(1);
+            lastFrame = min(moveSubset.EndF(end), length(smoothed_data));
+            MovSeg = smoothed_data(firstFrame:lastFrame);
+
+            % Time vector for this segment
+            MoveSeg_t = time_sec(firstFrame:lastFrame);
+
+            % Ensure MinPeakDistance is valid
+            range_t = range(MoveSeg_t);
+            minDist_sec_default = min(0.12, 0.5 * range_t);
+            minDist_sec = max(0.01, minDist_sec_default);  % ensure reasonable floor
+
+            % Set default values
+            minProm = std(MovSeg) * 0.4;
+            minHeight = mean(MovSeg) + std(MovSeg) * 0.2;
+            minDist = minDist_sec;
+
+            % Determine findpeaks parameters based on MoveType
+            switch upper(strrep(moveType, ' ', ''))  % normalize input
+                case {'HANDOC', 'HAND_OPEN_CLOSE'}
+                    minProm = std(MovSeg) * 0.4;
+                    minHeight = mean(MovSeg) + std(MovSeg) * 0.3;
+                    minDist = minDist_sec;
+
+                case {'HANDPS', 'HAND_PRONATE_SUPINATE'}
+                    minProm = std(MovSeg) * 0.3;
+                    minHeight = mean(MovSeg) + std(MovSeg) * 0.2;
+                    minDist = minDist_sec * 0.75;
+
+                case {'ARMEF', 'ARM_EXTENSION_FLEXION'}
+                    minProm = std(MovSeg) * 0.2;
+                    minHeight = mean(MovSeg) + std(MovSeg);
+                    minDist = minDist_sec * 1.2;
+
+                case {'REST'}
+                    minProm = std(MovSeg) * 0.5;
+                    minHeight = mean(MovSeg) + std(MovSeg) * 0.4;
+                    minDist = minDist_sec;
+
+                otherwise
+                    warning('Unknown MoveType: %s. Using default thresholds.', moveType);
+                    minProm = std(MovSeg) * 0.4;
+                    minDist = minDist_sec;
+            end
+
+
+            % Run peak detection: findpeaks
+            [pks, locs, widths, proms] = findpeaks(MovSeg, MoveSeg_t, ...
+                'MinPeakProminence', minProm, ...
+                'MinPeakHeight', minHeight, ...
+                'MinPeakDistance', minDist, Annotate ='extents');
+
+            if isempty(pks), continue; end
+
+            ampAll = [ampAll, pks(:)'];
+            % vel = pks ./ (widths / fps);
+            vel = pks ./ widths;  % mm/s
+            velAll = [velAll, vel(:)'];
+            repDur = diff(locs) / fps;
+            interDur = repDur(1:end-1);
+            repDurAll = [repDurAll, repDur(:)'];
+            interDurAll = [interDurAll, interDur(:)'];
+
+            % Plot once per MoveType per trial
+            fig = figure('Visible','off');
+            plot(MoveSeg_t, MovSeg, 'k'); hold on;
+            plot(locs, pks, 'ro');
+            xlabel('Time (s)'); ylabel('Displacement (mm)');
+            title(sprintf('%s - %s', coreID, moveType));
+            saveas(fig, fullfile(output_kinAnalysisDir, sprintf('%s_%s_peaks_summary.png', coreID, moveType)));
+            close(fig);
+
+            % Save per-repetition metrics (optional)
+            for j = 1:height(moveSubset)
+                beginF = moveSubset.BeginF(j); endF = min(moveSubset.EndF(j), length(smoothed_data));
+                MovSeg_j = smoothed_data(beginF:endF);
+                MoveSeg_tj = time_sec(beginF:endF);
+
+                % Per-rep peak detection thresholds (same as segment-level)
+                range_tj = range(MoveSeg_tj);
+                minDist_sec_rep = min(0.10, 0.5 * range_tj);
+                minDist_sec_rep = max(0.01, minDist_sec_rep);
+                switch upper(moveType)
+                    case 'HAND OC'
+                        minProm = std(MovSeg_j) * 0.4;
+                        % minHeight = mean(MovSeg_j) + std(MovSeg_j) * 0.3;
+                        minDist = minDist_sec_rep;
+
+                    case 'HAND PS'
+                        minProm = std(MovSeg_j) * 0.3;
+                        % minHeight = mean(MovSeg_j) + std(MovSeg_j) * 0.2;
+                        minDist = minDist_sec_rep * 0.75;
+
+                    case 'ARM EF'
+                        minProm = std(MovSeg_j) * 0.2;
+                        % minHeight = mean(MovSeg_j) + std(MovSeg_j) * 0.1;
+                        minDist = minDist_sec_rep * 0.9;
+
+                    case 'REST'
+                        minProm = std(MovSeg_j) * 0.5;
+                        % minHeight = mean(MovSeg_j) + std(MovSeg_j) * 0.4;
+                        minDist = minDist_sec_rep;
+
+                    otherwise
+                        minProm = std(MovSeg_j) * 0.4;
+                        % minHeight = mean(MovSeg_j) + std(MovSeg_j) * 0.2;
+                        minDist = minDist_sec_rep;
+                end
+
+                % Run peak detection: findpeaks
+                [pks_j, ~, widths_j, ~] = findpeaks(MovSeg_j, MoveSeg_tj, ...
+                    'MinPeakProminence', minProm, ...
+                    'MinPeakDistance', minDist);
+
+                if isempty(pks_j), continue; end
+                vel_j = pks_j ./ widths_j;  % mm/s
+                valid_vel_j = vel_j(isfinite(vel_j) & ~isnan(vel_j));
+
+                meanAmp = mean(pks_j, 'omitnan');
+                stdAmp = std(pks_j, 'omitnan');
+                meanVel = mean(valid_vel_j, 'omitnan');
+                stdVel = std(valid_vel_j, 'omitnan');
+
+                % Ensure scalar fallback
+                if isempty(meanAmp), meanAmp = NaN; end
+                if isempty(stdAmp), stdAmp = NaN; end
+                if isempty(meanVel), meanVel = NaN; end
+                if isempty(stdVel), stdVel = NaN; end
+
+                kinTbl = [kinTbl; table(string(coreID), moveSubset.MoveN(j), string(moveType), ...
+                    beginF, endF, meanAmp, stdAmp, meanVel, stdVel, ...
+                    'VariableNames', {'TrialID','MoveN','MoveType','BeginF','EndF','MeanAmp','StdAmp','MeanVel','StdVel'})];
+
+            end
+
+            % Store summary metrics per MoveType
+            RepSummaryTbl = [RepSummaryTbl; table(string(coreID), string(moveType), ...
+                mean(ampAll,'omitnan'), std(ampAll,'omitnan'), ...
+                mean(velAll,'omitnan'), std(velAll,'omitnan'), ...
+                mean(repDurAll,'omitnan'), std(repDurAll,'omitnan'), ...
+                mean(interDurAll,'omitnan'), std(interDurAll,'omitnan'), ...
+                'VariableNames', {'TrialID','MoveType','MeanAmp','StdAmp','MeanVel','StdVel', ...
+                'MeanRepDur','StdRepDur','MeanInterRepDur','StdInterRepDur'})];
+        end
+
+    catch ME
+        warning('[ERROR] %s: %s', basePrefix, ME.message);
+        continue;
+    end
+end
+
+% Write output tables
+writetable(kinTbl, fullfile(output_kinAnalysisDir, sprintf('kinTbl_%s.csv', MoveDir_CaseID)));
+writetable(RepSummaryTbl, fullfile(output_kinAnalysisDir, sprintf('RepSummaryTbl_%s.csv', MoveDir_CaseID)));
+if ~isempty(SkippedTbl)
+    writetable(SkippedTbl, fullfile(output_kinAnalysisDir, sprintf('SkippedTbl_%s.csv', MoveDir_CaseID)));
+end
+fprintf('[SAVED] All tables written to: %s\n', output_kinAnalysisDir);
+end
+
+%% Helper: DLC Header Reconstruction
+function dlcTable = readDLCwithReconstructedHeader(dlcFilePath)
+raw = readcell(dlcFilePath, 'NumHeaderLines', 0);
+markerNames = raw(2,2:end); coordTypes = raw(3,2:end);
+newColNames = strcat(markerNames, "_", coordTypes);
+newColNames = matlab.lang.makeValidName(newColNames, 'ReplacementStyle','delete');
+opts = detectImportOptions(dlcFilePath, 'NumHeaderLines', 3);
+opts.VariableNames = [{'frame'}, newColNames];
+dlcTable = readtable(dlcFilePath, opts);
+end
+
+%% Helper: Remove Low-Confidence Points
+function dataOut = cleanLowConfidence(dataIn, threshold)
+dataOut = dataIn;
+vars = dataIn.Properties.VariableNames;
+for i = 1:3:length(vars)
+    if i+2 > numel(vars), break; end
+    conf = dataIn{:, i+2};
+    lowConf = conf < threshold;
+    dataOut{lowConf, i} = NaN;
+    dataOut{lowConf, i+1} = NaN;
+end
+end

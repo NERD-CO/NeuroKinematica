@@ -201,7 +201,7 @@ for i = 1:numel(moveFiles)
         % if isempty(velMean), velMean = NaN; end
         % if isempty(velStd), velStd = NaN; end
 
-        disp([ampMean, ampStd, velMean, velStd])
+        % disp([ampMean, ampStd, velMean, velStd])
 
         % Store trial-wise metrics
         kinTbl = [kinTbl; ...
@@ -235,7 +235,7 @@ for i = 1:numel(moveFiles)
             'VariableNames', {'TrialID','MoveType','MeanRepDur','MeanInterRepDur'})];
     end
 
-    %% Format outputs
+    % Format outputs
     fprintf('[DONE] Processed %d entries into kinTbl.\n', height(kinTbl));
 
     % Save outputs
