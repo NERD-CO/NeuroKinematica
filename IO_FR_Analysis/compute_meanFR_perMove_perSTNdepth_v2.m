@@ -18,9 +18,9 @@ Subject_AO = readtable('Subject_AO.xlsx');
 
 %% Specify Case
 
-CaseDate = '03_23_2023'; 
+CaseDate = '06_08_2023_bilateral'; 
 % '03_23_2023'; 
-'05_18_2023_b_bilateral';
+%'05_18_2023_b_bilateral';
 
 case_ID = CaseDate;
 Case_DataDir = fullfile(IO_DataDir, CaseDate);

@@ -1,4 +1,4 @@
-function [kinTbl, RepSummaryTbl] = run_MovementFeatureAnalysis_IO_v2(CaseDate, CaseDate_hem, MoveDataDir, MoveDir_CaseID, fps, px_to_mm, zscoreKin)
+function [kinTbl, kinSummaryTbl] = run_MovementFeatureAnalysis_IO_v2(IO_DataDir, MoveDataDir, MoveDir_CaseID)
 
 % run_MovementFeatureAnalysis_IO
 % Extract movement features from DLC-labeled kinematic CSVs using Movement Index files
@@ -9,43 +9,26 @@ function [kinTbl, RepSummaryTbl] = run_MovementFeatureAnalysis_IO_v2(CaseDate, C
 % - CaseDate_hem: 'LSTN' or 'RSTN'
 % - MoveDataDir: full path to top-level 'Processed DLC' directory
 % - MoveDir_CaseID: subfolder with movement CSVs, e.g., 'IO_03_23_2023_LSTN'
-% - fps: video framerate (e.g. 100)
-% - px_to_mm: scale conversion (e.g. 2.109 mm/px)
 % - zscoreKin: true/false toggle to z-score output features
 
 % Outputs:
 %   kinTbl - trial-wise feature table with MeanAmp, StdAmp, MeanVel, StdVel
-%   RepSummaryTbl - summary of MeanRepDur & MeanInterRepDur per MoveType and trial ID
+%   kinSummaryTbl - summary of MeanRepDur & MeanInterRepDur per MoveType and trial ID
 
-% close all; clc;
-
-clearvars -except CaseDate CaseDate_hem ephys_offset; clc;
-
-%% Directory Setup
-
-curPC = getenv('COMPUTERNAME');
-switch curPC
-    case 'DESKTOP-I5CPDO7'
-        IO_DataDir = 'X:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
-    otherwise
-        IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
-end
-
-% Define MoveData dirs
-MoveDir_CaseID = 'IO_03_23_2023_LSTN';
-MoveDataDir = fullfile(IO_DataDir, 'Processed DLC');
 fprintf('[INFO] Running movement feature analysis for: %s\n', MoveDir_CaseID);
 
-% Define MoveData subdirs
+%% Define MoveData subdirs
+
 caseDir = fullfile(MoveDataDir, MoveDir_CaseID);
-vidDir  = fullfile(caseDir, 'video folder');
-csvDir  = fullfile(caseDir, 'csv folder');
+vidDir  = fullfile(caseDir, 'video folder'); % Contains DLC-labeled videos + Movement Index CSVs
+csvDir  = fullfile(caseDir, 'csv folder'); % Contains Kinematic Timeseries data
 
 moveFiles = dir(fullfile(vidDir, '*Move*.csv'));
 fprintf('[INFO] Found %d Move Index files\n', numel(moveFiles));
 
 
 %% Define output dir
+
 output_kinAnalysisDir = fullfile(IO_DataDir, 'Kinematic Analyses', MoveDir_CaseID);
 if ~exist(output_kinAnalysisDir, 'dir')
     mkdir(output_kinAnalysisDir);
@@ -53,16 +36,18 @@ end
 
 % Initialize output storage containers
 kinTbl = table();
-RepSummaryTbl = table();   % For storing per trial+type repetition durations
-SkippedTbl = table();      % For logging short/failed peak trials
+kinSummaryTbl = table();   % For storing per trial+type repetition durations
+% SkippedTbl = table();      % For logging short/failed peak trials
+SkippedTbl = table([], [], [], ...
+    'VariableNames', {'TrialID','FileName','Reason'});
+
 
 %% Sampling rates and Calibration
 
-AO_spike_fs = 44000; % MER sampling rate
 fps = 100; % IO video frame rate
 
 % calibration / conversion metric
-px_to_mm      = 2.109; % distance conversion factor
+px_to_mm = 2.109; % distance conversion factor
 
 % update to calibration-image based method later
 % % Load checkerboard image
@@ -80,13 +65,38 @@ px_to_mm      = 2.109; % distance conversion factor
 
 for i = 1:numel(moveFiles)
     moveFile = moveFiles(i).name;
-    [~, basePrefix, ~] = fileparts(moveFile);
-    tokens = regexp(basePrefix, '(20\d{6}_[bct]\d+_d\d+p\d+_session\d+)', 'tokens');
-    if isempty(tokens), continue; end
-    coreID = tokens{1}{1};
 
-    dlcMatch = dir(fullfile(csvDir, [coreID, '*DLC*.csv']));
-    if isempty(dlcMatch), warning('[SKIP] DLC CSV not found for %s', basePrefix); continue; end
+    % Extract base name of moveFiles (Movement Index CSVs in vidDir)
+    [~, basePrefix, ~] = fileparts(moveFile);
+    % fprintf('[CHECK] Processing: %s\n', moveFile);
+    % disp(basePrefix);
+
+    % Attempt to extract coreID using two regex patterns
+    tokensA = regexp(basePrefix, '(20\d{6}_[bct]\d+_d\d+p\d+_session\d+)', 'tokens');
+    tokensB = regexp(basePrefix, '(20\d{6}_[LR]H_[bct]\d+_d\d+p\d+_session\d+)', 'tokens');
+
+    if ~isempty(tokensA)
+        coreID = tokensA{1}{1};
+    elseif ~isempty(tokensB)
+        coreID = tokensB{1}{1};
+    else
+        % warning('[SKIP] Could not extract coreID from: %s', basePrefix);
+        SkippedTbl = [SkippedTbl; {string(basePrefix), moveFile, "CoreID_Extraction_Failed"}];
+        continue;
+    end
+    % fprintf('[DEBUG] coreID extracted: %s\n', coreID);
+
+    %  Find matching DLC CSV
+    dlcMatch = dir(fullfile(csvDir, ['*' coreID '*DLC*.csv']));
+
+    if isempty(dlcMatch)
+        % warning('[SKIP] DLC CSV not found for coreID: %s', coreID);
+        SkippedTbl = [SkippedTbl; {string(coreID), moveFile, "DLC_Missing"}];
+        continue;
+    else
+        % fprintf('[MATCHED] DLC file: %s\n', dlcMatch(1).name);
+    end
+
 
     try
         moveIndex = readtable(fullfile(vidDir, moveFile));
@@ -94,20 +104,53 @@ for i = 1:numel(moveFiles)
         rawDLC = readDLCwithReconstructedHeader(fullfile(csvDir, dlcMatch(1).name));
         rawDLC = cleanLowConfidence(rawDLC, 0.6);
 
-        preferredMarkers = {'PalmBase', 'fTip1','fTip2','fTip3','fTip4','fTip5'}; % update / change back to MH PCs
+        % Define anatomical label data to extract
+        % preferredMarkers = {'PalmBase', 'MCP1', 'fTip1','fTip2','fTip3','fTip4','fTip5'}; % update / change to Morgan H's PCs
+        preferredMarkers = {casePCs_MH.ID}; % top 6 PCs
         markerFound = false;
+
+        % Initialize arrays to store X and Y positions for all markers
+        allX = [];
+        allY = [];
+
+        % Loop through each preferred marker
         for k = 1:length(preferredMarkers)
             xVar = sprintf('%s_x', preferredMarkers{k});
             yVar = sprintf('%s_y', preferredMarkers{k});
+
+            % Check if the marker exists in the data
             if all(ismember({xVar, yVar}, rawDLC.Properties.VariableNames))
-                X = rawDLC.(xVar); Y = rawDLC.(yVar);
-                markerUsed = preferredMarkers{k}; markerFound = true; break;
+                % Add the X and Y data for this marker to the arrays
+                allX = [allX, rawDLC.(xVar)];
+                allY = [allY, rawDLC.(yVar)];
+                markerFound = true;
             end
         end
-        if ~markerFound, warning('[SKIP] No valid marker found in: %s', moveFile); continue; end
+        % If no markers are found, skip this file
+        % if ~markerFound, warning('[SKIP] No valid marker found in: %s', moveFile); continue; end
+        if ~markerFound
+            % warning('[SKIP] No valid marker found in: %s', moveFile);
+            SkippedTbl = [SkippedTbl; {string(coreID), moveFile, "NoValidMarker"}]; continue;
+        end
 
-        dist_mm = sqrt(diff(X).^2 + diff(Y).^2) * px_to_mm;
+
+        % Compute the average X and Y positions across all preferred markers
+        avgLabels_X = mean(allX, 2);  % Mean across columns (markers)
+        avgLabels_Y = mean(allY, 2);  % Mean across columns (markers)
+
+        if all(isnan(avgLabels_X)) || all(isnan(avgLabels_Y))
+            warning('[SKIP] All marker data below confidence threshold in: %s', moveFile);
+            SkippedTbl = [SkippedTbl; {string(coreID), moveFile, "AllLowConf"}];
+            continue;
+        end
+
+        % Compute Euclidean distance between consecutive frames average X and Y dlc-label positions (in millimeters).
+        dist_mm = sqrt(diff(avgLabels_X).^2 + diff(avgLabels_Y).^2) * px_to_mm;
+
+        % Time vector
         time_sec = (1:length(dist_mm)) / fps;
+
+        % Smooth movement distance data using Gaussian filter (for viz)
         smoothed_data = smoothdata(dist_mm, 'gaussian', 20);
 
         uniqueMoveTypes = unique(moveIndex.MoveType);
@@ -127,13 +170,23 @@ for i = 1:numel(moveFiles)
 
             % Ensure MinPeakDistance is valid
             range_t = range(MoveSeg_t);
+            if range_t < 0.1
+                % warning('[SKIP] Movement segment too short in: %s - %s', coreID, moveType);
+                SkippedTbl = [SkippedTbl; {string(coreID), moveFile, "TooShort"}];
+                continue;
+            end
+
             minDist_sec_default = min(0.12, 0.5 * range_t);
             minDist_sec = max(0.01, minDist_sec_default);  % ensure reasonable floor
 
-            % Set default values
+            %  Set default parameters for findpeaks function
             minProm = std(MovSeg) * 0.4;
             minHeight = mean(MovSeg) + std(MovSeg) * 0.2;
             minDist = minDist_sec;
+
+            normalizedMoveType = upper(strrep(moveType, ' ', ''));
+            % fprintf('[DEBUG] MoveType: %s → Normalized: %s\n', moveType, normalizedMoveType);
+            % fprintf('[DEBUG] MoveTypes in %s: %s\n', moveFile, strjoin(unique(moveIndex.MoveType), ', '));
 
             % Determine findpeaks parameters based on MoveType
             switch upper(strrep(moveType, ' ', ''))  % normalize input
@@ -150,16 +203,17 @@ for i = 1:numel(moveFiles)
                 case {'ARMEF', 'ARM_EXTENSION_FLEXION'}
                     minProm = std(MovSeg) * 0.2;
                     minHeight = mean(MovSeg) + std(MovSeg);
-                    minDist = minDist_sec * 1.2;
+                    minDist = minDist_sec * 1.4;
 
                 case {'REST'}
                     minProm = std(MovSeg) * 0.5;
-                    minHeight = mean(MovSeg) + std(MovSeg) * 0.4;
+                    minHeight = mean(MovSeg) + std(MovSeg);
                     minDist = minDist_sec;
 
                 otherwise
                     warning('Unknown MoveType: %s. Using default thresholds.', moveType);
-                    minProm = std(MovSeg) * 0.4;
+                    minProm = minProm;
+                    minHeight = minHeight;
                     minDist = minDist_sec;
             end
 
@@ -170,10 +224,14 @@ for i = 1:numel(moveFiles)
                 'MinPeakHeight', minHeight, ...
                 'MinPeakDistance', minDist, Annotate ='extents');
 
-            if isempty(pks), continue; end
+            % if isempty(pks), continue; end
+            if isempty(pks)
+                % warning('[SKIP] No peaks found for: %s - %s', coreID, moveType);
+                SkippedTbl = [SkippedTbl; {string(coreID), moveFile, "NoPeaksDetected"}];
+                continue;
+            end
 
             ampAll = [ampAll, pks(:)'];
-            % vel = pks ./ (widths / fps);
             vel = pks ./ widths;  % mm/s
             velAll = [velAll, vel(:)'];
             repDur = diff(locs) / fps;
@@ -190,7 +248,7 @@ for i = 1:numel(moveFiles)
             saveas(fig, fullfile(output_kinAnalysisDir, sprintf('%s_%s_peaks_summary.png', coreID, moveType)));
             close(fig);
 
-            % Save per-repetition metrics (optional)
+            % Save per-repetition metrics
             for j = 1:height(moveSubset)
                 beginF = moveSubset.BeginF(j); endF = min(moveSubset.EndF(j), length(smoothed_data));
                 MovSeg_j = smoothed_data(beginF:endF);
@@ -254,7 +312,7 @@ for i = 1:numel(moveFiles)
             end
 
             % Store summary metrics per MoveType
-            RepSummaryTbl = [RepSummaryTbl; table(string(coreID), string(moveType), ...
+            kinSummaryTbl = [kinSummaryTbl; table(string(coreID), string(moveType), ...
                 mean(ampAll,'omitnan'), std(ampAll,'omitnan'), ...
                 mean(velAll,'omitnan'), std(velAll,'omitnan'), ...
                 mean(repDurAll,'omitnan'), std(repDurAll,'omitnan'), ...
@@ -269,16 +327,40 @@ for i = 1:numel(moveFiles)
     end
 end
 
+% Add Completion Message and Summary Trial Counts
+% fprintf('[INFO] Movement feature analysis complete.\n');
+fprintf('[INFO] %d movement trials summarized in kinTbl.\n', height(kinTbl));
+fprintf('[INFO] %d trial-movement combinations summarized in kinSummaryTbl.\n', height(kinSummaryTbl));
+
+% Add a Warning if Output Tables Are Still Empty
+if isempty(kinTbl)
+    warning('[WARN] kinTbl is empty. Check DLC marker quality or peak detection thresholds.');
+end
+if isempty(kinSummaryTbl)
+    warning('[WARN] kinSummaryTbl is empty. May indicate all movements were skipped or failed peak detection.');
+end
+
 % Write output tables
 writetable(kinTbl, fullfile(output_kinAnalysisDir, sprintf('kinTbl_%s.csv', MoveDir_CaseID)));
-writetable(RepSummaryTbl, fullfile(output_kinAnalysisDir, sprintf('RepSummaryTbl_%s.csv', MoveDir_CaseID)));
-if ~isempty(SkippedTbl)
-    writetable(SkippedTbl, fullfile(output_kinAnalysisDir, sprintf('SkippedTbl_%s.csv', MoveDir_CaseID)));
-end
+writetable(kinSummaryTbl, fullfile(output_kinAnalysisDir, sprintf('kinSummaryTbl_%s.csv', MoveDir_CaseID)));
+
+% fprintf('[DEBUG] SkippedTbl has %d entries\n', height(SkippedTbl));
+SkippedTbl = sortrows(SkippedTbl, {'Reason', 'TrialID'});
+disp(SkippedTbl)
+% if ~isempty(SkippedTbl)
+%     writetable(SkippedTbl, fullfile(output_kinAnalysisDir, sprintf('SkippedTbl_%s.csv', MoveDir_CaseID)));
+% end
+SkippedTblPath = fullfile(output_kinAnalysisDir, sprintf('SkippedTbl_%s.csv', MoveDir_CaseID));
+writetable(SkippedTbl, SkippedTblPath);
+fprintf('[SAVED] SkippedTbl written to: %s\n', SkippedTblPath);
+
+
 fprintf('[SAVED] All tables written to: %s\n', output_kinAnalysisDir);
+
 end
 
 %% Helper: DLC Header Reconstruction
+
 function dlcTable = readDLCwithReconstructedHeader(dlcFilePath)
 raw = readcell(dlcFilePath, 'NumHeaderLines', 0);
 markerNames = raw(2,2:end); coordTypes = raw(3,2:end);
@@ -290,6 +372,7 @@ dlcTable = readtable(dlcFilePath, opts);
 end
 
 %% Helper: Remove Low-Confidence Points
+
 function dataOut = cleanLowConfidence(dataIn, threshold)
 dataOut = dataIn;
 vars = dataIn.Properties.VariableNames;

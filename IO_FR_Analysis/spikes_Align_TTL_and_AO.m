@@ -25,7 +25,7 @@ Subject_AO = readtable('Subject_AO.xlsx');
 % Isolate specific CaseDate / studyID (StudyNum in Subject_AO csv)
 % CaseDate = '03_09_2023'; % studyID = 1, ptID 1
 
-CaseDate = '03_23_2023'; % studyID = 2, ptID 2    * % Use for INS 2025
+% CaseDate = '03_23_2023'; % studyID = 2, ptID 2    * % Use for INS 2025
 % CaseDate = '04_05_2023'; % studyID = 3, ptID 2    * % Use for INS 2025
 
 % CaseDate = '04_13_2023_bilateral'; % studyID = 4(L), 5(R), ptID 3
@@ -38,11 +38,13 @@ CaseDate = '03_23_2023'; % studyID = 2, ptID 2    * % Use for INS 2025
 
 % CaseDate = '05_31_2023';  % studyID = 10, ptID 6
 
-% CaseDate = '06_08_2023_bilateral'; % studyID = 11(L), 12(R), ptID = 7
+CaseDate = '06_08_2023_bilateral'; % studyID = 11(L), 12(R), ptID = 7
 
 % CaseDate = '07_13_2023_bilateral'; % studyID = 15(L), 16(R), ptID = 9
 
-% define case-specific data directory
+
+%% Define case-specific data directory
+
 Case_DataDir = [IO_DataDir, filesep, CaseDate];
 
 % Define directories where case-specific IO ephys data are located
@@ -93,7 +95,7 @@ cd(MoveDataDir)
 % % Specify case ID
 % Move_CaseID = 'IO_03_09_2023_RSTN'; % studyID = 1, ptID 1 (processed, incomplete case)
 
- Move_CaseID = 'IO_03_23_2023_LSTN'; % studyID = 2, ptID 2 (processed, complete case) *
+% Move_CaseID = 'IO_03_23_2023_LSTN'; % studyID = 2, ptID 2 (processed, complete case) *
 % Move_CaseID = 'IO_04_05_2023_RSTN'; % studyID = 3, ptID 2 (processed, complete case) *
 
 % Move_CaseID = 'IO_04_13_2023_LSTN'; % studyID = 4, ptID 3 (processed, complete case) 
@@ -107,7 +109,7 @@ cd(MoveDataDir)
 
 % Move_CaseID = 'IO_05_31_2023_LSTN'; % studyID = 10, ptID 6
 
-% Move_CaseID ='IO_06_08_2023_LSTN'; % studyID = 11, ptID = 7 (processed, complete case) 
+Move_CaseID ='IO_06_08_2023_LSTN'; % studyID = 11, ptID = 7 (processed, complete case) 
 % Move_CaseID ='IO_06_08_2023_RSTN'; % studyID = 12, ptID = 7 (processed, incomplete case)
 
 % Move_CaseID ='IO_07_13_2023_LSTN'; % studyID = 15, ptID = 9  
