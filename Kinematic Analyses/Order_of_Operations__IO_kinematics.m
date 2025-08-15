@@ -22,7 +22,7 @@ cd(IO_procDLC);
 % Define casedate and hemisphere:
 
 % casedate_hem = 'IO_03_09_2023_RSTN';  
- casedate_hem = 'IO_03_23_2023_LSTN';
+% casedate_hem = 'IO_03_23_2023_LSTN';
 % casedate_hem = 'IO_04_05_2023_RSTN';
 % casedate_hem = 'IO_05_11_2023_LSTN';
 % casedate_hem = 'IO_06_08_2023_LSTN';
@@ -65,9 +65,7 @@ cd(Case_KinDataDir)
 
 %% 4b) Process and visualize movement timeseries data - v2
 
-run_MovementProcessing_IO_v2(Case_KinDataDir, casedate_hem)
-
-%%
+% run_MovementProcessing_IO_v2(Case_KinDataDir, casedate_hem)
 
 %% 4c) Process and visualize movement timeseries data - jat
 

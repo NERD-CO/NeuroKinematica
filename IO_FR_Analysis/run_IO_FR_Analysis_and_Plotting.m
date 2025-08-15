@@ -66,6 +66,8 @@ load(spk_case,'All_SpikesPerMove_Tbl');
 if strcmp(char(CaseDate), '03_23_2023')
     % All_SpikesPerMove_Tbl = All_SpikesPerMove_Tbl(158:end,1:13); % Comment or adjust as needed
     All_SpikesPerMove_Tbl = All_SpikesPerMove_Tbl(168:end,1:13);
+elseif strcmp(char(CaseDate), '04_25_2023')
+    All_SpikesPerMove_Tbl = [All_SpikesPerMove_Tbl(1:68,1:11); All_SpikesPerMove_Tbl(133:197,1:11); All_SpikesPerMove_Tbl(266:329,1:11)];
 end
 
 

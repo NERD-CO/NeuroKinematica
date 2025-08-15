@@ -25,13 +25,13 @@ end
 
 %% Inputs:
 
-CaseDate = '03_23_2023'; % Adjust as needed
+CaseDate = '04_05_2023'; % Adjust as needed
 % '03_23_2023';
 % '04_05_2023';
 % '05_18_2023_b_bilateral';
 % '06_08_2023_bilateral';
 
-MoveDir_CaseID = 'IO_03_23_2023_LSTN'; % Adjust as needed
+MoveDir_CaseID = 'IO_04_05_2023_RSTN'; % Adjust as needed
 % 'IO_03_23_2023_LSTN';
 % 'IO_04_05_2023_RSTN';
 % 'IO_05_18_2023_b_LSTN';
@@ -74,16 +74,10 @@ fprintf('[INFO] Loading movement data from: %s\n', MoveDataDir);
 
 [kinTbl, kinSummaryTbl] = run_MovementFeatureAnalysis_IO_v2(IO_DataDir, MoveDataDir, MoveDir_CaseID);
 
-% if isempty(kinTbl)
-%     fprintf('[DEBUG] Loaded kinTbl is empty. Check for low-confidence marker data or unrecognized MoveTypes.\n');
-% else
-%     summary(kinTbl);
-% end
-
 
 %% Run run_FR_KinematicCorr
 
-% run_FR_KinematicCorr(IO_DataDir, ephysTbl_Dir, ephys_offset, MoveDir_CaseID, FR_SummaryTbl, kinSummaryTbl)
+merge_FRKin_SummaryTbls(IO_DataDir, ephysTbl_Dir, ephys_offset, MoveDir_CaseID, FR_SummaryTbl, kinSummaryTbl)
 
 
 %% Run aggregate_FRKinematic_Correlations

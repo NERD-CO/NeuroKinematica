@@ -13,7 +13,7 @@
 % sheet 6: BCI 2025
 
 % 2) Subject_AO.xlsx (in Synology ... \\som-nsg-r-ao1)
-% update as sheet 3 in (1) is filled out
+% sheet 3 in (1) is filled out
 
 
 %% MATLAB workflow
@@ -26,25 +26,29 @@
     % > [mat_filelist, ACC_check] = save_IO_mat_filenames(studyID, IO_DataDir); (1)
     % > save_IO_mat_ProcFiles(mat_filelist, Case_DataDir, ACC_check); (2)
 
+
 % Spike Clustering (GitHub\NeuroKinematica\SpikeAssessor_ER)
 % > CluterReviewer.mlapp
 
-% FR Analysis
+
+% FR Analysis (GitHub\NeuroKinematica\IO_FR_Analysis)
 % > spikes_Align_TTL_and_AO
 % > compute_meanFR_perMove_perSTNdepth_v2
+
 
 % FR Raster Plotting
 
 
-% LFP Analyisis
-
 % LFP Analysis
+
+
+
+
 
 
 %% Unfamiliar stuff in AO_Processing repo - review with JAT
 
 % > updateTrialInformation (similar to trial_ID_determination - choose/use  1)
-
 % > script2assess_updateTrialInfo
 
 % > matfileTTLcheck

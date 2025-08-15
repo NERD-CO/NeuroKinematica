@@ -8,7 +8,7 @@ cd(DLC_Processing_Dir)
 
 %% Input - define case
 
-casID = 'IO_06_08_2023_LSTN';
+casID = 'IO_05_31_2023_LSTN';
 Case_DataDir = [DLC_Processing_Dir, filesep, casID];
 
 
@@ -49,6 +49,7 @@ end
 % 04_05_2023 - RSTN (P2, StudyID 3)
 % 04_13_2023 - LSTN (P3, StudyID 4)
 % 05_18_2023_b - LSTN
+% 05_31_2023 - LSTN
 
 
 %% completed Clin (Thesis Aim 2, v1) cases 

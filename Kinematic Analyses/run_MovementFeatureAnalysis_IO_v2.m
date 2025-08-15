@@ -105,8 +105,8 @@ for i = 1:numel(moveFiles)
         rawDLC = cleanLowConfidence(rawDLC, 0.6);
 
         % Define anatomical label data to extract
-        % preferredMarkers = {'PalmBase', 'MCP1', 'fTip1','fTip2','fTip3','fTip4','fTip5'}; % update / change to Morgan H's PCs
-        preferredMarkers = {casePCs_MH.ID}; % top 6 PCs
+        preferredMarkers = {'PalmBase', 'MCP1', 'fTip1','fTip2','fTip3','fTip4','fTip5'}; % update / change to Morgan H's PCs
+        % preferredMarkers = {casePCs_MH.ID}; % top 6 PCs
         markerFound = false;
 
         % Initialize arrays to store X and Y positions for all markers
