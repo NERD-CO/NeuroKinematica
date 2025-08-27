@@ -32,7 +32,7 @@ ephysTbl_Dir = [Case_DataDir, filesep, 'DLC_Ephys'];                        % di
 %% Define case-specific directories for kinematic data and movement indices
 
 % define kinematic data directory
-MoveDataDir = [IO_DataDir, filesep, 'Kinematic Analyses'];
+MoveDataDir = [IO_DataDir, filesep, 'Processed DLC'];
 
 % specify case ID
 % Move_CaseID = 'IO_03_09_2023_RSTN'; % studyID = 1
@@ -141,8 +141,6 @@ end
 
 
 %% Load all LFPs per Movement Tbl %%% refine this block 
-
-addpath 'C:\Users\erinr\OneDrive\Documents\GitHub\NeuroKinematica\AO_Processing'
 
 cd(ephysTbl_Dir)
 

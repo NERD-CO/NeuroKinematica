@@ -2,7 +2,7 @@
 
 % Determine frames for video based on recording start
 
-mainDIR = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\DLC_LFP';
+mainDIR = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Clinical\Clin_LFP_DLC';
 
 casedate_hem = '09_12_2023_LSTN';
 

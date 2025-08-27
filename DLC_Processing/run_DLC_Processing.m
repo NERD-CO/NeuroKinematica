@@ -1,21 +1,12 @@
-function [] = run_DLC_Processing(Case_DataDir)
+function [] = run_DLC_Processing(MoveDataDir, DLCProc_caseID)
 
-% addpath C:\Users\erinr\OneDrive\Documents\GitHub\NeuroKinematica\DLC_Processing
 addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\DLC_Processing'
-
-DLC_Processing_Dir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\Processed DLC';
-cd(DLC_Processing_Dir)
-
-%% Input - define case
-
-casID = 'IO_05_31_2023_LSTN';
-Case_DataDir = [DLC_Processing_Dir, filesep, casID];
-
+cd(MoveDataDir)
 
 %% Define case-specific subfolders (csv = input; mat = output)
-
-csv_Loc = [Case_DataDir, filesep, 'csv folder'];
-mat_Loc = [Case_DataDir, filesep, 'mat folder'];
+csv_Loc = [DLCProc_caseID, filesep, 'csv folder'];
+mat_Loc = [DLCProc_caseID, filesep, 'mat folder'];
+vid_Loc = [DLCProc_caseID, filesep, 'video folder'];
 
 % change dir to case-specific csv folder
 cd(csv_Loc)
@@ -44,12 +35,19 @@ end
 % 06_08_2023 - LSTN
 % 06_08_2023 - RSTN
 
-% Batch 2
+% Batch 2:
 % 03_23_2023 - LSTN (P2, StudyID 2)
 % 04_05_2023 - RSTN (P2, StudyID 3)
 % 04_13_2023 - LSTN (P3, StudyID 4)
-% 05_18_2023_b - LSTN
-% 05_31_2023 - LSTN
+% IO_05_18_2023_b_LSTN
+
+% Batch 3:
+% IO_05_18_2023_a_RSTN
+% IO_05_31_2023_LSTN
+% IO_2023_07_06_LSTN
+% IO_2023_08_23_RSTN
+
+% Batch ...
 
 
 %% completed Clin (Thesis Aim 2, v1) cases 

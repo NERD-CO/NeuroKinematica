@@ -21,7 +21,7 @@ function [FR_SummaryTbl] = run_IO_FR_Analysis_and_Plotting(CaseDate, CaseDate_he
 AO_spike_fs = 44000; % MER sampling rate
 
 % FR Calculation Logic
-useActualDuration = false; % true = Option A, false = Option B
+useFullDuration = false; % true = Option A, false = Option B
 window_FR = [-0.05 0.45];  % Fixed window for Option B
 
 % Raster
@@ -33,7 +33,7 @@ depth_labels = {'dorsal STN','central STN','ventral STN'};
 depth_colors = [0 0.6 0; 0.6 0 0.8; 0 0.4 0.8];
 rest_color = [0.5 0.5 0.5];
 
-sorted_movements = {'HAND OC','HAND PS','ARM EF','REST'};
+sorted_moveTypes = {'HAND OC','HAND PS','ARM EF','REST'};
 active_movements = {'HAND OC','HAND PS','ARM EF'};
 
 fontTitle = 14; fontLabel = 12;
@@ -73,7 +73,7 @@ end
 
 %% Identify move types
 
-move_types = intersect(sorted_movements, unique(All_SpikesPerMove_Tbl.MoveType),'stable');
+move_types = intersect(sorted_moveTypes, unique(All_SpikesPerMove_Tbl.MoveType),'stable');
 hasREST = any(strcmp(move_types,'REST'));
 
 %% Initialize storage
@@ -115,7 +115,7 @@ for m = 1:numel(move_types)
             spike_list{end+1} = spkTimes;
 
             % Compute the firing rate for this trial (using the helper function `computeFR`)
-            FR = computeFR(spkTimes, useActualDuration, window_FR);
+            FR = computeFR(spkTimes, useFullDuration, window_FR);
 
             % Store the computed FR for this trial under its MoveTrialID
             if isKey(FR_per_MoveTrialID, moveTrialID)
@@ -151,8 +151,8 @@ end
 %% Plot Original + Rescaled Multi-Movement Raster
 
 multiRasterName = fullfile(figMultiDir, sprintf('MultiMovement_Raster_%s%s.png', CaseDate, ternary(~isempty(CaseDate_hem), ['_' CaseDate_hem], '')));
-plotMultiMovementRaster(allDepthSpikes, active_movements, depth_labels, depth_colors, multiRasterName, fontTitle, fontLabel, useActualDuration, window_FR);
-plotMultiMovementRasterRescaled(allDepthSpikes, active_movements, depth_labels, depth_colors, multiRasterName, fontTitle, fontLabel, useActualDuration, window_FR);
+plotMultiMovementRaster(allDepthSpikes, active_movements, depth_labels, depth_colors, multiRasterName, fontTitle, fontLabel, useFullDuration, window_FR);
+plotMultiMovementRasterRescaled(allDepthSpikes, active_movements, depth_labels, depth_colors, multiRasterName, fontTitle, fontLabel, useFullDuration, window_FR);
 fprintf('[INFO] Figure export complete: %s\n', figDir);
 
 
@@ -164,8 +164,8 @@ if hasREST
         figName = fullfile(figMultiDir, sprintf('REST_vs_%s_%s%s.png', matlab.lang.makeValidName(move_type), CaseDate, ternary(~isempty(CaseDate_hem), ['_' CaseDate_hem], '')));
 
         % Compute p-values and Cohen's d for REST vs Movement comparison
-        [pVals, cohenD_vals] = plotRestVsMoveRaster(restSpikes, allDepthSpikes(:,m), move_type, depth_labels, depth_colors, rest_color, figName, fontTitle, fontLabel, useActualDuration, window_FR);
-        plotRestVsMoveRasterRescaled(restSpikes, allDepthSpikes(:,m), move_type, depth_labels, depth_colors, rest_color, figName, fontTitle, fontLabel, useActualDuration, window_FR);
+        [pVals, cohenD_vals] = plotRestVsMoveRaster(restSpikes, allDepthSpikes(:,m), move_type, depth_labels, depth_colors, rest_color, figName, fontTitle, fontLabel, useFullDuration, window_FR);
+        plotRestVsMoveRasterRescaled(restSpikes, allDepthSpikes(:,m), move_type, depth_labels, depth_colors, rest_color, figName, fontTitle, fontLabel, useFullDuration, window_FR);
 
         % Store comparison stats (N_MoveTrials, N_RESTTrials, p-value, Cohen's d)
         for d = 1:3

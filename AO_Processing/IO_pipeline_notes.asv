@@ -42,14 +42,13 @@
 
 
 % FR Processing (GitHub\NeuroKinematica\IO_FR_Analysis)                     % in progress
-% Order_of_Op__FRKin_Processing
 % > spikes_Align_TTL_and_AO
 % > compute_meanFR_perMove_perSTNdepth_v2
 %%% consider combining the 2 scripts ^ into 1 function %%%
 
 
 % FR Analysis & Plotting (GitHub\NeuroKinematica\IO_FR_Analysis)            % in progress
-% > Order_of_Op__FRKinCorr
+% Order_of_Op__FRKinCorr
 
 
 % LFP Analysis

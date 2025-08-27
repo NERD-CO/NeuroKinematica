@@ -1,4 +1,4 @@
-%% Order of Operations - IO Kinematic Data Processing & Analyses
+%% Order of Operations - IO DLC Data Processing
 
 clear; clc;
 
@@ -40,6 +40,9 @@ DLCProc_caseID = [IO_procDLC, filesep, casedate_hem];
 
 %% 2) Run DLC Processing function
 
+DLCProc_dir = 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\DLC_Processing';
+cd(DLCProc_dir)
+
 % Convert DLC timeseries data per video from .csv to .mat
 run_DLC_Processing(IO_procDLC, DLCProc_caseID)
 
@@ -53,61 +56,21 @@ cd(MovIndexGUI_dir)
 % ER_DLC_MoveCheck_Dual_v4.mlapp
 
 
-%% Go to Order_of_Op_FRKinCorr script and run everything up to:
+%% Next Step
 
+% Go to Order_of_Op_FRKinCorr script 
 FRKin_dir = 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\IO_FR_Analysis';
 cd(FRKin_dir)
 
 % Order_of_Op_FRKinCorr
+
+% run everything up to:
 % [kinTbl, kinSummaryTbl] = run_MovementFeatureAnalysis_IO_v2(IO_DataDir, MoveDataDir, MoveDir_CaseID);
+
 
 
 %% Stats
 
-
-
-
-
-
-
-
-
-%% ========= Old stuff ===========
-
-%% 5) Generate Euc Indices
-
-% Movement_IO_EUC_index_v2
-
-%% 4) Define Kinematic processing/analysis function inputs
-
-cd(IO_kinematicData)
-
-% Define case-specific kinematic data dir
-Case_KinDataDir = [IO_kinematicData, filesep, casedate_hem];
-cd(Case_KinDataDir)
-
-
-%% 4a) Process and visualize movement timeseries data - v1
-
-% run_MovementProcessing_IO_v1(mainDir, casedate_hem)
-
-%% 4b) Process and visualize movement timeseries data - v2
-
-% run_MovementProcessing_IO_v2(Case_KinDataDir, casedate_hem)
-
-%% 4c) Process and visualize movement timeseries data - jat
-
-% run_MovementProcessing_IO_jatv1(mainDir, casedate_hem)
-
-
-%% 5) Optional: Process and visualize movement timeseries data cleaned by artifact rejection function
-
-% run_MovementProcessing_IO_artifactRejection(mainDir, casedate_hem)
-
-
-%% 6) stats
-
-% run_MovementStats_IO_v1(mainDir, casedate_hem)
 
 
 

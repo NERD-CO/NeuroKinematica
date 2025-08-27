@@ -1,6 +1,7 @@
 %% Order of Operations - FR-Kinematic Correlation Script
 
 clear; clc;
+addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\DLC_Processing'
 addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\IO_FR_Analysis'
 addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\Kinematic Analyses'
 
@@ -11,6 +12,8 @@ addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1
 % > compute_meanFR_perMove_perSTNdepth_v2
 % IO_plotting_vCombined(CaseDate, CaseDate_hem, ephys_offset)
 % [kinTbl, kinSummaryTbl] = run_MovementFeatureAnalysis_IO_v2(IO_DataDir, MoveDataDir, MoveDir_CaseID);
+% merge_FRKin_SummaryTbls(IO_DataDir, ephysTbl_Dir, ephys_offset, MoveDir_CaseID, FR_SummaryTbl, kinSummaryTbl)
+% aggregate_FRKinematic_Correlations(KinematicsDir, Ephys_Kin_Dir, FR_Kin_Dir)
 
 
 %% Directory Setup
@@ -22,6 +25,7 @@ switch curPCname
     otherwise
         IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
 end
+
 
 %% Inputs:
 
@@ -37,8 +41,10 @@ MoveDir_CaseID = 'IO_04_05_2023_RSTN'; % Adjust as needed
 % 'IO_05_18_2023_b_LSTN';
 % 'IO_06_08_2023_LSTN'
 
+
 ephys_offset = 1;
 
+% Data folder paths
 Case_DataDir = fullfile(IO_DataDir, CaseDate);
 ephysTbl_Dir = fullfile(Case_DataDir,'DLC_Ephys');
 MoveDataDir = fullfile(IO_DataDir, 'Processed DLC');
@@ -47,7 +53,7 @@ Ephys_Kin_Dir = fullfile(IO_DataDir, 'Ephys_Kinematics');
 FR_Kin_Dir = fullfile(Ephys_Kin_Dir, 'FR_Kinematic_Analyses');
 Case_FR_Kin = fullfile(FR_Kin_Dir, CaseDate); % case-specific results from run_FR_KinematicCorr saved here
 
-
+% Specify hemisphere in command window if bilateral
 isBilateral = contains(CaseDate,'bilateral','IgnoreCase',true);
 if isBilateral
     fprintf('[INFO] Bilateral case detected: %s\n',CaseDate);
