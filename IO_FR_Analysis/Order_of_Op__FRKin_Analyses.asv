@@ -8,8 +8,7 @@ addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1
 
 %% Functions in FR Analysis, and FR-Kinematic Correlation Pipeline
 
-% > spikes_Align_TTL_and_AO
-% > compute_meanFR_perMove_perSTNdepth_v2
+% compute_FRperMove_perSTNdepth(CaseDate, ephysTbl_Dir, All_SpikesPerMove_Tbl)
 % IO_plotting_vCombined(CaseDate, CaseDate_hem, ephys_offset)
 % [kinTbl, kinSummaryTbl] = run_MovementFeatureAnalysis_IO_v2(IO_DataDir, MoveDataDir, MoveDir_CaseID);
 % merge_FRKin_SummaryTbls(IO_DataDir, ephysTbl_Dir, ephys_offset, MoveDir_CaseID, FR_SummaryTbl, kinSummaryTbl)
@@ -53,18 +52,44 @@ Ephys_Kin_Dir = fullfile(IO_DataDir, 'Ephys_Kinematics');
 FR_Kin_Dir = fullfile(Ephys_Kin_Dir, 'FR_Kinematic_Analyses');
 Case_FR_Kin = fullfile(FR_Kin_Dir, CaseDate); % case-specific results from run_FR_KinematicCorr saved here
 
+%% Handle Bilateral Cases
+
 % Specify hemisphere in command window if bilateral
 isBilateral = contains(CaseDate,'bilateral','IgnoreCase',true);
 if isBilateral
     fprintf('[INFO] Bilateral case detected: %s\n',CaseDate);
     CaseDate_hem = input('Enter hemisphere (LSTN or RSTN): ','s');
-    if ~ismember(CaseDate_hem,{'LSTN','RSTN'}), error('Invalid hemisphere'); end
-    ephysTbl_Dir = fullfile(ephysTbl_Dir,CaseDate_hem);
+    if ~ismember(CaseDate_hem,{'LSTN','RSTN'})
+        error('Invalid hemisphere'); 
+    end
+    % Append hemisphere-specific folder
+    ephysTbl_Dir = fullfile(ephysTbl_Dir, CaseDate_hem); 
 else
     CaseDate_hem = '';
 end
 fprintf('[INFO] Loading spike data from: %s\n', ephysTbl_Dir);
 
+
+%% Load All_SpikesPerMove_Tbl
+
+cd(ephysTbl_Dir)
+Tbl_list = dir('*Spikes*.mat');
+Tbl_names = {Tbl_list.name};
+spk_case = Tbl_names{contains(Tbl_names, 'offset')}; % offset version preferred
+load(spk_case, 'All_SpikesPerMove_Tbl');
+
+%% OPTIONAL: Case-specific cleaning (remove duplicates if needed)
+
+% for 3_23_2023 case - remove duplicates / only plot for primary electrode
+if CaseDate == '03_23_2023'
+    All_SpikesPerMove_Tbl = All_SpikesPerMove_Tbl(158:end,1:13); % Comment or adjust as needed
+end
+
+%% ===== Functions =====
+
+%% Run compute_FRperMove_perSTNdepth
+
+compute_FRperMove_perSTNdepth(CaseDate, ephysTbl_Dir, All_SpikesPerMove_Tbl)
 
 %% Run run_IO_FR_Analysis_and_Plotting
 

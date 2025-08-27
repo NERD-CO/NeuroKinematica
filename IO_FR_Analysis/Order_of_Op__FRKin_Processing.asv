@@ -8,7 +8,6 @@ addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1
 % > spikes_Align_TTL_and_AO
 % > compute_meanFR_perMove_perSTNdepth_v2
 
-
 %% Environment / Directory Set-up
 
 % specify directory where case-specific data files are located
@@ -27,24 +26,32 @@ cd(IO_DataDir)
 Subject_AO = readtable('Subject_AO.xlsx');
 
 
-%% Hardcode Case-specific Data directories
+%% Inputs
 
-% Isolate specific CaseDate / studyID (StudyNum in Subject_AO csv)
+% Hardcode Case-specific Data directories
 
-% CaseDate = '03_09_2023'; % studyID = 1, ptID 1
-% CaseDate = '03_23_2023'; % studyID = 2, ptID 2    * % Use for INS 2026
- CaseDate = '04_05_2023'; % studyID = 3, ptID 2    * % Use for INS 2026
-% CaseDate = '04_13_2023_bilateral'; % studyID = 4(L), 5(R), ptID 3
-% CaseDate = '05_11_2023'; % studyID = 6, ptID 4
-% CaseDate = '05_18_2023_a'; % studyID = 7, ptID 4
-% CaseDate = '05_18_2023_b_bilateral'; 
+CaseDate = '04_05_2023';
+% '03_09_2023'; % studyID = 1, ptID 1
+
+% '03_23_2023'; % studyID = 2, ptID 2    * % Use for INS 2026
+% '04_05_2023'; % studyID = 3, ptID 2    * % Use for INS 2026
+
+% '04_13_2023_bilateral'; 
+    % studyID = 4(L), 5(R), ptID 3
+
+% '05_11_2023'; % studyID = 6, ptID 4
+% '05_18_2023_a'; % studyID = 7, ptID 4
+
+% '05_18_2023_b_bilateral'; 
     % LSTN: studyID = 8, ptID = 5    % Use for INS 2026
     % RSTN: studyID = 9, ptID = 5
 
-% CaseDate = '05_31_2023';  % studyID = 10, ptID 6
-% CaseDate = '06_08_2023_bilateral'; 
+% '05_31_2023';  % studyID = 10, ptID 6
+
+% '06_08_2023_bilateral'; 
     % studyID = 11(L), 12(R), ptID = 7
-% CaseDate = '07_13_2023_bilateral'; 
+
+% '07_13_2023_bilateral'; 
     % studyID = 15(L), 16(R), ptID = 9
 
 
@@ -52,9 +59,13 @@ Subject_AO = readtable('Subject_AO.xlsx');
 
 Case_DataDir = [IO_DataDir, filesep, CaseDate];
 
-% Define directories where case-specific IO ephys data are located
+% Define directories where case-specific IO ephys data are located (inputs)
 RawDataDir = [Case_DataDir, filesep, 'Raw Electrophysiology MATLAB'];       % directory where raw MATLAB data files are located (case-specific)
 ProcDataDir = [Case_DataDir, filesep, 'Processed Electrophysiology'];       % directory where processed MATLAB data should be saved (case-specific)
+
+% save All_SpikesPerMove_Tbl in this directory (outputs)
+SpikesPerMove_Dir = [Case_DataDir, filesep, 'DLC_Ephys'];
+
 
 %% Handle bilateral cases and hemisphere selection
 
@@ -78,9 +89,13 @@ end
 % Append hemisphere folder if needed
 if ~isempty(CaseDate_hem)
     ProcDataDir = fullfile(ProcDataDir, CaseDate_hem);
-    fprintf('[INFO] Hemisphere-specific directory set: %s\n', ProcDataDir);
+    fprintf('[INFO] Hemisphere-specific input ephys directory set: %s\n', ProcDataDir);
+    SpikesPerMove_Dir = fullfile(SpikesPerMove_Dir, CaseDate_hem);
+    fprintf('[INFO] Hemisphere-specific output directory set: %s\n', SpikesPerMove_Dir);
+
 else
-    fprintf('[INFO] Using base processed directory: %s\n', ProcDataDir);
+    fprintf('[INFO] Using base input directory: %s\n', ProcDataDir);
+    fprintf('[INFO] Using base output directory: %s\n', SpikesPerMove_Dir);
 end
 
 
@@ -98,55 +113,39 @@ cd(ClustSpkTimesDir);
 MoveDataDir = [IO_DataDir, filesep, 'Processed DLC'];
 cd(MoveDataDir)
 
-% % Specify case ID
-% Move_CaseID = 'IO_03_09_2023_RSTN'; % studyID = 1, ptID 1 (processed, incomplete case)
+% Specify case ID
+Move_CaseID = 'IO_04_05_2023_RSTN';
 
-% Move_CaseID = 'IO_03_23_2023_LSTN'; % studyID = 2, ptID 2 (processed, complete case) *
-% Move_CaseID = 'IO_04_05_2023_RSTN'; % studyID = 3, ptID 2 (processed, complete case) *
+% 'IO_03_09_2023_RSTN'; % studyID = 1, ptID 1 (processed, incomplete case)
 
-% Move_CaseID = 'IO_04_13_2023_LSTN'; % studyID = 4, ptID 3 (processed, complete case) 
-% Move_CaseID = 'IO_04_13_2023_RSTN'; % studyID = 5, ptID 3
+% 'IO_03_23_2023_LSTN'; % studyID = 2, ptID 2 (processed, complete case) *
+% 'IO_04_05_2023_RSTN'; % studyID = 3, ptID 2 (processed, complete case) *
 
-% Move_CaseID = 'IO_05_11_2023_LSTN'; % studyID = 6, ptID 4 (processed, incomplete case)
-% Move_CaseID = 'IO_05_18_2023_a_RSTN'; % studyID = 7, ptID 4
+% 'IO_04_13_2023_LSTN'; % studyID = 4, ptID 3 (processed, complete case) 
+% 'IO_04_13_2023_RSTN'; % studyID = 5, ptID 3
 
-% Move_CaseID = 'IO_05_18_2023_b_LSTN'; % studyID = 8, ptID 5 (processed, complete case) *
-% Move_CaseID = 'IO_05_18_2023_b_RSTN'; % studyID = 9, ptID 5
+% 'IO_05_11_2023_LSTN'; % studyID = 6, ptID 4 (processed, incomplete case)
+% 'IO_05_18_2023_a_RSTN'; % studyID = 7, ptID 4
 
-% Move_CaseID = 'IO_05_31_2023_LSTN'; % studyID = 10, ptID 6
+% 'IO_05_18_2023_b_LSTN'; % studyID = 8, ptID 5 (processed, complete case) *
+% 'IO_05_18_2023_b_RSTN'; % studyID = 9, ptID 5
 
-% Move_CaseID ='IO_06_08_2023_LSTN'; % studyID = 11, ptID = 7 (processed, complete case) 
-% Move_CaseID ='IO_06_08_2023_RSTN'; % studyID = 12, ptID = 7 (processed, incomplete case)
+% 'IO_05_31_2023_LSTN'; % studyID = 10, ptID 6
 
-% Move_CaseID ='IO_07_13_2023_LSTN'; % studyID = 15, ptID = 9  
-% Move_CaseID ='IO_07_13_2023_RSTN'; % studyID = 16, ptID = 9 
+% 'IO_06_08_2023_LSTN'; % studyID = 11, ptID = 7 (processed, complete case) 
+% 'IO_06_08_2023_RSTN'; % studyID = 12, ptID = 7 (processed, incomplete case)
+
+% 'IO_07_13_2023_LSTN'; % studyID = 15, ptID = 9  
+% 'IO_07_13_2023_RSTN'; % studyID = 16, ptID = 9 
 
 
-%% Specify Case
 
-Case_DataDir = fullfile(IO_DataDir, CaseDate);
-ephysTbl_Dir = fullfile(Case_DataDir, 'DLC_Ephys'); % Base ephys directory
+%%  Isolate case-specific kinematic data directory
 
-%% Handle bilateral cases and hemisphere selection
-isBilateral = contains(CaseDate, 'bilateral', 'IgnoreCase', true);
+Move_CaseDir = [MoveDataDir, filesep, Move_CaseID];
 
-if isBilateral
-    fprintf('[INFO] Bilateral case detected: %s\n', CaseDate);
-    
-    % Prompt user for hemisphere choice (LSTN or RSTN)
-    CaseDate_hem = input('Enter hemisphere (LSTN or RSTN): ', 's');
-    
-    % Validate input
-    validHems = {'LSTN','RSTN'};
-    if ~ismember(CaseDate_hem, validHems)
-        error('Invalid input. Please enter LSTN or RSTN.');
-    end
-    
-    % Append hemisphere-specific folder
-    ephysTbl_Dir = fullfile(ephysTbl_Dir, CaseDate_hem);
-    fprintf('[INFO] Hemisphere-specific directory set: %s\n', ephysTbl_Dir);
-else
-    CaseDate_hem = ''; % No hemisphere for unilateral cases
-    fprintf('[INFO] Using base processed directory: %s\n', ephysTbl_Dir);
-end
+
+%% Run align_SpikesPerMove_TTL function
+
+align_SpikesPerMove_TTL(Subject_AO, ProcDataDir, ClustSpkTimesDir, Move_CaseDir, SpikesPerMove_Dir)
 

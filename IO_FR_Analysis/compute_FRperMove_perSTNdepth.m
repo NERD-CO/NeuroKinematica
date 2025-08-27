@@ -1,73 +1,13 @@
-%% Compute FR (PSTH) per Move Type & STN Depth + Export Summary & Full Data
+function [] = compute_FRperMove_perSTNdepth(CaseDate, ephysTbl_Dir, All_SpikesPerMove_Tbl)
 
-clear; clc;
+% Compute mean FR per Movement context per STN depth, Export full Data Table
+
 addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\IO_FR_Analysis'
-
-%% Directory Setup
-curPCname = getenv('COMPUTERNAME');
-
-switch curPCname
-    case 'DESKTOP-I5CPDO7'
-        IO_DataDir = 'X:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
-    otherwise
-        IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
-end
-
-cd(IO_DataDir)
-Subject_AO = readtable('Subject_AO.xlsx');
-
-%% Specify Case
-
-CaseDate = '04_05_2023';
-% '03_23_2023'; 
-% '05_18_2023_b_bilateral';
-% '06_08_2023_bilateral';
-
-case_ID = CaseDate;
-Case_DataDir = fullfile(IO_DataDir, CaseDate);
-ephysTbl_Dir = fullfile(Case_DataDir, 'DLC_Ephys'); % Base ephys directory
-
-%% Handle bilateral cases and hemisphere selection
-isBilateral = contains(CaseDate, 'bilateral', 'IgnoreCase', true);
-
-if isBilateral
-    fprintf('[INFO] Bilateral case detected: %s\n', CaseDate);
-    
-    % Prompt user for hemisphere choice (LSTN or RSTN)
-    CaseDate_hem = input('Enter hemisphere (LSTN or RSTN): ', 's');
-    
-    % Validate input
-    validHems = {'LSTN','RSTN'};
-    if ~ismember(CaseDate_hem, validHems)
-        error('Invalid input. Please enter LSTN or RSTN.');
-    end
-    
-    % Append hemisphere-specific folder
-    ephysTbl_Dir = fullfile(ephysTbl_Dir, CaseDate_hem);
-    fprintf('[INFO] Hemisphere-specific directory set: %s\n', ephysTbl_Dir);
-else
-    CaseDate_hem = ''; % No hemisphere for unilateral cases
-    fprintf('[INFO] Using base processed directory: %s\n', ephysTbl_Dir);
-end
-
 
 %% Sampling Rates
 
 AO_spike_fs = 44000; % Hz
 DLC_fs = 100; % fps
-
-%% Load All_SpikesPerMove_Tbl
-
-cd(ephysTbl_Dir)
-Tbl_list = dir('*Spikes*.mat');
-Tbl_names = {Tbl_list.name};
-spk_case = Tbl_names{contains(Tbl_names, 'offset')}; % offset version preferred
-load(spk_case, 'All_SpikesPerMove_Tbl');
-
-%% OPTIONAL: Case-specific cleaning (remove duplicates if needed)
-
-% for 3_23_2023 case - remove duplicates / only plot for primary electrode
-% All_SpikesPerMove_Tbl = All_SpikesPerMove_Tbl(158:end,1:13); % Comment or adjust as needed
 
 %% Auto-split STN depths
 
@@ -151,6 +91,8 @@ FR_Results.CaseDate = CaseDate;
 
 
 %% Save Results (Optional)
+
+cd(ephysTbl_Dir)
 
 save(['FR_Results_' CaseDate '.mat'], 'FR_Results');
 

@@ -33,23 +33,25 @@
 
 % 3) DLC Processing (GitHub\NeuroKinematica\DLC_Processing)                 % in progress
 % > Order_of_Op__DLC_Processing
-    % > run_DLC_Processing(IO_procDLC, DLCProc_caseID)
+    % > run_DLC_Processing
+    % > fillDroppedFrames_JT_v2
 
-
-% 4) Movement Indexing                                                      % in progress
-% > fillDroppedFrames_JT_v2(path2videos, quality)
+% 4) Movement Indexing (GitHub\NeuroKinematica\DLC_VideoIndexing_GUI)       % in progress
 % > ER_DLC_MoveCheck_Dual_v4.mlapp
 
 
 % FR Processing (GitHub\NeuroKinematica\IO_FR_Analysis)                     % in progress
-% Order_of_Op__FRKin_Processing
-% > spikes_Align_TTL_and_AO
-% > compute_meanFR_perMove_perSTNdepth_v2
-%%% consider combining the 2 scripts ^ into 1 function %%%
+% > Order_of_Op__FRKin_Processing
+    % > align_SpikesPerMove_TTL
 
 
 % FR Analysis & Plotting (GitHub\NeuroKinematica\IO_FR_Analysis)            % in progress
-% > Order_of_Op__FRKinCorr
+% > Order_of_Op__FRKin_Analyses
+    % > compute_FRperMove_perSTNdepth
+    % > [FR_SummaryTbl] = run_IO_FR_Analysis_and_Plotting
+    % > [kinTbl, kinSummaryTbl] = run_MovementFeatureAnalysis_IO_v2
+    % > merge_FRKin_SummaryTbls
+    % > aggregate_FRKinematic_Correlations
 
 
 % LFP Analysis

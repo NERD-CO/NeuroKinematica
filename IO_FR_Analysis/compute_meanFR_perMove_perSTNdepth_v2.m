@@ -28,6 +28,7 @@ Case_DataDir = fullfile(IO_DataDir, CaseDate);
 ephysTbl_Dir = fullfile(Case_DataDir, 'DLC_Ephys'); % Base ephys directory
 
 %% Handle bilateral cases and hemisphere selection
+
 isBilateral = contains(CaseDate, 'bilateral', 'IgnoreCase', true);
 
 if isBilateral

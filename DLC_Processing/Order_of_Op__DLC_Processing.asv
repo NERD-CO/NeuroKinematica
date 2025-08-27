@@ -71,11 +71,14 @@ cd(MovIndexGUI_dir)
 FRKin_dir = 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\IO_FR_Analysis';
 cd(FRKin_dir)
 
-% > Order_of_Op__FRKin_Processing
-% > Order_of_Op__FRKin_Analyses
+% > Order_of_Op_FRKinCorr script 
+
+
+% Order_of_Op_FRKinCorr
 
 % run everything up to:
 % [kinTbl, kinSummaryTbl] = run_MovementFeatureAnalysis_IO_v2(IO_DataDir, MoveDataDir, MoveDir_CaseID);
+
 
 
 %% Stats
