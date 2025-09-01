@@ -22,7 +22,7 @@ cd(IO_procDLC);
 %% 1) Define DLC processing function inputs
 
 % Define casedate and hemisphere:
-casedate_hem = 'IO_2023_08_23_RSTN';
+casedate_hem = 'IO_05_31_2023_LSTN';
 
 % 'IO_03_09_2023_RSTN';  
 % 'IO_03_23_2023_LSTN';
@@ -32,6 +32,8 @@ casedate_hem = 'IO_2023_08_23_RSTN';
 % 'IO_05_31_2023_LSTN';
 % 'IO_06_08_2023_LSTN';
 % 'IO_2023_07_06_LSTN';
+% 'IO_2023_07_13_LSTN';
+% 'IO_2023_07_13_RSTN';
 % 'IO_2023_08_23_RSTN';
 
 % Define case-specific kinematic data dir
