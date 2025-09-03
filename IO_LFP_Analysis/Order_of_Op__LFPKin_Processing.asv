@@ -250,23 +250,27 @@ end
 LFPsPerMove_Tbl = Tblmatnames{contains(Tblmatnames, 'All_LFPsPerMove_offset')};
 load(LFPsPerMove_Tbl, 'All_LFPsPerMove_Tbl')
 
-%% Questions:
+%% Quastions:
 
 % MLFP vs LFP - does LFP = CLFP?
 
-
-
-%% Run spectrumInterpolation (Miguel's function :))
+%% spectrum interpolation (Miguel's function :))
 
 % This function interpolates around the frequency of interest (Fl) and
 % replaces its and some neighbors using a constant value.
 
-% function inputs
 data = All_LFPsPerMove_Tbl.LFPs; % data: column vector of the data that needs to be filtered
 Fs = AO_LFP_fs; % Fs: Sampling Frequency (in Hz) of the data
 F1 = 60; % Fl: Line frequency (in Hz), center of our interpolation
-neighborsToSample = 4; % Hz, 4 or 5
+neighborsToSample = 4; % Hz, frequency window size, 4-5 Hz
 neighborsToReplace = 2; % Hz, 1 or 2
+
+% loop on harmonics of 60 Hz
+
+spectrumInterpolation(data, Fs, Fl, neighborsToSample, neighborsToReplace)
+
+
+
 
 % neighborsToSample: This parameter is in Hz, and tells this function how
 % large of a window (in Hz) to use when picking the constant value to
@@ -276,15 +280,6 @@ neighborsToReplace = 2; % Hz, 1 or 2
 % which neighbors need to be replaced with the constant value that was
 % determined by neighborsToSample. Generally, neighborsToReplace <
 % neighborsToSample in order to get a better spectral estimate.
-
-% Run function
-spectrumInterpolation(data, Fs, Fl, neighborsToSample, neighborsToReplace)
-
-% loop on harmonics of 60 Hz
-
-
-
-
 
 
 

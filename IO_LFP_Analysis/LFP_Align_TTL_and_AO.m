@@ -16,48 +16,109 @@ cd(IO_DataDir)
 Subject_AO = readtable('Subject_AO.xlsx');
 
 
-%% Hardcode Case-specific Data directories
+%% Case-specific Ephys Dir Input
 
 % isolate a specific CaseDate / studyID (StudyNum in Subject_AO csv)
-% CaseDate = '03_09_2023'; % studyID = 1
-CaseDate = '03_23_2023'; % studyID = 2
+CaseDate = '03_23_2023';
 
-% CaseDate = '06_08_2023_bilateral';
-    % CaseDate_hem = 'LSTN'; % comment out when N/A
+% '03_09_2023'; % studyID = 1, ptID 1
 
-% define case-specific data directory
+% '03_23_2023'; % studyID = 2, ptID 2    * % Use for INS 2026
+% '04_05_2023'; % studyID = 3, ptID 2    * % Use for INS 2026
+
+% '04_13_2023_bilateral'; ptID 3
+% studyID = 4(L), 5(R),
+
+% '05_11_2023'; % studyID = 6, ptID 4
+% '05_18_2023_a'; % studyID = 7, ptID 4
+
+% '05_18_2023_b_bilateral';
+% LSTN: studyID = 8, ptID = 5    % Use for INS 2026
+% RSTN: studyID = 9, ptID = 5
+
+% '05_31_2023';  % studyID = 10, ptID 6
+
+% '06_08_2023_bilateral'; ptID = 7
+% LSTN: studyID = 11,
+% RSTN: studyID = 12(R),
+
+% '07_13_2023_bilateral';
+% studyID = 15(L), 16(R), ptID = 9
+
+
+%% Case-specific Movement Dir Input
+
+% Specify case ID in Processed Movement Data Dir
+Move_CaseID = 'IO_03_23_2023_LSTN';
+
+% 'IO_03_09_2023_RSTN'; % studyID = 1, ptID 1 (processed, incomplete case)
+
+% 'IO_03_23_2023_LSTN'; % studyID = 2, ptID 2 (processed, complete case) *
+% 'IO_04_05_2023_RSTN'; % studyID = 3, ptID 2 (processed, complete case) *
+
+% 'IO_04_13_2023_LSTN'; % studyID = 4, ptID 3 (processed, complete case)
+% 'IO_04_13_2023_RSTN'; % studyID = 5, ptID 3
+
+% 'IO_05_11_2023_LSTN'; % studyID = 6, ptID 4 (processed, incomplete case)
+% 'IO_05_18_2023_a_RSTN'; % studyID = 7, ptID 4
+
+% 'IO_05_18_2023_b_LSTN'; % studyID = 8, ptID 5 (processed, complete case) *
+% 'IO_05_18_2023_b_RSTN'; % studyID = 9, ptID 5
+
+% 'IO_05_31_2023_LSTN'; % studyID = 10, ptID 6
+
+% 'IO_06_08_2023_LSTN'; % studyID = 11, ptID = 7 (processed, complete case)
+% 'IO_06_08_2023_RSTN'; % studyID = 12, ptID = 7 (processed, incomplete case)
+
+% 'IO_07_13_2023_LSTN'; % studyID = 15, ptID = 9
+% 'IO_07_13_2023_RSTN'; % studyID = 16, ptID = 9
+
+
+%% Define Input and Output data directories
+
 Case_DataDir = [IO_DataDir, filesep, CaseDate];
+MoveDataDir = [IO_DataDir, filesep, 'Processed DLC'];
 
-% directories where case-specific IO ephys data are located
-RawDataDir = [Case_DataDir, filesep, 'Raw Electrophysiology MATLAB'];       % directory where raw MATLAB data files are located (case-specific)
-ProcDataDir = [Case_DataDir, filesep, 'Processed Electrophysiology'];       % directory where processed MATLAB data should be saved (case-specific)
-    % ProcDataDir = [ProcDataDir, filesep, CaseDate_hem];                   % comment out when N/A
+% Case-specific Input dirs
+ProcDataDir = [Case_DataDir, filesep, 'Processed Electrophysiology'];       % directory for processed ephys data and spike clusters
+Move_CaseDir = [MoveDataDir, filesep, Move_CaseID];                         % directory for processed DLC data and Movement Indices
 
-%% directory for movement indices
-
-% define kinematic data directory
-MoveDataDir = [IO_DataDir, filesep, 'Kinematic Analyses'];
-
-% specify case ID
-% Move_CaseID = 'IO_03_09_2023_RSTN'; % studyID = 1
-Move_CaseID = 'IO_03_23_2023_LSTN'; % studyID = 2
-
-% Move_CaseID ='IO_06_08_2023_LSTN';
-
-% isolate case-specific kinematic data directory
-Move_CaseDir = [MoveDataDir, filesep, Move_CaseID];
-
-% data subfolders:
-Move_CaseMats = [Move_CaseDir, filesep, 'mat folder'];
-Move_CaseVideos = [Move_CaseDir, filesep, 'video folder'];
-
-% % for kinematic analyses
-% cd(Move_CaseMats)
-% moveMat = dir('*.mat');
-% moveMat_names = {moveMat.name};
+% Case-specific Output dir
+ephysTbl_Dir = [Case_DataDir, filesep, 'DLC_Ephys'];                        % directory where all ephys per move-rep tables are located
 
 
-%% define datastream sampling rates (Alpha Omega and Video sampling fs)
+%% Handle bilateral cases and hemisphere selection
+
+isBilateral = contains(CaseDate, 'bilateral', 'IgnoreCase', true);
+
+if isBilateral
+    fprintf('[INFO] Bilateral case detected: %s\n', CaseDate);
+
+    % Prompt user for hemisphere choice (LSTN or RSTN)
+    CaseDate_hem = input('Enter hemisphere (LSTN or RSTN): ', 's');
+
+    % Validate input
+    validHems = {'LSTN','RSTN'};
+    if ~ismember(CaseDate_hem, validHems)
+        error('Invalid input. Please enter LSTN or RSTN.');
+    end
+else
+    CaseDate_hem = ''; % No hemisphere for unilateral cases
+end
+
+% Append hemisphere folder if needed
+if ~isempty(CaseDate_hem)
+    ProcDataDir = fullfile(ProcDataDir, CaseDate_hem);
+    fprintf('[INFO] Hemisphere-specific input ephys directory set: %s\n', ProcDataDir);
+    ephysTbl_Dir = fullfile(ephysTbl_Dir, CaseDate_hem);
+    fprintf('[INFO] Hemisphere-specific output directory set: %s\n', ephysTbl_Dir);
+
+else
+    fprintf('[INFO] Using base ephys input directory: %s\n', ProcDataDir);
+    fprintf('[INFO] Using base output directory: %s\n', ephysTbl_Dir);
+end
+
+%% Define datastream sampling rates (Alpha Omega and Video sampling fs)
 
 TTL_fs = 44000; % Hz
 AO_spike_fs = 44000; % Hz
@@ -65,7 +126,8 @@ AO_LFP_fs = 1375; % Hz
 DLC_fs = 100; % fps
 
 
-%% define offset duration
+%% Define offset duration
+
 offset_ms = 50; % milliseconds
 offset_seconds = offset_ms / 1000; % seconds
 
@@ -76,6 +138,23 @@ offset_TTLs = round(TTL_fs * offset_seconds); % ensure value is integer
 offset_TTLs_LFP = round((offset_TTLs/TTL_fs)*AO_LFP_fs); % ensure value is integer
 
 % for future function input: useOffset; when = 1,  offset = offset; when = 0, offset = 0
+
+
+%% Define case-specific directory for movement indices per trial
+
+cd(Move_CaseDir)
+
+% Move_CaseDir data subfolders:
+Move_CaseMats = [Move_CaseDir, filesep, 'mat folder'];      % contains processed DLC timeseries data (csv-to-mat)
+Move_CaseVideos = [Move_CaseDir, filesep, 'video folder'];  % contains DLC-labeled videos and Movement Index CSVs
+cd(Move_CaseVideos)
+
+% % for kinematic analyses
+% cd(Move_CaseMats)
+% moveMat = dir('*.mat');
+% moveMat_names = {moveMat.name};
+
+
 
 %% go to ProcDataDir
 cd(ProcDataDir)
@@ -225,10 +304,9 @@ end
 All_LFPsPerMove_Tbl = cell2table(All_data, 'VariableNames', standard_col_order);
 
 
-% save All_SpikesPerMove_Tbl to a file
-LFPsPerMove_Dir = [Case_DataDir, filesep, 'DLC_Ephys'];
-    % LFPsPerMove_Dir = [Case_DataDir, filesep, 'DLC_Ephys', filesep, CaseDate_hem]; % comment out when N/A
-cd(LFPsPerMove_Dir)
-%save('All_LFPsPerMove_offset.mat',"All_LFPsPerMove_Tbl");
+%% save All_SpikesPerMove_Tbl to a file
+
+cd(ephysTbl_Dir)
+save('All_LFPsPerMove_offset.mat',"All_LFPsPerMove_Tbl");
 
 
