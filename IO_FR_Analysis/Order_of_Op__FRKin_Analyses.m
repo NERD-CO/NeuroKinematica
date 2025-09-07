@@ -25,6 +25,12 @@ switch curPCname
         IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
 end
 
+%% Config - Define datastream sampling rates (Alpha Omega and Video sampling fs)
+
+TTL_fs = 44000;         % Hz, Alpha Omega TTL clock
+AO_spike_fs = 44000;    % Hz, Alpha Omega spike sampling rate
+AO_LFP_fs = 1375;       % Hz, Alpha Omega LFP sampling rate
+DLC_fs = 100;           % fps, Video/DLC frame rate
 
 %% Inputs:
 

@@ -1,156 +1,20 @@
-%% IO LFP - alignment and extraction script
+function All_LFPsPerMove_Tbl = align_LFPsPerMove_TTL(Subject_AO, ProcDataDir, Move_CaseDir, ephysTbl_Dir, TTL_fs, AO_LFP_fs, offset_ms, useOffset)
 
+% IO LFP alignment and extraction script
 % maps Move Index frames → TTL samples → LFP samples
 % and builds All_LFPsPerMove_Tbl (per movement row)
 
-clear; clc;
 addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\IO_LFP_Analysis'
 
-%% Environment / Directory Set-up
 
-% specify directory where case-specific data files are located
-curPCname = getenv('COMPUTERNAME');
+%% Run useOffset helper function
 
-switch curPCname
-    case 'DESKTOP-I5CPDO7'  % PC_1
-        IO_DataDir = 'X:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
-    case 'DSKTP-JTLAB-EMR'  % Lab Desktop
-        IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
-    case 'NSG-M-H8J3X34'    % PC_2
-        IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
-end
+[offset_LFP_samples, meta_Offset] = useOffset_LFP(TTL_fs, AO_LFP_fs, offset_ms, useOffset);
 
-cd(IO_DataDir)
-Subject_AO = readtable('Subject_AO.xlsx');
-
-
-%% Ephys Dir Inputs
-
-% isolate a specific CaseDate / studyID (StudyNum in Subject_AO csv)
-CaseDate = '03_23_2023';
-
-% '03_09_2023'; % studyID = 1, ptID 1
-
-% '03_23_2023'; % studyID = 2, ptID 2    * % Use for INS 2026
-% '04_05_2023'; % studyID = 3, ptID 2    * % Use for INS 2026
-
-% '04_13_2023_bilateral'; ptID 3
-% studyID = 4(L), 5(R),
-
-% '05_11_2023'; % studyID = 6, ptID 4
-% '05_18_2023_a'; % studyID = 7, ptID 4
-
-% '05_18_2023_b_bilateral';
-% LSTN: studyID = 8, ptID = 5    % Use for INS 2026
-% RSTN: studyID = 9, ptID = 5
-
-% '05_31_2023';  % studyID = 10, ptID 6
-
-% '06_08_2023_bilateral'; ptID = 7
-% LSTN: studyID = 11,
-% RSTN: studyID = 12(R),
-
-% '07_13_2023_bilateral';
-% studyID = 15(L), 16(R), ptID = 9
-
-
-%% Movement Dir Inputs
-
-% Specify case ID
-Move_CaseID = 'IO_03_23_2023_LSTN';
-
-% 'IO_03_09_2023_RSTN'; % studyID = 1, ptID 1 (processed, incomplete case)
-
-% 'IO_03_23_2023_LSTN'; % studyID = 2, ptID 2 (processed, complete case) *
-% 'IO_04_05_2023_RSTN'; % studyID = 3, ptID 2 (processed, complete case) *
-
-% 'IO_04_13_2023_LSTN'; % studyID = 4, ptID 3 (processed, complete case)
-% 'IO_04_13_2023_RSTN'; % studyID = 5, ptID 3
-
-% 'IO_05_11_2023_LSTN'; % studyID = 6, ptID 4 (processed, incomplete case)
-% 'IO_05_18_2023_a_RSTN'; % studyID = 7, ptID 4
-
-% 'IO_05_18_2023_b_LSTN'; % studyID = 8, ptID 5 (processed, complete case) *
-% 'IO_05_18_2023_b_RSTN'; % studyID = 9, ptID 5
-
-% 'IO_05_31_2023_LSTN'; % studyID = 10, ptID 6
-
-% 'IO_06_08_2023_LSTN'; % studyID = 11, ptID = 7 (processed, complete case)
-% 'IO_06_08_2023_RSTN'; % studyID = 12, ptID = 7 (processed, incomplete case)
-
-% 'IO_07_13_2023_LSTN'; % studyID = 15, ptID = 9
-% 'IO_07_13_2023_RSTN'; % studyID = 16, ptID = 9
-
-
-%% Define Input and Output data directories
-
-Case_DataDir = [IO_DataDir, filesep, CaseDate];
-MoveDataDir = [IO_DataDir, filesep, 'Processed DLC'];
-
-% Case-specific Input dirs
-ProcDataDir = [Case_DataDir, filesep, 'Processed Electrophysiology'];       % directory for processed ephys data and spike clusters
-Move_CaseDir = [MoveDataDir, filesep, Move_CaseID];                         % directory for processed DLC data and Movement Indices
-
-% Case-specific Output dir
-ephysTbl_Dir = [Case_DataDir, filesep, 'DLC_Ephys'];                        % directory where all ephys per move-rep tables are located
-
-
-%% Handle bilateral cases and hemisphere selection
-
-isBilateral = contains(CaseDate, 'bilateral', 'IgnoreCase', true);
-
-if isBilateral
-    fprintf('[INFO] Bilateral case detected: %s\n', CaseDate);
-
-    % Prompt user for hemisphere choice (LSTN or RSTN)
-    CaseDate_hem = input('Enter hemisphere (LSTN or RSTN): ', 's');
-
-    % Validate input
-    validHems = {'LSTN','RSTN'};
-    if ~ismember(CaseDate_hem, validHems)
-        error('Invalid input. Please enter LSTN or RSTN.');
-    end
-else
-    CaseDate_hem = ''; % No hemisphere for unilateral cases
-end
-
-% Append hemisphere folder if needed
-if ~isempty(CaseDate_hem)
-    ProcDataDir = fullfile(ProcDataDir, CaseDate_hem);
-    fprintf('[INFO] Hemisphere-specific input ephys directory set: %s\n', ProcDataDir);
-    ephysTbl_Dir = fullfile(ephysTbl_Dir, CaseDate_hem);
-    fprintf('[INFO] Hemisphere-specific output directory set: %s\n', ephysTbl_Dir);
-
-else
-    fprintf('[INFO] Using base ephys input directory: %s\n', ProcDataDir);
-    fprintf('[INFO] Using base output directory: %s\n', ephysTbl_Dir);
-end
-
-
-%% Define datastream sampling rates (Alpha Omega and Video sampling fs)
-
-TTL_fs = 44000; % Hz
-AO_spike_fs = 44000; % Hz
-AO_LFP_fs = 1375; % Hz
-DLC_fs = 100; % fps
-
-%% Define offset duration
-
-offset_ms = 50; % milliseconds
-offset_seconds = offset_ms / 1000; % seconds
-
-% Calculate number of TTL samples
-offset_TTLs = round(TTL_fs * offset_seconds); % ensure value is integer
-
-% Calculate number TTL samples in AO_LFP sample domain by downsampling TTL_fs
-offset_TTLs_LFP = round((offset_TTLs/TTL_fs)*AO_LFP_fs); % ensure value is integer
-
-% for future function input: useOffset; when = 1, use offset; when = 0, don't
-
-
-%% Run align_LFPsPerMove_TTL function
-
-% align_LFPsPerMove_TTL(Subject_AO, ProcDataDir, Move_CaseDir, ephysTbl_Dir)
+% If useOffset == true or offset_ms>0, useOffset_LFP function returns the #
+% of samples to pre-pad in LFP domain based on a set pre-trial offset time 
+% (and a meta struct for reference).
+% If useOffset == false or offset_ms<=0, useOffset_LFP function returns 0.
 
 
 %% Define case-specific directory for movement indices per trial
@@ -176,107 +40,105 @@ cd(ProcDataDir)
 LFPmatfiles = dir('*.mat');
 LFPmatnames = {LFPmatfiles.name};
 
-All_LFPsPermove = cell(1, numel(LFPmatnames));
+All_LFPsPerMove = cell(1, numel(LFPmatnames));
 
-% Loop through processed LFP mat files                                      
+% Loop through processed LFP mat files
 for LFP_mat_name = 1:length(LFPmatnames)                                    % MAT file loop
 
     cd(ProcDataDir)
     load(LFPmatnames{LFP_mat_name},'ProcEphys')
 
+    % Extract a clean ProcName (matches how Subject_AO.ao_MAT_file is stored)
     fileparts = split(LFPmatnames{LFP_mat_name},'_');
     ProcName = fileparts{2};
-
     ProcFile = LFPmatnames{contains(LFPmatnames, ProcName)};
-    load(ProcFile, 'ProcEphys')
 
-    %% create an LFPs per Electrode per MAT accumulator table
-        nRows_LFPMoveTbl = height(LFPMoveTbl);
-        LFPs_perE = table();
-        % Copy the movement keys (like you do in spikes)
-        LFPs_perE.MoveN        = LFPMoveTbl.MoveN;
-        LFPs_perE.MoveType     = LFPMoveTbl.MoveType;
-        LFPs_perE.BeginF       = LFPMoveTbl.BeginF;
-        LFPs_perE.EndF         = LFPMoveTbl.EndF;
-        LFPs_perE.move_trial_ID = repmat({motor_trial_ID}, nRows_LFPMoveTbl, 1);
-        %%
+    % In Subject_AO, find ao_MAT_file that corresponds with trial
+    SubjectAO_row = Subject_AO(contains(Subject_AO.ao_MAT_file, ProcName),:);
+
+    % Define motor trial ID string (depth_trialNum)
+    switch SubjectAO_row.stn_loc{1}(1)
+        case 'd'
+            depthName = 't'; % dorsal
+        case 'v'
+            depthName = 'b'; % ventral
+        otherwise
+            depthName = 'c'; % central
+    end
+    motor_trial_ID = [depthName, num2str(SubjectAO_row.trialNum),'_', SubjectAO_row.depth{1}];
+
+    % Generate list of Motor Index CSVs
+    cd(Move_CaseVideos)
+    moveCSV = dir('*.csv');
+    moveCSV_names = {moveCSV.name};
+    moveCSV = moveCSV_names(contains(moveCSV_names,'Move')); % filter for CSVs that contain 'Move' string
+    if ~any(contains(moveCSV, motor_trial_ID))  % checking if logical is false
+        continue
+    end
+    moveTbl_name = moveCSV{contains(moveCSV, motor_trial_ID)};
+    moveTbl = readtable(moveTbl_name); % load movement index CSV in mat table form
+
+    % clean moveTbl (remove zeros)
+    LFPsMoveTbl = moveTbl(cellfun(@(X) ~isempty(X), moveTbl.MoveType, 'UniformOutput', true),:);
+
+    % temp var
+    LFP_move_trial_ID = [ProcName,'_', motor_trial_ID]; 
+
+    % initiate an LFPs per Electrode per MAT accumulator table
+    nRows_LFPMoveTbl = height(LFPsMoveTbl);
+    LFPs_perE_perMAT = table();
+
+    % Define All_LFPsPerMove tbl fields
+    LFPs_perE_perMAT.MoveN        = LFPsMoveTbl.MoveN;
+    LFPs_perE_perMAT.MoveType     = LFPsMoveTbl.MoveType;
+    LFPs_perE_perMAT.BeginF       = LFPsMoveTbl.BeginF;
+    LFPs_perE_perMAT.EndF         = LFPsMoveTbl.EndF;
+    LFPs_perE_perMAT.move_trial_ID = repmat({motor_trial_ID}, nRows_LFPMoveTbl, 1);
+    LFPs_perE_perMAT.LFP_trial_ID = repmat({ProcName}, nRows_LFPMoveTbl, 1);
+
+
+    % Define TTL fields of interest
+    TTL_Down = ProcEphys.TTL.Down; % voltage deflection, frames -> TTL sample index (1 cell represents frame#, values within the cell represent sample#s)
+    TTL_clockStart = ProcEphys.TTL.startTime; % in seconds
+
+    % Robust accessor: works for cell, table, or numeric TTL_Down
+    if iscell(TTL_Down)
+        getTTL = @(i) TTL_Down{i};
+    elseif istable(TTL_Down)
+        % if someone saved TTL as a 1-col table, use the first variable
+        firstVar = TTL_Down.Properties.VariableNames{1};
+        getTTL = @(i) TTL_Down{i, firstVar};
+    else
+        % numeric or vector
+        getTTL = @(i) TTL_Down(i);
+    end
 
 
     % account for mult. electrode channels
     electrode_names = fieldnames(ProcEphys.LFP); % get num (E#)
 
-    % Loop through each electrode channel per processed LFP mat file        
-    for e_names = 1:length(electrode_names)                                 % Electrode Loop
+    % Loop through each electrode channel per processed LFP mat file        % Electrode Loop
+    for e_i = 1:numel(electrode_names)
+        E_chName = electrode_names{e_i};
 
-        LFP_raw = ProcEphys.LFP.(electrode_names{e_names}).rawData; % dynamically index within struct
+        % dynamically index within struct
+        LFP_raw = ProcEphys.LFP.(E_chName).rawData; % vector of raw voltage
+        AO_startTime = ProcEphys.LFP.(E_chName).startTime; % time in seconds
 
-        % isolate TTL fields of interest
-        TTL_Down = ProcEphys.TTL.Down; % TTL signal down voltage deflection     % frames -> TTL sample index (1 cell represents frame#, values within the cell represent sample#)
-        TTL_clockStart = ProcEphys.TTL.startTime; % in seconds
-        AO_clockStart = ProcEphys.LFP.(electrode_names{e_names}).startTime; % in seconds
-
-        % Precompute TTL→AO sample offset (seconds → samples)
-        sample_offset = round((TTL_clockStart - AO_clockStart) * AO_LFP_fs);
-
-        % Find row of ao_MAT_file that corresponds with trial
-        SubjectAO_row = Subject_AO(contains(Subject_AO.ao_MAT_file,ProcName),:);
-
-        switch SubjectAO_row.stn_loc{1}(1)
-            case 'd'
-                depthName = 't'; % dorsal
-            case 'v'
-                depthName = 'b'; % ventral
-            otherwise
-                depthName = 'c'; % central
-        end
-
-        % Define motor trial ID string (depth_trialNum)
-        motor_trial_ID = [depthName, num2str(SubjectAO_row.trialNum),'_', SubjectAO_row.depth{1}];
-
-        % Generate list of Motor Index CSVs
-        cd(Move_CaseVideos)
-        moveCSV = dir('*.csv');
-        moveCSV_names = {moveCSV.name};
-        moveCSV = moveCSV_names(contains(moveCSV_names,'Move')); % filter for CSVs that contain 'Move' string
-        if ~any(contains(moveCSV, motor_trial_ID))  % checking if logical is false
-            continue
-        end
-        moveTbl_name = moveCSV{contains(moveCSV, motor_trial_ID)};
-        moveTbl = readtable(moveTbl_name); % load movement index CSV in mat table form
-
-        % clean moveTbl (remove zeros)
-        LFPMoveTbl = moveTbl(cellfun(@(X) ~isempty(X), moveTbl.MoveType, 'UniformOutput', true),:);
-
-        % temp vars per processed LFP mat file
-        electrode_LFP_name = [ProcName,'_', electrode_names{e_names}]; % temp var
-        LFP_raw_depthName = [ProcName,'_', motor_trial_ID]; % temp var
-
-        % initialize arrays
-        LFP_trial_ID = repmat({electrode_LFP_name}, height(LFPMoveTbl), 1);
-        move_trial_ID = repmat({motor_trial_ID}, height(LFPMoveTbl), 1);
-
-        % Robust accessor: works for cell or numeric TTL_Down
-        if iscell(TTL_Down)
-            getTTL = @(i) TTL_Down{i};
-        elseif istable(TTL_Down)
-            % if someone saved TTL as a 1-col table, use the first variable
-            firstVar = TTL_Down.Properties.VariableNames{1};
-            getTTL = @(i) TTL_Down{ i, firstVar };
-        else
-            % numeric or vector
-            getTTL = @(i) TTL_Down(i);
-        end
+        % clock offset: Precompute TTL → AO/LFP samples (seconds → samples)
+        sample_offset = round((TTL_clockStart - AO_startTime) * AO_LFP_fs);
 
         % Preallocate start/end index vectors (one per movement row)
-        TTL_LFP_idx_Start = nan(nRows_LFPMoveTbl,1);
-        TTL_LFP_idx_End   = nan(nRows_LFPMoveTbl,1);
+        TTL_LFP_idx_Start = nan(nRows_LFPMoveTbl, 1);
+        TTL_LFP_idx_End   = nan(nRows_LFPMoveTbl, 1);
+        LFPs_in_moveSeg = cell(nRows_LFPMoveTbl, 1);
 
-        % loop through trials and pull out BeginF and EndF indices in each
-        % MoveIndex CSV
+
+        % loop through trials, extract BeginF + EndF indices in each MoveIndex CSV
         for move_i = 1:nRows_LFPMoveTbl                                     % MoveTrial Loop
             % Frame indices from Move Index table
-            frame_startTime = LFPMoveTbl.BeginF(move_i);
-            frame_endTime   = LFPMoveTbl.EndF(move_i);
+            frame_startTime = LFPsMoveTbl.BeginF(move_i);
+            frame_endTime   = LFPsMoveTbl.EndF(move_i);
 
             % TTL samples at frame boundaries (TTL domain, wrt AO clock)
             ttl_start = getTTL(frame_startTime);
@@ -287,102 +149,151 @@ for LFP_mat_name = 1:length(LFPmatnames)                                    % MA
             TTL_samp_taskEnd   = round((ttl_end  /TTL_fs) * AO_LFP_fs);
 
             % Apply clock offset and pre-offset
-            s0_pre = TTL_samp_taskStart + sample_offset - offset_TTLs_LFP;  % start (with 50 ms pre)
-            s1_pre = TTL_samp_taskEnd   + sample_offset;                    % end
+            s0_taskStart_offset = TTL_samp_taskStart + sample_offset - offset_LFP_samples;  % start (with 50 ms pre)
+            sn_taskEnd_offset = TTL_samp_taskEnd + sample_offset; % end
 
             % Clamp to LFP array bounds
-            s0 = max(1, min(s0_pre, numel(LFP_raw)));
-            s1 = max(1, min(s1_pre, numel(LFP_raw)));
-            if s1 < s0
+            s0 = max(1, min(s0_taskStart_offset, numel(LFP_raw)));
+            sn = max(1, min(sn_taskEnd_offset, numel(LFP_raw)));
+            if sn < s0
                 % Optional: log skip; for now just continue
                 continue
             end
 
             % Store the (clamped) indices as your official start/end
             TTL_LFP_idx_Start(move_i) = s0;
-            TTL_LFP_idx_End(move_i)   = s1;
+            TTL_LFP_idx_End(move_i)   = sn;
 
-            % Extract segment safely
-            LFPs_in_moveBlock = LFP_raw(s0:s1);
+            % Extract LFPs in Movement Segment
+            LFPs_in_moveSeg{move_i} = LFP_raw(s0:sn);
 
             % Write to table cell
-            LFPMoveTbl.LFPs{move_i} = LFPs_in_moveBlock;
+            % LFPsMoveTbl.LFPs{move_i} = LFPs_in_moveSeg;
         end
 
-        % Add LFP_ID, move_ID, TTL_LFP_idx_Start and TTL_LFP_idx_End columns
-        LFPMoveTbl.LFP_trial_ID       = repmat({[ProcName,'_', electrode_names{e_names}]}, nRows_LFPMoveTbl, 1);
-        LFPMoveTbl.move_trial_ID      = repmat({motor_trial_ID}, nRows_LFPMoveTbl, 1);
-        LFPMoveTbl.TTL_LFP_idx_Start  = TTL_LFP_idx_Start;
-        LFPMoveTbl.TTL_LFP_idx_End    = TTL_LFP_idx_End;
+        % write columns for this electrode
+        % derive a clean tag, e.g., 'E1'
+        E_token = regexp(E_chName, '(E[0-9A-Za-z]+)$', 'tokens', 'once');
+        if ~isempty(E_token)
+            elecTag = E_token{1};
+        else
+            elecTag = regexprep(E_chName,'\W','');
+        end
+        LFPs_perE_perMAT.(['LFP_', elecTag]) = LFPs_in_moveSeg;
+        % LFPs_perE_perMAT.(['TTL_LFP_idx_Start_', elecTag]) = TTL_LFP_idx_Start;
+        % LFPs_perE_perMAT.(['TTL_LFP_idx_End_',   elecTag]) = TTL_LFP_idx_End;
 
     end
 
-    All_LFPsPermove{LFP_mat_name} = All_LFPsPermove;
+    % Add TTL_LFP_idx_Start and TTL_LFP_idx_End columns
+    LFPs_perE_perMAT.TTL_LFP_idx_Start = TTL_LFP_idx_Start;
+    LFPs_perE_perMAT.TTL_LFP_idx_End = TTL_LFP_idx_End;
+
+    % Create LFPs per Electrode per MAT table
+    All_LFPsPerMove{LFP_mat_name} = LFPs_perE_perMAT;
 
 end
 
-% Define the standard column order
-standard_col_order = {'MoveN', 'MoveType', 'BeginF', 'EndF', 'TTL_LFP_idx_Start', 'TTL_LFP_idx_End', 'LFP_trial_ID', 'move_trial_ID', 'LFPs'};
+%% Align columns across MATs and concatenate
 
-% Initialize All_data as a cell array
-All_data = {};
-
-% Loop through each table in All_moveTbl_array
-for tbl_i = 1:length(All_LFPsPermove)
-    tbl_1 = All_LFPsPermove{tbl_i};
-    if isempty(tbl_1)
-        continue
+% union of vars
+allVars = {};
+for t_i = 1:numel(All_LFPsPerMove)
+    if istable(All_LFPsPerMove{t_i})
+        allVars = union(allVars, All_LFPsPerMove{t_i}.Properties.VariableNames, 'stable');
     end
+end
+allVars = string(allVars); % the union of all column names seen across all tables
 
-    % Initialize temp_data with NaNs or empty cells
-    temp_data = cell(height(tbl_1), length(standard_col_order));
-
-    % Align each table's data to the standard column order
-    for col_idx = 1:length(standard_col_order)
-        col_name = standard_col_order{col_idx};
-        if ismember(col_name, tbl_1.Properties.VariableNames)
-            temp_data(:, col_idx) = table2cell(tbl_1(:, col_name));
+% fill missing columns with sensible types, reorder, then vertcat
+for tbl_i = 1:numel(All_LFPsPerMove)
+    tempTbl = All_LFPsPerMove{tbl_i};
+    if ~istable(tempTbl), continue; end % Skip this entry if it isn’t actually a table
+    have = string(tempTbl.Properties.VariableNames); % Extract current col names
+    missing = setdiff(allVars, have, 'stable'); % Compute which cols are missing compared to allVars
+    for m_i = 1:numel(missing)
+        varN = missing(m_i);
+        if startsWith(varN, "LFP_")
+            tempTbl.(varN) = cell(height(tempTbl),1);
+        elseif startsWith(varN, "TTL_LFP_idx_")
+            tempTbl.(varN) = nan(height(tempTbl),1);
+        else
+            % default flexible type
+            tempTbl.(varN) = cell(height(tempTbl),1);
         end
     end
-
-    % Append the aligned data to All_data
-    All_data = [All_data; temp_data];
+    tempTbl = tempTbl(:, allVars);  % reorder cols to match allVars order 
+    All_LFPsPerMove{tbl_i} = tempTbl;
 end
 
-% Convert All_data to a table with the standard column order
-All_LFPsPerMove_Tbl = cell2table(All_data, 'VariableNames', standard_col_order);
+% vertically concatenate all perMAT tables into one big table 
+All_LFPsPerMove_Tbl = vertcat(All_LFPsPerMove{cellfun(@istable, All_LFPsPerMove)}); % one row per movement; electrodes as columns
 
 
-%% save All_SpikesPerMove_Tbl to a file
+%% Define the standard column order
+
+standard_col_order = {'MoveN', 'MoveType', 'BeginF', 'EndF', 'move_trial_ID', 'LFP_trial_ID', 'TTL_LFP_idx_Start', 'TTL_LFP_idx_End'};
+Tblvars = string(All_LFPsPerMove_Tbl.Properties.VariableNames);
+elecs = unique(regexprep(Tblvars(startsWith(Tblvars,"LFP_")), '^LFP_',''), 'stable');
+lfp_cols = "LFP_" + elecs;
+
+want = [standard_col_order, lfp_cols];
+have = string(All_LFPsPerMove_Tbl.Properties.VariableNames);
+rest = setdiff(have, want, 'stable');
+All_LFPsPerMove_Tbl = All_LFPsPerMove_Tbl(:, [intersect(want, have, 'stable'), rest]);
+
+
+%% save All_SpikesPerMove_Tbl and meta_Offset to files
 
 cd(ephysTbl_Dir)
-save('All_LFPsPerMove_offset.mat',"All_LFPsPerMove_Tbl");
 
-
-%% Load All_LFPsPerMove_Tbl to check    %%% refine this block
-
-cd(ephysTbl_Dir)
-
-% list of filename
-Tblmatfiles = dir('*.mat');
-Tblmatnames = {Tblmatfiles.name};
-
-use_offset = 1;
-for Tblmat_name = 1:length(Tblmatnames)
-    fileparts = split(Tblmatnames{Tblmat_name},'_');
-    if use_offset == 1
-        Tbl_name = fileparts{2:3};
-    else
-        Tbl_name = fileparts{2};
-    end
+if useOffset && offset_ms > 0
+    outName = sprintf('All_LFPsPerMove_offset%ims.mat', offset_ms);
+else
+    outName = 'All_LFPsPerMove_N0offset.mat';
 end
 
+save(outName, "All_LFPsPerMove_Tbl");
 
-LFPsPerMove_Tbl = Tblmatnames{contains(Tblmatnames, 'All_LFPsPerMove_offset')};
-load(LFPsPerMove_Tbl, 'All_LFPsPerMove_Tbl_offset')
+save("Offset_meta_struct", "meta_Offset")
 
+
+end
 
 %% Questions:
 
 % MLFP vs LFP - does LFP = CLFP?
+
+
+%% Helper Function
+
+function [offset_LFP_samples, meta_Offset] = useOffset_LFP(TTL_fs, AO_LFP_fs, offset_ms, useOffset)
+
+% useOffset_LFP
+% Returns # of samples to pre-pad in LFP domain based on pre-offset time. 
+% If useOffset == false or offset_ms<=0, Returns 0.
+
+% OUT:
+%   offset_LFP_samp : integer samples in LFP domain to subtract from start
+%   meta_Offset     : struct with .ms, .seconds, .ttl_samples, .lfp_samples
+
+    if nargin < 4 || isempty(useOffset), useOffset = true; end
+
+    meta_Offset.ms       = offset_ms;
+    meta_Offset.seconds  = offset_ms/1000;
+    if ~useOffset || offset_ms <= 0
+        meta_Offset.ttl_samples = 0;
+        meta_Offset.lfp_samples = 0;
+        offset_LFP_samples  = 0;
+        return
+    end
+
+    % For completeness, keep both TTL and LFP counts available in meta
+    meta_Offset.ttl_samples = round(TTL_fs * meta_Offset.seconds);
+    meta_Offset.lfp_samples = round(AO_LFP_fs * meta_Offset.seconds);
+
+    % What we actually need when indexing LFP data:
+    offset_LFP_samples  = meta_Offset.lfp_samples;
+end
+
 

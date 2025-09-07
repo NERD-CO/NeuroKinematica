@@ -69,7 +69,7 @@ cd(MovIndexGUI_dir)
 
 %% Next Steps
 
-% Gor to Order of Operation Scripts in IO_FR_Analysis
+% Go to Order of Operation Scripts in IO_FR_Analysis
 FRKin_dir = 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\IO_FR_Analysis';
 cd(FRKin_dir)
 
@@ -81,16 +81,3 @@ cd(FRKin_dir)
 
 
 %% Stats
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -24,6 +24,13 @@ end
 cd(IO_DataDir)
 Subject_AO = readtable('Subject_AO.xlsx');
 
+%% Config - Define datastream sampling rates
+
+TTL_fs = 44000;         % Hz, Alpha Omega TTL clock
+AO_spike_fs = 44000;    % Hz, Alpha Omega spike sampling rate
+AO_LFP_fs = 1375;       % Hz, Alpha Omega LFP sampling rate
+DLC_fs = 100;           % fps, Video/DLC frame rate
+
 
 %% Inputs
 
