@@ -1,6 +1,6 @@
 %% Order_of_Op__LFPKin_Processing
 
-clear; clc;
+clear; close all; clc;
 
 %% Environment / Directory Set-up
 
@@ -42,7 +42,7 @@ offset_LFPs = round((offset_TTLs/TTL_fs)*AO_LFP_fs); % ensure value is integer
 
 useOffset = true;
 % If useOffset == true or offset_ms>0, useOffset_LFP function returns the #
-% of samples to pre-pad in LFP domain based on a set pre-trial offset time 
+% of samples to pre-pad in LFP domain based on a set pre-trial offset time
 % (and a meta struct for reference).
 % If useOffset == false or offset_ms<=0, useOffset_LFP function returns 0.
 
@@ -183,7 +183,7 @@ neighborsToReplace = 2; % Hz, 1 or 2
 
 % neighborsToSample: This parameter is in Hz, and tells this function how
 % large of a window (in Hz) to use when picking the constant value to
-% replace frequency content with. 
+% replace frequency content with.
 
 % neighborsToReplace: This parameter is also in Hz, and tells this function
 % which neighbors need to be replaced with the constant value that was
@@ -199,12 +199,12 @@ lfpCols = LFPsPerMoveTbl_vars(startsWith(LFPsPerMoveTbl_vars,"LFP_E"));     % e.
 makeNewCols = true;
 
 
-%% Run wrapper_applySpectrumInterpolation_LFPs function 
+%% Run wrapper_applySpectrumInterpolation_LFPs function
 
-% run wrapper function for spectrumInterpolation and output updated All_LFPsPerMove_Tbl 
+% run wrapper function for spectrumInterpolation and output updated All_LFPsPerMove_Tbl
 All_LFPsPerMove_Tbl_filt = wrapper_applySpectrumInterpolation_LFPs( All_LFPsPerMove_Tbl, ...
-                           lfpCols, AO_LFP_fs, Fl, neighborsToSample, neighborsToReplace, ...
-                           makeNewCols);
+    lfpCols, AO_LFP_fs, Fl, neighborsToSample, neighborsToReplace, ...
+    makeNewCols);
 
 % save All_LFPsPerMove_Tbl_filt
 cd(ephysTbl_Dir)
@@ -219,22 +219,22 @@ save(outName, "All_LFPsPerMove_Tbl_filt");
 
 %% filters
 
-% 1) high-pass at 0.5 or 1 Hz 
-    % low freq. noise + drift removal
-    % use designfilt + filtfilt
+% 1) high-pass at 0.5 or 1 Hz
+% low freq. noise + drift removal
+% use designfilt + filtfilt
 
 % 1) low-pass at 250 Hz
-    % Adjust: LP cutoff to ~200–230 Hz; 
-    % anti-alias + keep LFP band
-    % use designfilt + filtfilt  
+% Adjust: LP cutoff to ~200–230 Hz;
+% anti-alias + keep LFP band
+% use designfilt + filtfilt
 
 % 3) downsample / resample 1375 to 500 Hz
 
-% 4) Beta bandpass (13–30 Hz) after resampling 
+% 4) Beta bandpass (13–30 Hz) after resampling
 
 %% Question (in initial notes)
 
-% 1-3 kHz
+% 1-3 kHz (?)
 
 %% Filtering (after spectrumInterpolation)
 
@@ -262,35 +262,35 @@ lfpCols_filt = lfpCols_filt(startsWith(lfpCols_filt,"LFP_E") & endsWith(lfpCols_
 % Loop through each LFP column and row
 for col_i = 1:numel(lfpCols_filt)
     colName = lfpCols_filt(col_i);
-    outName = replace(colName,"_filt","_preproc500");  % output column name
-    
+    outName = replace(colName,"_filt","_proc500");  % output column name
+
     % Preallocate
     All_LFPsPerMove_Tbl_filt.(outName) = cell(height(All_LFPsPerMove_Tbl_filt),1);
-    
+
     for row_i = 1:height(All_LFPsPerMove_Tbl_filt)
         LFP_vec = All_LFPsPerMove_Tbl_filt.(colName){row_i};
         if isempty(LFP_vec) || ~isnumeric(LFP_vec) || ~isvector(LFP_vec)
             All_LFPsPerMove_Tbl_filt.(outName){row_i} = LFP_vec;
             continue
         end
-        
+
         % --- Filtering steps
         LFP_vec = double(LFP_vec(:));                  % ensure column, double
         LFP_vec_hp = filtfilt(hpFilt, LFP_vec);        % high-pass drift removal
         LFP_vec_lp = filtfilt(lpFilt, LFP_vec_hp);     % low-pass anti-alias
         LFP_vec_ds = resample(LFP_vec_lp, 4, 11);      % downsample 1375 → 500 Hz
-        
+
         % Store result
         All_LFPsPerMove_Tbl_filt.(outName){row_i} = LFP_vec_ds;
     end
 end
 
 
-%% Quick visualization (Quality check / QA)
+%% Visualization (Quality check / QA)
 
-testRow = 1;   % change index to preview other trials
+testRow = 6;   % change index to preview other trials
 rawVec   = All_LFPsPerMove_Tbl_filt.(lfpCols_filt(1)){testRow};
-filtVec  = All_LFPsPerMove_Tbl_filt.(replace(lfpCols_filt(1),"_filt","_preproc500")){testRow};
+filtVec  = All_LFPsPerMove_Tbl_filt.(replace(lfpCols_filt(1),"_filt","_proc500")){testRow};
 
 figure;
 subplot(2,1,1);
@@ -299,6 +299,225 @@ subplot(2,1,2);
 plot(filtVec); title('Preprocessed LFP (HP+LP+downsampled to 500 Hz)');
 
 
+%% pspectrum PSD comparison: raw (post spectrumInterpolation) vs preprocessed (HP+LP+DS to 500 Hz)
+
+% pick a row and an LFP column to visualize
+rowIdx = testRow;  % adjust to inspect other trials
+Fs_res = 2;  % frequency resolution (target bin size)
+
+% grab the first filtered LFP column name, e.g., "LFP_E1_filt"
+if isempty(lfpCols_filt)
+    warning('No LFP_E*_filt columns found. Skipping PSD plots.');
+else
+    colFilt_1375 = lfpCols_filt(1);
+    colProc_500   = replace(colFilt_1375,"_filt","_proc500");
+
+    % Use char() for widest MATLAB compatibility with dynamic fieldnames
+    x_raw = All_LFPsPerMove_Tbl_filt.(char(colFilt_1375)){rowIdx};   % Fs_raw = 1375
+    x_proc = All_LFPsPerMove_Tbl_filt.(char(colProc_500)){rowIdx};   % Fs_proc = 500
+
+    if isempty(x_raw) || isempty(x_proc) || ~isvector(x_raw) || ~isvector(x_proc)
+        warning('Selected row/columns contain empty or non-vector data. Choose another row.');
+    else
+        x_raw = double(x_raw(:));
+        x_proc = double(x_proc(:));
+
+        minDur = numel(x_raw)/AO_LFP_fs;  % seconds of data
+        % if duration < 2 s, relax target Fs_res
+        if minDur < 2
+            Fs_res = 5;
+        end
+
+        % Require finite samples
+        if ~any(isfinite(x_raw)) || ~any(isfinite(x_proc))
+            warning('Selected signals contain only non-finite values. Skipping PSD.');
+        else
+            Fs_raw = AO_LFP_fs;          % 1375
+            Fs_proc = 500;                % downsampled
+            fMax   = 250;                % max for band of interest
+            epsF   = 1e-6;               % margin from Nyquist
+
+            % Clip FrequencyLimits to Nyquist for each signal
+            lim_raw = [0, min(fMax, Fs_raw/2 - epsF)];
+            lim_pre = [0, min(fMax, Fs_proc/2 - epsF)];
+
+            % PSDs
+            % Try with fixed FrequencyResolution; if it fails, retry auto
+            try
+                [P_raw,F_raw] = pspectrum(x_raw, Fs_raw, ...
+                    'FrequencyLimits', lim_raw, ...
+                    'FrequencyResolution', Fs_res);
+            catch
+                warning('pspectrum(raw): falling back to automatic resolution.');
+                [P_raw,F_raw] = pspectrum(x_raw, Fs_raw, 'FrequencyLimits', lim_raw);
+            end
+
+            try
+                [P_proc,F_proc] = pspectrum(x_proc, Fs_proc, ...
+                    'FrequencyLimits', lim_pre, ...
+                    'FrequencyResolution', Fs_res);
+            catch
+                warning('pspectrum(preproc): falling back to automatic resolution.');
+                [P_proc,F_proc] = pspectrum(x_proc, Fs_proc, 'FrequencyLimits', lim_pre);
+            end
+
+            % Convert power to dB
+            P_raw_dB = pow2db(P_raw);
+            P_proc_dB = pow2db(P_proc);
+
+            % Plot overlay up to 100 Hz (detail around line noise & beta)
+            figure('Name','PSD Raw vs Processed (0–100 Hz)');
+            plot(F_raw, P_raw_dB, 'LineWidth', 1); hold on;
+            plot(F_proc, P_proc_dB, 'LineWidth', 1);
+            xlim([0 100]); grid on;
+            xlabel('Frequency (Hz)'); ylabel('Power (dB)');
+            title(sprintf('PSD (Row %d) — %s vs %s', rowIdx, char(colFilt_1375), char(colProc_500)), 'Interpreter','none');
+            legend('Raw @ 1375 Hz','Processed @ 500 Hz','Location','best');
+
+            % Plot overlay up to 250 Hz (full range of interest)
+            figure('Name','PSD Raw vs Processed (0–250 Hz)');
+            plot(F_raw, P_raw_dB, 'LineWidth', 1); hold on;
+            plot(F_proc, P_proc_dB, 'LineWidth', 1);
+            xlim([0 250]); grid on;
+            xlabel('Frequency (Hz)'); ylabel('Power (dB)');
+            title(sprintf('PSD (Row %d) — %s vs %s', rowIdx, char(colFilt_1375), char(colProc_500)), 'Interpreter','none');
+            legend('Raw @ 1375 Hz','Processed @ 500 Hz','Location','best');
+
+            % Optional: time-domain traces
+            t_raw = (0:numel(x_raw)-1)/Fs_raw;
+            t_pre = (0:numel(x_proc)-1)/Fs_proc;
+
+            figure('Name','Time Series Raw vs Processed');
+            subplot(2,1,1);
+            plot(t_raw, x_raw); grid on;
+            xlabel('Time (s)'); ylabel('Amplitude');
+            title(sprintf('Raw (1375 Hz) — %s (Row %d)', char(colFilt_1375), rowIdx), 'Interpreter','none');
+            subplot(2,1,2);
+            plot(t_pre, x_proc); grid on;
+            xlabel('Time (s)'); ylabel('Amplitude');
+            title(sprintf('Processed (500 Hz) — %s (Row %d)', char(colProc_500), rowIdx), 'Interpreter','none');
+        end
+    end
+end
+
+
+%% Welch PSD comparison: raw (post spectrumInterpolation) vs preprocessed (HP+LP+DS to 500 Hz)
+
+% RAW @ 1375 Hz; for ~1-2 Hz bin spacing, nfft = 1024 gives ~1.34 Hz bins
+% PROC @ 500 Hz; for ~1-2 Hz bin spacing, nfft = 256 → ~1.95 Hz bins
+
+% choose which row/columns to visualize
+rowIdx = testRow;   % change to inspect another movement row
+
+if isempty(lfpCols_filt)
+    warning('No LFP_E*_filt columns found. Skipping Welch PSD.');
+else
+    colFilt_1375 = lfpCols_filt(1);                              % e.g., "LFP_E1_filt"
+    colProc_500   = replace(colFilt_1375,"_filt","_proc500");    % e.g., "LFP_E1_proc500"
+
+    % pull vectors (use char() for dynamic fieldname compatibility)
+    x_raw = All_LFPsPerMove_Tbl_filt.(char(colFilt_1375)){rowIdx};   % Fs_raw = 1375
+    x_proc = All_LFPsPerMove_Tbl_filt.(char(colProc_500)){rowIdx};   % Fs_pre = 500
+
+    if isempty(x_raw) || isempty(x_proc) || ~isvector(x_raw) || ~isvector(x_proc)
+        warning('Selected row has empty/non-vector data. Choose another row.');
+    else
+        x_raw = double(x_raw(:));
+        x_proc = double(x_proc(:));
+
+        % remove DC (optional but recommended)
+        x_raw = x_raw - mean(x_raw,'omitnan');
+        x_proc = x_proc - mean(x_proc,'omitnan');
+
+        if ~any(isfinite(x_raw)) || ~any(isfinite(x_proc))
+            warning('Signals contain non-finite values only. Skipping Welch PSD.');
+        else
+            % Welch parameters (auto-tune for ~1–2 Hz/bin)
+            Fs_raw = AO_LFP_fs;   % 1375 Hz
+            Fs_proc = 500;        % downsampled
+
+            df_target = 1.5;      % desired bin spacing (Hz)
+            fMax      = 250;      % plot limit (Hz)
+
+            % helper for nfft given Fs and target df
+            computeNFFT = @(Fs,df) 2^nextpow2(max(128, round(Fs/df)));
+
+            nfft_raw = computeNFFT(Fs_raw, df_target);   % ~1.3–1.6 Hz/bin
+            nfft_proc = computeNFFT(Fs_proc, df_target);   % ~1.0–2.0 Hz/bin
+
+            % window lengths: ~4 s (or smaller if signal short), >= nfft
+            win_raw = min(numel(x_raw), max(nfft_raw, round(4*Fs_raw)));
+            win_pre = min(numel(x_proc), max(nfft_proc, round(4*Fs_proc)));
+
+            % ensure minimum practical sizes
+            win_raw = max(256, win_raw);
+            win_pre = max(128, win_pre);
+
+            % if still longer than the signal, clip to signal length
+            win_raw = min(win_raw, numel(x_raw));
+            win_pre = min(win_pre, numel(x_proc));
+
+            w_raw  = hann(win_raw,'periodic');
+            w_pre  = hann(win_pre,'periodic');
+            olap_raw = floor(0.5*win_raw);     % 50% overlap
+            olap_pre = floor(0.5*win_pre);
+
+            % Welch PSDs (one-sided)
+            [P_raw, F_raw] = pwelch(x_raw, w_raw, olap_raw, nfft_raw, Fs_raw, 'onesided');
+            [P_proc, F_proc] = pwelch(x_proc, w_pre, olap_pre, nfft_proc, Fs_proc, 'onesided');
+
+            % keep up to fMax
+            keep_raw = F_raw <= fMax;
+            keep_proc = F_proc <= fMax;
+
+            F_raw = F_raw(keep_raw);
+            F_proc = F_proc(keep_proc);
+            P_raw_dB = pow2db(P_raw(keep_raw));
+            P_proc_dB = pow2db(P_proc(keep_proc));
+
+            % Plot 0–100 Hz
+            figure('Name','Welch PSD — Raw vs Processed (0–100 Hz)');
+            plot(F_raw, P_raw_dB, 'LineWidth', 1); hold on;
+            plot(F_proc, P_proc_dB, 'LineWidth', 1);
+            xlim([0 100]); grid on;
+            xlabel('Frequency (Hz)'); ylabel('Power (dB)');
+            title(sprintf('Welch PSD (Row %d) — %s vs %s', ...
+                rowIdx, char(colFilt_1375), char(colProc_500)), 'Interpreter','none');
+            legend('Raw @ 1375 Hz','Processed @ 500 Hz','Location','best');
+
+            % Plot 0–250 Hz (full range of interest)
+            figure('Name','Welch PSD — Raw vs Processed (0–250 Hz)');
+            plot(F_raw, P_raw_dB, 'LineWidth', 1); hold on;
+            plot(F_proc, P_proc_dB, 'LineWidth', 1);
+            xlim([0 250]); grid on;
+            xlabel('Frequency (Hz)'); ylabel('Power (dB)');
+            title(sprintf('Welch PSD (Row %d) — %s vs %s', ...
+                rowIdx, char(colFilt_1375), char(colProc_500)), 'Interpreter','none');
+            legend('Raw @ 1375 Hz','Processed @ 500 Hz','Location','best');
+        end
+    end
+end
+
+
+%% Save fully filtered and processed LFP outputs (HP+LP+DS to 500 Hz)
+
+% Resave All_LFPsPerMove_Tbl_filt
+cd(ephysTbl_Dir)
+
+if useOffset && offset_ms > 0
+    outName = sprintf('filtProc_All_LFPsPerMove_offset%ims.mat', offset_ms);
+else
+    outName = 'filtProc_All_LFPsPerMove_N0offset.mat';
+end
+
+save(outName, "All_LFPsPerMove_Tbl_filt");
+fprintf('[SAVED] Preprocessed table written to %s\n', fullfile(ephysTbl_Dir,outName));
+
+
+
+%% Isolate Bands of Interest (after filtering + resampling)
+
+% Beta bandpass (13–30 Hz)
 
 %% PSDs on different context
 
@@ -320,4 +539,4 @@ plot(filtVec); title('Preprocessed LFP (HP+LP+downsampled to 500 Hz)');
 
 % inst. beta power at specific time/context (move index)
 
-%% LFP bursting analysis / continuious wavelet transformation
+%% LFP bursting analysis / continuous wavelet transformation

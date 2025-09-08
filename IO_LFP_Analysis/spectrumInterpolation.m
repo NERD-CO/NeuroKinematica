@@ -17,15 +17,17 @@ function newDat = spectrumInterpolation(data, Fs, Fl, neighborsToSample, neighbo
     mag = abs(spectrum); % We use the real spectrum to interpolate and remove the powerline noise.
     phase = angle(spectrum);
     
-    binStepSize = length(mag) / Fs;
-    nextPowerBin = binStepSize * Fl;
+    binStepSize = length(mag) / Fs; % bins per Hz
+    nextPowerBin = binStepSize * Fl; % increment = one harmonic spacing
     neighborsToSample = uint32(binStepSize * neighborsToSample);
     neighborsToReplace =  uint32(binStepSize * neighborsToReplace);
+
     % We have to take care of each end of the spectrum differently.
     % For the first half, the spectra is not reversed.    
-    nearestPowerlineHarmonic = nextPowerBin;
-    binStart = nearestPowerlineHarmonic;
+    nearestPowerlineHarmonic = nextPowerBin; % Fl in bins
+    binStart = nearestPowerlineHarmonic; % start at Fl
     
+    % loop over all harmonics on Positive-frequency half (DC → Nyquist)
     for i=binStart:nextPowerBin:length(mag)/2
         neighborSamples = mag(i-neighborsToSample:i+neighborsToSample, :);
         neighborhoodAverage = median(neighborSamples);
@@ -34,12 +36,13 @@ function newDat = spectrumInterpolation(data, Fs, Fl, neighborsToSample, neighbo
         end
     end
     
+    
+    % loop over all harmonics on Negative-frequency half (Nyquist → Fs)
     nyquistFrequency = Fs / 2;
     nearestPowerlineHarmonic = mod(nyquistFrequency, Fl); % This gives us the distance to the nyquist frequency starting from the middle.
     binStart = (length(mag)/2) + (nearestPowerlineHarmonic * binStepSize);
     
     % Now replace the other side
-
     for i=binStart:nextPowerBin:(length(mag) - nextPowerBin)
         neighborSamples = mag(i-neighborsToSample:i+neighborsToSample, :);
         neighborhoodAverage = median(neighborSamples);
