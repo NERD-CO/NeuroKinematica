@@ -4,8 +4,6 @@ function All_LFPsPerMove_Tbl = align_LFPsPerMove_TTL(Subject_AO, ProcDataDir, Mo
 % maps Move Index frames → TTL samples → LFP samples
 % and builds All_LFPsPerMove_Tbl (per movement row)
 
-addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\IO_LFP_Analysis'
-
 
 %% Run useOffset helper function
 

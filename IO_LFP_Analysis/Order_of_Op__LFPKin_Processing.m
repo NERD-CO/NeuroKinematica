@@ -1,7 +1,6 @@
 %% Order_of_Op__LFPKin_Processing
 
 clear; clc;
-addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\IO_LFP_Analysis'
 
 %% Environment / Directory Set-up
 
@@ -13,8 +12,10 @@ switch curPCname
         IO_DataDir = 'X:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
     case 'DSKTP-JTLAB-EMR'  % Lab Desktop
         IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
+        addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\IO_LFP_Analysis'
     case 'NSG-M-H8J3X34'    % PC_2
         IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
+        addpath 'C:\GitHub\NeuroKinematica\IO_LFP_Analysis'
 end
 
 cd(IO_DataDir)
@@ -164,25 +165,19 @@ else
     load('All_LFPsPerMove_N0offset.mat', 'All_LFPsPerMove_Tbl');
 end
 
-load('Offset_meta_struct.mat')
+load('Offset_meta_struct.mat', 'meta_Offset')
 
-%%
-lfpCols = string(All_LFPsPerMove_Tbl.Properties.VariableNames);
-lfpCols = lfpCols(startsWith(lfpCols, "LFP_"));
 
-All_LFPsPerMove_Tbl = applySpectrumInterpolationToLFPs( ...
-    All_LFPsPerMove_Tbl, lfpCols, AO_LFP_fs, 60, 4, 2, true);
-
-%% Run spectrumInterpolation (Miguel's function :))
+%% Config - Inputs for spectrumInterpolation (Miguel's function :))
 
 % This function interpolates around the frequency of interest (Fl) and
 % replaces its and some neighbors using a constant value.
 
 % function inputs
-data1 = All_LFPsPerMove_Tbl.LFP_E1; % data: column vector of the data that needs to be filtered
-data2 = All_LFPsPerMove_Tbl.LFP_E2; 
-Fs = AO_LFP_fs; % Fs: Sampling Frequency (in Hz) of the data
+% data = All_LFPsPerMove_Tbl.LFPs; % data: column vector of the data that needs to be filtered
+Fs = AO_LFP_fs; % Fs: Sampling Frequency (in Hz) of the data, % loop on harmonics of 60 Hz
 Fl = 60; % Fl: Line frequency (in Hz), center of our interpolation
+% loop on harmonics of 60 Hz (notch & comb)
 neighborsToSample = 4; % Hz, 4 or 5
 neighborsToReplace = 2; % Hz, 1 or 2
 
@@ -195,25 +190,115 @@ neighborsToReplace = 2; % Hz, 1 or 2
 % determined by neighborsToSample. Generally, neighborsToReplace <
 % neighborsToSample in order to get a better spectral estimate.
 
-% Run function
-spectrumInterpolation(data1, Fs, Fl, neighborsToSample, neighborsToReplace)
-spectrumInterpolation(data2, Fs, Fl, neighborsToSample, neighborsToReplace)
 
-% loop on harmonics of 60 Hz
+% pick which columns to filter (LFP channels) ---
+LFPsPerMoveTbl_vars = string(All_LFPsPerMove_Tbl.Properties.VariableNames);
+lfpCols = LFPsPerMoveTbl_vars(startsWith(LFPsPerMoveTbl_vars,"LFP_E"));     % e.g., LFP_E1, LFP_E2, ...
 
-
-
-
+% create new columns with "_filt" (set false to overwrite originals)
+makeNewCols = true;
 
 
+%% Run wrapper_applySpectrumInterpolation_LFPs function 
+
+% run wrapper function for spectrumInterpolation and output updated All_LFPsPerMove_Tbl 
+All_LFPsPerMove_Tbl_filt = wrapper_applySpectrumInterpolation_LFPs( All_LFPsPerMove_Tbl, ...
+                           lfpCols, AO_LFP_fs, Fl, neighborsToSample, neighborsToReplace, ...
+                           makeNewCols);
+
+% save All_LFPsPerMove_Tbl_filt
+cd(ephysTbl_Dir)
+
+if useOffset && offset_ms > 0
+    outName = sprintf('filt_All_LFPsPerMove_offset%ims.mat', offset_ms);
+else
+    outName = 'filt_All_LFPsPerMove_N0offset.mat';
+end
+
+save(outName, "All_LFPsPerMove_Tbl_filt");
 
 %% filters
 
-% notch
-% low-pass at 250 Hz
-% high-pass at 0.5 or 1 Hz
+% 1) high-pass at 0.5 or 1 Hz 
+    % low freq. noise + drift removal
+    % use designfilt + filtfilt
+
+% 1) low-pass at 250 Hz
+    % Adjust: LP cutoff to ~200–230 Hz; 
+    % anti-alias + keep LFP band
+    % use designfilt + filtfilt  
+
+% 3) downsample / resample 1375 to 500 Hz
+
+% 4) Beta bandpass (13–30 Hz) after resampling 
+
+%% Question (in initial notes)
+
 % 1-3 kHz
-% downsample to 500 Hz
+
+%% Filtering (after spectrumInterpolation)
+
+% Input:  All_LFPsPerMove_Tbl_filt (with LFP_E*_filt columns, Fs = 1375 Hz)
+% Output: Preprocessed vectors (high-pass, low-pass, downsampled to 500 Hz)
+
+Fs_in  = AO_LFP_fs;   % original LFP sampling rate = 1375 Hz
+Fs_out = 500;         % downsampled rate
+
+% Design filters (once)
+hpFilt = designfilt('highpassiir', ...
+    'FilterOrder', 4, ...
+    'HalfPowerFrequency', 1, ...      % cutoff at ~1 Hz
+    'SampleRate', Fs_in);
+
+lpFilt = designfilt('lowpassiir', ...
+    'FilterOrder', 8, ...
+    'HalfPowerFrequency', 250, ...    % cutoff at 250 Hz (or ~200–230 Hz)
+    'SampleRate', Fs_in);
+
+% Pick which columns to filter
+lfpCols_filt = string(All_LFPsPerMove_Tbl_filt.Properties.VariableNames);
+lfpCols_filt = lfpCols_filt(startsWith(lfpCols_filt,"LFP_E") & endsWith(lfpCols_filt,"_filt"));
+
+% Loop through each LFP column and row
+for col_i = 1:numel(lfpCols_filt)
+    colName = lfpCols_filt(col_i);
+    outName = replace(colName,"_filt","_preproc500");  % output column name
+    
+    % Preallocate
+    All_LFPsPerMove_Tbl_filt.(outName) = cell(height(All_LFPsPerMove_Tbl_filt),1);
+    
+    for row_i = 1:height(All_LFPsPerMove_Tbl_filt)
+        LFP_vec = All_LFPsPerMove_Tbl_filt.(colName){row_i};
+        if isempty(LFP_vec) || ~isnumeric(LFP_vec) || ~isvector(LFP_vec)
+            All_LFPsPerMove_Tbl_filt.(outName){row_i} = LFP_vec;
+            continue
+        end
+        
+        % --- Filtering steps
+        LFP_vec = double(LFP_vec(:));                  % ensure column, double
+        LFP_vec_hp = filtfilt(hpFilt, LFP_vec);        % high-pass drift removal
+        LFP_vec_lp = filtfilt(lpFilt, LFP_vec_hp);     % low-pass anti-alias
+        LFP_vec_ds = resample(LFP_vec_lp, 4, 11);      % downsample 1375 → 500 Hz
+        
+        % Store result
+        All_LFPsPerMove_Tbl_filt.(outName){row_i} = LFP_vec_ds;
+    end
+end
+
+
+%% Quick visualization (Quality check / QA)
+
+testRow = 1;   % change index to preview other trials
+rawVec   = All_LFPsPerMove_Tbl_filt.(lfpCols_filt(1)){testRow};
+filtVec  = All_LFPsPerMove_Tbl_filt.(replace(lfpCols_filt(1),"_filt","_preproc500")){testRow};
+
+figure;
+subplot(2,1,1);
+plot(rawVec); title('Raw LFP (post spectrumInterpolation, 1375 Hz)');
+subplot(2,1,2);
+plot(filtVec); title('Preprocessed LFP (HP+LP+downsampled to 500 Hz)');
+
+
 
 %% PSDs on different context
 
@@ -236,5 +321,3 @@ spectrumInterpolation(data2, Fs, Fl, neighborsToSample, neighborsToReplace)
 % inst. beta power at specific time/context (move index)
 
 %% LFP bursting analysis / continuious wavelet transformation
-
-
