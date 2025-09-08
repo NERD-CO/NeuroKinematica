@@ -3,10 +3,12 @@
 clear; clc;
 
 % addpath C:\Users\erinr\OneDrive\Documents\GitHub\NeuroKinematica\DLC_Processing
-addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\DLC_Processing'
+% addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\DLC_Processing'
+addpath 'C:\Users\Erin_Radcliffe\Documents\GitHub\NeuroKinematica\DLC_Processing'
 
 % addpath 'C:\Users\erinr\OneDrive\Documents\GitHub\NeuroKinematica\Kinematic Analyses'
-addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\Kinematic Analyses'
+% addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\Kinematic Analyses'
+addpath 'C:\Users\Erin_Radcliffe\Documents\GitHub\NeuroKinematica\Kinematic Analyses'
 
 % Folder for all processed DLC cases 
 IO_procDLC = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\Processed DLC';
@@ -42,7 +44,8 @@ DLCProc_caseID = [IO_procDLC, filesep, casedate_hem];
 
 %% 2) Run DLC Processing function
 
-DLCProc_dir = 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\DLC_Processing';
+% DLCProc_dir = 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\DLC_Processing';
+DLCProc_dir = 'C:\Users\Erin_Radcliffe\Documents\GitHub\NeuroKinematica\DLC_Processing';
 cd(DLCProc_dir)
 
 % Convert DLC timeseries data per video from .csv to .mat
@@ -61,7 +64,8 @@ fillDroppedFrames_JT_v2(path2videos, quality)
 
 %% 4) Generate Movement Indices for each video
 
-MovIndexGUI_dir = 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\DLC_VideoIndexing_GUI';
+% MovIndexGUI_dir = 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\DLC_VideoIndexing_GUI';
+MovIndexGUI_dir = 'C:\Users\Erin_Radcliffe\Documents\GitHub\NeuroKinematica\DLC_VideoIndexing_GUI'
 cd(MovIndexGUI_dir)
 
 % ER_DLC_MoveCheck_Dual_v4.mlapp
@@ -71,6 +75,9 @@ cd(MovIndexGUI_dir)
 
 % Go to Order of Operation Scripts in IO_FR_Analysis
 FRKin_dir = 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\IO_FR_Analysis';
+% Gor to Order of Operation Scripts in IO_FR_Analysis
+% FRKin_dir = 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\IO_FR_Analysis';
+FRKin_dir = 'C:\Users\Erin_Radcliffe\Documents\GitHub\NeuroKinematica\IO_FR_Analysis';
 cd(FRKin_dir)
 
 % > Order_of_Op__FRKin_Processing
