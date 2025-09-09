@@ -407,7 +407,7 @@ end
 % PROC @ 500 Hz; for ~1-2 Hz bin spacing, nfft = 256 → ~1.95 Hz bins
 
 % choose which row/columns to visualize
-rowIdx = testRow;   % change to inspect another movement row
+rowIdx = testRow;   % change to inspect another movement rep segment (row)
 
 if isempty(lfpCols_filt)
     warning('No LFP_E*_filt columns found. Skipping Welch PSD.');
@@ -512,31 +512,3 @@ end
 
 save(outName, "All_LFPsPerMove_Tbl_filt");
 fprintf('[SAVED] Preprocessed table written to %s\n', fullfile(ephysTbl_Dir,outName));
-
-
-
-%% Isolate Bands of Interest (after filtering + resampling)
-
-% Beta bandpass (13–30 Hz)
-
-%% PSDs on different context
-
-% rest, H O/C, A Pro/Sup, E Flex/Exten
-
-%% FOOOFs on different contexts
-
-%% Hilbert transformation spec. freq. (inst. power)
-
-% theta band
-% low-beta band
-% high-beta band
-% gamma band
-% HFO
-
-% at specific movement timepoints
-
-%% Spike-field coherence
-
-% inst. beta power at specific time/context (move index)
-
-%% LFP bursting analysis / continuous wavelet transformation

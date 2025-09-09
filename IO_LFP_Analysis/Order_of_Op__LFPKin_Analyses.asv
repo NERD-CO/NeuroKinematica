@@ -293,7 +293,7 @@ for c = 1:numel(procCols)
     end
 end
 
-% Hilbert transformation spec. freq. (inst. power)
+% %% Hilbert transformation spec. freq. (inst. power)
 % process row-by-row
 for c = 1:numel(procCols)
     inCol = procCols(c);
