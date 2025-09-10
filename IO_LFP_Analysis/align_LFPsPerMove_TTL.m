@@ -1,18 +1,23 @@
-function All_LFPsPerMove_Tbl = align_LFPsPerMove_TTL(Subject_AO, ProcDataDir, Move_CaseDir, ephysTbl_Dir, TTL_fs, AO_LFP_fs, offset_ms, useOffset)
+function All_LFPsPerMove_Tbl = align_LFPsPerMove_TTL(Subject_AO, ProcDataDir, Move_CaseDir, ephysTbl_Dir, TTL_fs, AO_LFP_fs, pre_offset_ms, useOffset)
 
 % IO LFP alignment and extraction script
 % maps Move Index frames → TTL samples → LFP samples
 % and builds All_LFPsPerMove_Tbl (per movement row)
 
+%% Notes:
+
+% MacroLFP = MLFP in processed mat (recorded from macro contact)
+% CLFP = LFP in processed mat (recorded from micro wire tip)
+
 
 %% Run useOffset helper function
 
-[offset_LFP_samples, meta_Offset] = useOffset_LFP(TTL_fs, AO_LFP_fs, offset_ms, useOffset);
+[offset_LFP_samples, meta_Offset] = useOffset_LFP(TTL_fs, AO_LFP_fs, pre_offset_ms, useOffset);
 
-% If useOffset == true or offset_ms>0, useOffset_LFP function returns the #
+% If useOffset == true or pre_offset_ms>0, useOffset_LFP function returns the #
 % of samples to pre-pad in LFP domain based on a set pre-trial offset time 
 % (and a meta struct for reference).
-% If useOffset == false or offset_ms<=0, useOffset_LFP function returns 0.
+% If useOffset == false or pre_offset_ms<=0, useOffset_LFP function returns 0.
 
 
 %% Define case-specific directory for movement indices per trial
@@ -245,8 +250,8 @@ All_LFPsPerMove_Tbl = All_LFPsPerMove_Tbl(:, [intersect(want, have, 'stable'), r
 
 cd(ephysTbl_Dir)
 
-if useOffset && offset_ms > 0
-    outName = sprintf('All_LFPsPerMove_offset%ims.mat', offset_ms);
+if useOffset && pre_offset_ms > 0
+    outName = sprintf('All_LFPsPerMove_offset%ims.mat', pre_offset_ms);
 else
     outName = 'All_LFPsPerMove_N0offset.mat';
 end
@@ -258,18 +263,15 @@ save("Offset_meta_struct", "meta_Offset")
 
 end
 
-%% Questions:
-
-% MLFP vs LFP - does LFP = CLFP?
 
 
 %% Helper Function
 
-function [offset_LFP_samples, meta_Offset] = useOffset_LFP(TTL_fs, AO_LFP_fs, offset_ms, useOffset)
+function [offset_LFP_samples, meta_Offset] = useOffset_LFP(TTL_fs, AO_LFP_fs, pre_offset_ms, useOffset)
 
 % useOffset_LFP
 % Returns # of samples to pre-pad in LFP domain based on pre-offset time. 
-% If useOffset == false or offset_ms<=0, Returns 0.
+% If useOffset == false or pre_offset_ms<=0, Returns 0.
 
 % OUT:
 %   offset_LFP_samp : integer samples in LFP domain to subtract from start
@@ -277,9 +279,9 @@ function [offset_LFP_samples, meta_Offset] = useOffset_LFP(TTL_fs, AO_LFP_fs, of
 
     if nargin < 4 || isempty(useOffset), useOffset = true; end
 
-    meta_Offset.ms       = offset_ms;
-    meta_Offset.seconds  = offset_ms/1000;
-    if ~useOffset || offset_ms <= 0
+    meta_Offset.ms       = pre_offset_ms;
+    meta_Offset.seconds  = pre_offset_ms/1000;
+    if ~useOffset || pre_offset_ms <= 0
         meta_Offset.ttl_samples = 0;
         meta_Offset.lfp_samples = 0;
         offset_LFP_samples  = 0;
