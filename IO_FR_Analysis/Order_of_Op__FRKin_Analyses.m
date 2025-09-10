@@ -1,9 +1,6 @@
 %% Order of Operations - FR-Kinematic Correlation Script
 
-clear; clc;
-addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\DLC_Processing'
-addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\IO_FR_Analysis'
-addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\Kinematic Analyses'
+clear; close all; clc;
 
 
 %% Functions in FR Analysis, and FR-Kinematic Correlation Pipeline
@@ -19,11 +16,22 @@ addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1
 
 curPCname = getenv('COMPUTERNAME');
 switch curPCname
-    case 'DESKTOP-I5CPDO7'
+    case 'DESKTOP-I5CPDO7'  % PC_1
         IO_DataDir = 'X:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
-    otherwise
+    case 'DSKTP-JTLAB-EMR'  % Lab Desktop
         IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
+        addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\DLC_Processing'
+        addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\IO_FR_Analysis'
+        addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\Kinematic Analyses'
+        addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\IO_LFP_Analysis'
+    case 'NSG-M-H8J3X34'    % PC_2
+        IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
+        addpath 'C:\GitHub\NeuroKinematica\DLC_Processing'
+        addpath 'C:\GitHub\NeuroKinematica\IO_FR_Analysis'
+        addpath 'C:\GitHub\NeuroKinematica\Kinematic Analyses'
+        addpath 'C:\GitHub\NeuroKinematica\IO_LFP_Analysis'
 end
+
 
 %% Config - Define datastream sampling rates (Alpha Omega and Video sampling fs)
 
@@ -34,19 +42,19 @@ DLC_fs = 100;           % fps, Video/DLC frame rate
 
 %% Inputs:
 
-CaseDate = '05_18_2023_b_bilateral'; % Adjust as needed
+CaseDate = '03_23_2023'; % Adjust as needed
 % '03_23_2023';
 % '04_05_2023';
 % '05_18_2023_b_bilateral';
 % '06_08_2023_bilateral';
 
-MoveDir_CaseID = 'IO_05_18_2023_b_LSTN'; % Adjust as needed
+MoveDir_CaseID = 'IO_03_23_2023_LSTN'; % Adjust as needed
 % 'IO_03_23_2023_LSTN';
 % 'IO_04_05_2023_RSTN';
 % 'IO_05_18_2023_b_LSTN';
 % 'IO_06_08_2023_LSTN'
 
-
+% Config use offset
 ephys_offset = 1;
 
 % Data folder paths
@@ -58,6 +66,7 @@ Ephys_Kin_Dir = fullfile(IO_DataDir, 'Ephys_Kinematics');
 FR_Kin_Dir = fullfile(Ephys_Kin_Dir, 'FR_Kinematic_Analyses');
 Case_FR_Kin = fullfile(FR_Kin_Dir, CaseDate); % case-specific results from run_FR_KinematicCorr saved here
 
+
 %% Handle Bilateral Cases
 
 % Specify hemisphere in command window if bilateral
@@ -66,10 +75,10 @@ if isBilateral
     fprintf('[INFO] Bilateral case detected: %s\n',CaseDate);
     CaseDate_hem = input('Enter hemisphere (LSTN or RSTN): ','s');
     if ~ismember(CaseDate_hem,{'LSTN','RSTN'})
-        error('Invalid hemisphere'); 
+        error('Invalid hemisphere');
     end
     % Append hemisphere-specific folder
-    ephysTbl_Dir = fullfile(ephysTbl_Dir, CaseDate_hem); 
+    ephysTbl_Dir = fullfile(ephysTbl_Dir, CaseDate_hem);
 else
     CaseDate_hem = '';
 end
@@ -83,6 +92,7 @@ Tbl_list = dir('*Spikes*.mat');
 Tbl_names = {Tbl_list.name};
 spk_case = Tbl_names{contains(Tbl_names, 'offset')}; % offset version preferred
 load(spk_case, 'All_SpikesPerMove_Tbl');
+
 
 %% OPTIONAL: Case-specific cleaning (remove duplicates if needed)
 

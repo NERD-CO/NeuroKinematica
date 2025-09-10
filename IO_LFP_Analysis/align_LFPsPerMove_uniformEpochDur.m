@@ -1,18 +1,37 @@
-function All_LFPsPerMove_Tbl = align_LFPsPerMove_TTL(Subject_AO, ProcDataDir, Move_CaseDir, ephysTbl_Dir, TTL_fs, AO_LFP_fs, pre_offset_ms, useOffset)
+function All_LFPsPerMove_Tbl_uniformEpochs = align_LFPsPerMove_uniformEpochDur(Subject_AO, ProcDataDir, Move_CaseDir, ephysTbl_Dir, TTL_fs, AO_LFP_fs, pre_offset_ms, useOffset, UniformEpochs, epochDur_ms);
 
 % IO LFP alignment and extraction script
 % maps Move Index frames → TTL samples → LFP samples
 % and builds All_LFPsPerMove_Tbl (per movement row)
 
+%% Add 500 ms from start of each MoveRep
+
+epochDur_ms = 500; % milliseconds
+Epoch_dur_seconds = epochDur_ms / 1000; % seconds
+
+% Calculate number of TTL samples
+epochDur_TTLs = round(TTL_fs * Epoch_dur_seconds); % ensure value is integer
+
+% Calculate number TTL samples in AO_LFP sample domain by downsampling TTL_fs
+epochDur_LFPs = round((epochDur_TTLs/TTL_fs)*AO_LFP_fs); % ensure value is integer
+
+
+UniformEpochs = true;
+% If UniformEpochs == true or epochDur_ms > 0, useOffset_LFP function returns the #
+% of samples to pre-pad in LFP domain based on a set pre-trial offset time
+% (and a meta struct for reference).
+% If UniformEpochs == false or epochDur_ms <= 0, useOffset_LFP function returns 0.
+
+[epochDur_LFP_samples, meta_epochDur] = UniformEpochs_LFP(TTL_fs, AO_LFP_fs, epochDur_ms, UniformEpochs)
 
 %% Run useOffset helper function
 
 [offset_LFP_samples, meta_Offset] = useOffset_LFP(TTL_fs, AO_LFP_fs, pre_offset_ms, useOffset);
 
-% If useOffset == true or offset_ms>0, useOffset_LFP function returns the #
-% of samples to pre-pad in LFP domain based on a set pre-trial offset time 
+% If useOffset == true or pre_offset_ms>0, useOffset_LFP function returns the #
+% of samples to pre-pad in LFP domain based on a set pre-trial offset time
 % (and a meta struct for reference).
-% If useOffset == false or offset_ms<=0, useOffset_LFP function returns 0.
+% If useOffset == false or pre_offset_ms<=0, useOffset_LFP function returns 0.
 
 
 %% Define case-specific directory for movement indices per trial
@@ -80,7 +99,7 @@ for LFP_mat_name = 1:length(LFPmatnames)                                    % MA
     LFPsMoveTbl = moveTbl(cellfun(@(X) ~isempty(X), moveTbl.MoveType, 'UniformOutput', true),:);
 
     % temp var
-    LFP_move_trial_ID = [ProcName,'_', motor_trial_ID]; 
+    LFP_move_trial_ID = [ProcName,'_', motor_trial_ID];
 
     % initiate an LFPs per Electrode per MAT accumulator table
     nRows_LFPMoveTbl = height(LFPsMoveTbl);
@@ -206,7 +225,7 @@ allVars = string(allVars); % the union of all column names seen across all table
 % fill missing columns with sensible types, reorder, then vertcat
 for tbl_i = 1:numel(All_LFPsPerMove)
     tempTbl = All_LFPsPerMove{tbl_i};
-    if ~istable(tempTbl), continue; end % Skip this entry if it isn’t actually a table
+    if ~istable(tempTbl), continue; end % Skip this entry if it isn't actually a table
     have = string(tempTbl.Properties.VariableNames); % Extract current col names
     missing = setdiff(allVars, have, 'stable'); % Compute which cols are missing compared to allVars
     for m_i = 1:numel(missing)
@@ -220,11 +239,11 @@ for tbl_i = 1:numel(All_LFPsPerMove)
             tempTbl.(varN) = cell(height(tempTbl),1);
         end
     end
-    tempTbl = tempTbl(:, allVars);  % reorder cols to match allVars order 
+    tempTbl = tempTbl(:, allVars);  % reorder cols to match allVars order
     All_LFPsPerMove{tbl_i} = tempTbl;
 end
 
-% vertically concatenate all perMAT tables into one big table 
+% vertically concatenate all perMAT tables into one big table
 All_LFPsPerMove_Tbl = vertcat(All_LFPsPerMove{cellfun(@istable, All_LFPsPerMove)}); % one row per movement; electrodes as columns
 
 
@@ -246,7 +265,7 @@ All_LFPsPerMove_Tbl = All_LFPsPerMove_Tbl(:, [intersect(want, have, 'stable'), r
 cd(ephysTbl_Dir)
 
 if useOffset && pre_offset_ms > 0
-    outName = sprintf('All_LFPsPerMove_offset%ims.mat', offset_ms);
+    outName = sprintf('All_LFPsPerMove_offset%ims.mat', pre_offset_ms);
 else
     outName = 'All_LFPsPerMove_N0offset.mat';
 end
@@ -261,38 +280,69 @@ end
 %% Notes:
 
 % MacroLFP = MLFP in processed mat (recorded from macro contact)
-% CLFP = LFP in processed mat (recorded from micro )
+% CLFP = LFP in processed mat (recorded from tip / micro)
 
 
-%% Helper Function
+%% Helper Functions
 
 function [offset_LFP_samples, meta_Offset] = useOffset_LFP(TTL_fs, AO_LFP_fs, pre_offset_ms, useOffset)
 
 % useOffset_LFP
-% Returns # of samples to pre-pad in LFP domain based on pre-offset time. 
-% If useOffset == false or offset_ms<=0, Returns 0.
+% Returns # of samples to pre-pad in LFP domain based on pre-offset time.
+% If useOffset == false or pre_offset_ms<=0, Returns 0.
 
 % OUT:
 %   offset_LFP_samp : integer samples in LFP domain to subtract from start
 %   meta_Offset     : struct with .ms, .seconds, .ttl_samples, .lfp_samples
 
-    if nargin < 4 || isempty(useOffset), useOffset = true; end
+if nargin < 4 || isempty(useOffset), useOffset = true; end
 
-    meta_Offset.ms       = pre_offset_ms;
-    meta_Offset.seconds  = pre_offset_ms/1000;
-    if ~useOffset || pre_offset_ms <= 0
-        meta_Offset.ttl_samples = 0;
-        meta_Offset.lfp_samples = 0;
-        offset_LFP_samples  = 0;
-        return
-    end
+meta_Offset.ms       = pre_offset_ms;
+meta_Offset.seconds  = pre_offset_ms/1000;
+if ~useOffset || pre_offset_ms <= 0
+    meta_Offset.ttl_samples = 0;
+    meta_Offset.lfp_samples = 0;
+    offset_LFP_samples  = 0;
+    return
+end
 
-    % For completeness, keep both TTL and LFP counts available in meta
-    meta_Offset.ttl_samples = round(TTL_fs * meta_Offset.seconds);
-    meta_Offset.lfp_samples = round(AO_LFP_fs * meta_Offset.seconds);
+% For completeness, keep both TTL and LFP counts available in meta
+meta_Offset.ttl_samples = round(TTL_fs * meta_Offset.seconds);
+meta_Offset.lfp_samples = round(AO_LFP_fs * meta_Offset.seconds);
 
-    % What we actually need when indexing LFP data:
-    offset_LFP_samples  = meta_Offset.lfp_samples;
+% What we actually need when indexing LFP data:
+offset_LFP_samples  = meta_Offset.lfp_samples;
 end
 
 
+function [epochDur_LFP_samples, meta_epochDur] = UniformEpochs_LFP(TTL_fs, AO_LFP_fs, epochDur_ms, UniformEpochs)
+
+% UniformEpochs_LFP
+% Returns # of samples to pad in LFP domain (after trial start)
+% based on uniform epoch duration time.
+% If UniformEpochs_LFP == false or epochDur_ms <= 0, Returns 0.
+
+% OUT:
+%   epochDur_LFP_samples : integer samples in LFP domain to add from start
+%   meta_epochDur        : struct with .ms, .seconds, .ttl_samples, .lfp_samples
+
+if nargin < 4 || isempty(UniformEpochs), UniformEpochs = true; end
+
+meta_epochDur.ms = epochDur_ms;
+meta_epochDur.seconds = epochDur_ms/1000;
+
+if ~UniformEpochs || epochDur_ms <= 0
+    meta_epochDur.ttl_samples = 0;
+    meta_epochDur.lfp_samples = 0;
+    epochDur_LFP_samples  = 0;
+    return
+end
+
+% For completeness, keep both TTL and LFP counts available in meta
+meta_epochDur.ttl_samples = round(TTL_fs * meta_epochDur.seconds);
+meta_epochDur.lfp_samples = round(AO_LFP_fs * meta_epochDur.seconds);
+
+% What we actually need when indexing LFP data:
+epochDur_LFP_samples = meta_epochDur.lfp_samples;
+
+end

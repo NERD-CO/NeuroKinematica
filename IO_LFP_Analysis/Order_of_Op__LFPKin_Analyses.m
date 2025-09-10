@@ -32,8 +32,8 @@ DLC_fs = 100;           % fps, Video/DLC frame rate
 
 %% Config - Define offset duration and useOffset_LFP function
 
-offset_ms = 50; % milliseconds
-offset_seconds = offset_ms / 1000; % seconds
+pre_offset_ms = 50; % milliseconds
+offset_seconds = pre_offset_ms / 1000; % seconds
 
 % Calculate number of TTL samples
 offset_TTLs = round(TTL_fs * offset_seconds); % ensure value is integer
@@ -42,10 +42,10 @@ offset_TTLs = round(TTL_fs * offset_seconds); % ensure value is integer
 offset_LFPs = round((offset_TTLs/TTL_fs)*AO_LFP_fs); % ensure value is integer
 
 useOffset = true;
-% If useOffset == true or offset_ms>0, useOffset_LFP function returns the #
+% If useOffset == true or pre_offset_ms>0, useOffset_LFP function returns the #
 % of samples to pre-pad in LFP domain based on a set pre-trial offset time
 % (and a meta struct for reference).
-% If useOffset == false or offset_ms<=0, useOffset_LFP function returns 0.
+% If useOffset == false or pre_offset_ms<=0, useOffset_LFP function returns 0.
 
 
 %% Config - Ephys Case Input
@@ -105,6 +105,8 @@ Move_CaseID = 'IO_03_23_2023_LSTN';
 % 'IO_07_13_2023_LSTN'; % studyID = 15, ptID = 9
 % 'IO_07_13_2023_RSTN'; % studyID = 16, ptID = 9
 
+ephys_offset = 1;
+
 
 %% Config - Input and Output Data Dirs
 
@@ -117,6 +119,13 @@ Move_CaseDir = [MoveDataDir, filesep, Move_CaseID];                         % di
 
 % Case-specific Output dir
 ephysTbl_Dir = [Case_DataDir, filesep, 'DLC_Ephys'];                        % directory where all ephys per move-rep tables are located
+
+% Data folder paths
+KinematicsDir = fullfile(IO_DataDir, 'Kinematic Analyses');
+Case_KinDir = fullfile(KinematicsDir, Move_CaseID);
+Ephys_Kin_Dir = fullfile(IO_DataDir, 'Ephys_Kinematics');
+LFP_Kin_Dir = fullfile(Ephys_Kin_Dir, 'LFP_Kinematic_Analyses');
+Case_LFP_Kin = fullfile(LFP_Kin_Dir, CaseDate); % case-specific results from run_FR_KinematicCorr saved here
 
 
 %% Config - Handle bilateral cases and hemisphere selection
@@ -157,8 +166,8 @@ end
 
 cd(ephysTbl_Dir)
 
-if useOffset && offset_ms>0
-    load(sprintf('filtProc_All_LFPsPerMove_offset%ims.mat', offset_ms), 'All_LFPsPerMove_Tbl_filt');
+if useOffset && pre_offset_ms>0
+    load(sprintf('filtProc_All_LFPsPerMove_offset%ims.mat', pre_offset_ms), 'All_LFPsPerMove_Tbl_filt');
 else
     load('filtProc_All_LFPsPerMove_N0offset.mat', 'All_LFPsPerMove_Tbl_filt');
 end
@@ -174,6 +183,18 @@ lfpCols_proc= allVars_LFPtbl(startsWith(allVars_LFPtbl,"LFP_E") & endsWith(allVa
 if isempty(lfpCols_raw) || isempty(lfpCols_proc)
     warning('Expected LFP_E*_filt and/or LFP_E*_proc500 not found.');
 end
+
+
+
+
+
+
+
+
+
+
+
+
 
 %% Welch PSDs (save freq & power per trial & channel) for FOOOF/specparam
 
@@ -192,22 +213,22 @@ if ~ismember(colProc_500, lfpCols_proc)
     error('Processed partner column %s not found for %s.', colProc_500, colRaw_1375);
 end
 
-x_raw  = All_LFPsPerMove_Tbl_filt.(char(colRaw_1375)){rowIdx};   % 1375 Hz
-x_proc = All_LFPsPerMove_Tbl_filt.(char(colProc_500)){rowIdx};   % 500 Hz
+lfp_x_raw  = All_LFPsPerMove_Tbl_filt.(char(colRaw_1375)){rowIdx};   % 1375 Hz
+lfp_x_proc = All_LFPsPerMove_Tbl_filt.(char(colProc_500)){rowIdx};   % 500 Hz
 
 % Parameters
 Fs_raw     = AO_LFP_fs;   % 1375
 Fs_proc    = 500;         % 500
 fMax       = 250;
-df_target  = 1.5;
+fs_target  = 1.5;
 win_s      = 4;
 win_min    = 128;
 nfft_min   = 128;
 overlapFrac= 0.5;
 
 % Compute Welch safely for each
-[P_raw,F_raw]   = computeWelchSafe(x_raw,  Fs_raw,  fMax, df_target, win_s, win_min, nfft_min, overlapFrac);
-[P_proc,F_proc] = computeWelchSafe(x_proc, Fs_proc, fMax, df_target, win_s, win_min, nfft_min, overlapFrac);
+[P_raw,F_raw]   = computeWelchSafe(lfp_x_raw,  Fs_raw,  fMax, fs_target, win_s, win_min, nfft_min, overlapFrac);
+[P_proc,F_proc] = computeWelchSafe(lfp_x_proc, Fs_proc, fMax, fs_target, win_s, win_min, nfft_min, overlapFrac);
 
 % Plot
 P_raw_dB  = pow2db(P_raw);
@@ -230,7 +251,7 @@ title(sprintf('Welch PSD (Row %d) — %s vs %s', rowIdx, char(colRaw_1375), char
 legend('Raw @ 1375 Hz','Processed @ 500 Hz','Location','best');
 
 
-%% Band isolation & Hilbert metrics (append columns)
+%% Band isolation & Hilbert transformation (append column metrics)
 
 % theta band
 % Low beta bandpass (13–20 Hz)
@@ -247,9 +268,9 @@ Fs_proc = 500;
 
 %  bands of interest 
 bands = struct( ...
-    'theta',   [4 8], ...
-    'betaL',   [13 20], ...
-    'betaH',   [21 35], ...
+    'theta',   [4 7], ...
+    'L_beta',   [13 20], ...
+    'H_beta',   [21 35], ...
     'gamma',   [36 90], ...
     'hfo',     [130 200] ...
 );
@@ -261,7 +282,7 @@ else
     fprintf('[INFO] Band-extraction from %d processed LFP columns.\n', numel(lfpCols_proc));
 end
 
-% filter factory (4th order Butterworth IIR, zero-phase later) -------------
+% Design bandpass filter (4th order Butterworth IIR, zero-phase later)
 BPfilt = @(lo,hi) designfilt('bandpassiir', 'FilterOrder', 4, ...
                            'HalfPowerFrequency1', lo, ...
                            'HalfPowerFrequency2', hi, ...
@@ -271,19 +292,19 @@ BPfilt = @(lo,hi) designfilt('bandpassiir', 'FilterOrder', 4, ...
 bp = struct();
 fieldNames = fieldnames(bands);
 for k = 1:numel(fieldNames)
-    r = bands.(fieldNames{k});
+    curBand = bands.(fieldNames{k});
     % clamp to Nyquist
-    r(2) = min(r(2), Fs_proc/2 - 1);
-    if r(1) >= r(2)-1
+    curBand(2) = min(curBand(2), Fs_proc/2 - 1);
+    if curBand(1) >= curBand(2)-1
         error('Band %s limits invalid after clamping.', fieldNames{k});
     end
-    bp.(fieldNames{k}) = BPfilt(r(1), r(2));
+    bp.(fieldNames{k}) = BPfilt(curBand(1), curBand(2));
 end
 
 % create output columns (cells)
 nRows = height(All_LFPsPerMove_Tbl_filt);
-for c = 1:numel(procCols)
-    base = erase(procCols(c), "_proc500");  % e.g., "LFP_E1"
+for col_i = 1:numel(lfpCols_proc)
+    base = erase(lfpCols_proc(col_i), "_proc500");  % e.g., "LFP_E1"
     for k = 1:numel(fieldNames)
         band = fieldNames{k};
         All_LFPsPerMove_Tbl_filt.(base + "_" + band + "_bp")   = cell(nRows,1);
@@ -293,35 +314,37 @@ for c = 1:numel(procCols)
     end
 end
 
-% Hilbert transformation spec. freq. (inst. power)
+
+% Hilbert transformation @ spec. freq. (inst. power)
 % process row-by-row
-for c = 1:numel(procCols)
-    inCol = procCols(c);
+
+for col_i = 1:numel(lfpCols_proc)
+    inCol = lfpCols_proc(col_i);
     base  = erase(inCol, "_proc500");
 
-    for r = 1:nRows
-        x = All_LFPsPerMove_Tbl_filt.(inCol){r};
-        if isempty(x) || ~isvector(x) || ~isnumeric(x), continue; end
-        x = double(x(:));
-        if ~any(isfinite(x)), continue; end
+    for curBand = 1:nRows
+        LFPvec_x = All_LFPsPerMove_Tbl_filt.(inCol){curBand};
+        if isempty(LFPvec_x) || ~isvector(LFPvec_x) || ~isnumeric(LFPvec_x), continue; end
+        LFPvec_x = double(LFPvec_x(:));
+        if ~any(isfinite(LFPvec_x)), continue; end
 
         for k = 1:numel(fieldNames)
             band = fieldNames{k};
             try
-                xbp = filtfilt(bp.(band), x);               % bandpassed
+                xbp = filtfilt(bp.(band), LFPvec_x);               % bandpassed
             catch ME
                 warning('Row %d, %s (%s): bandpass failed: %s', ...
-                    r, inCol, band, ME.message);
+                    curBand, inCol, band, ME.message);
                 continue
             end
             xa   = abs(hilbert(xbp));                       % inst. amplitude
             xp   = xa.^2;                                   % inst. power
             xz   = (xa - mean(xa,'omitnan')) ./ std(xa,0,'omitnan'); % z-amp
 
-            All_LFPsPerMove_Tbl_filt.(base + "_" + band + "_bp"){r}   = xbp;
-            All_LFPsPerMove_Tbl_filt.(base + "_" + band + "_amp"){r}  = xa;
-            All_LFPsPerMove_Tbl_filt.(base + "_" + band + "_pow"){r}  = xp;
-            All_LFPsPerMove_Tbl_filt.(base + "_" + band + "_zamp"){r} = xz;
+            All_LFPsPerMove_Tbl_filt.(base + "_" + band + "_bp"){curBand}   = xbp;
+            All_LFPsPerMove_Tbl_filt.(base + "_" + band + "_amp"){curBand}  = xa;
+            All_LFPsPerMove_Tbl_filt.(base + "_" + band + "_pow"){curBand}  = xp;
+            All_LFPsPerMove_Tbl_filt.(base + "_" + band + "_zamp"){curBand} = xz;
         end
     end
 end
@@ -329,74 +352,41 @@ end
 fprintf('[DONE] Added bandpassed, amplitude, power, and z-amplitude columns.\n');
 
 
+%% Save updated All_LFPsPerMove_Tbl_filt with computed characteristics per band
+
+% Resave All_LFPsPerMove_Tbl_filt
+cd(ephysTbl_Dir)
+
+if useOffset && pre_offset_ms > 0
+    outName = sprintf('bp_All_LFPsPerMove_offset%ims.mat', pre_offset_ms);
+else
+    outName = 'bp_All_LFPsPerMove_N0offset.mat';
+end
+
+save(outName, "All_LFPsPerMove_Tbl_filt");
+fprintf('[SAVED] Bandpassed LFPsPerMove table written to %s\n', fullfile(ephysTbl_Dir, outName));
+
+
+%% Run run_MovementFeatureAnalysis_IO_v2 or load kinTbl & kinSummaryTbl
+
+cd(KinematicsDir)
+
+% fprintf('[INFO] Loading movement data from: %s\n', MoveDataDir);
+% [kinTbl, kinSummaryTbl] = run_MovementFeatureAnalysis_IO_v2(IO_DataDir, MoveDataDir, Move_CaseID);
+
 
 %% PSDs on different context
 
-% rest, H O/C, A Pro/Sup, E Flex/Exten
+% Extract LFP segments per 
+% Rest, H O/C, A Pro/Sup, E Flex/Exten
 
-%% ===== PSDs by context (optional aggregation template) =====
-% Choose your context variable name here:
-candidates = ["Context","MoveType","Task","Cond","Condition"];
-contextColName = "";
-for nm = candidates
-    if any(vnames == nm)
-        contextColName = nm; break
-    end
-end
-if contextColName == ""
-    warning('No context column found (%s). Skipping context PSD aggregation.', strjoin(candidates,", "));
-else
-    fprintf('[INFO] Using context column: %s\n', contextColName);
-end
 
-if contextColName ~= ""
-    % pick one processed channel to illustrate
-    if ~isempty(procCols)
-        inCol = procCols(1);            % e.g., "LFP_E1_proc500"
-    else
-        error('No _proc500 columns available.');
-    end
 
-    Fs = 500;
-    df_target  = 1.5; win_s = 4; win_min = 128; nfft_min = 128; overlapFrac = 0.5; fMax = 100;
-
-    cats = unique(All_LFPsPerMove_Tbl_filt.(contextColName));
-    figure('Name', sprintf('Welch PSD by %s — %s', contextColName, inCol), 'Color','w'); hold on; grid on;
-
-    for ci = 1:numel(cats)
-        ix = find(All_LFPsPerMove_Tbl_filt.(contextColName) == cats(ci));
-        Psum = []; Fref = [];
-        for r = ix(:)'
-            x = All_LFPsPerMove_Tbl_filt.(inCol){r};
-            if isempty(x) || ~isnumeric(x) || ~isvector(x), continue; end
-            [P,F] = computeWelchSafe(x, Fs, fMax, df_target, win_s, win_min, nfft_min, overlapFrac);
-            if isempty(P), continue; end
-            if isempty(Fref)
-                Fref = F; Psum = P;
-            else
-                % align (in case minor differences)
-                if numel(F) == numel(Fref) && max(abs(F-Fref)) < 1e-9
-                    Psum = Psum + P;
-                else
-                    % simple linear interp to Fref
-                    Psum = Psum + interp1(F, P, Fref, 'linear', 'extrap');
-                end
-            end
-        end
-        if ~isempty(Psum)
-            Pavg = Psum / numel(ix);
-            plot(Fref, pow2db(Pavg), 'DisplayName', sprintf('%s (n=%d)', string(cats(ci)), numel(ix)));
-        end
-    end
-
-    xlim([0 fMax]); xlabel('Frequency (Hz)'); ylabel('Power (dB)');
-    legend('show','Location','best'); title(sprintf('Welch PSD by %s — %s', contextColName, inCol), 'Interpreter','none');
-end
 
 
 
 %% ===== Export per-trial spectra for FOOOF/specparam =====
-Fs = 500; fMax = 100; df_target=1.5; win_s=4; win_min=128; nfft_min=128; overlapFrac=0.5;
+Fs = 500; fMax = 100; fs_target=1.5; win_s=4; win_min=128; nfft_min=128; overlapFrac=0.5;
 
 out = struct();
 out.meta.case   = CaseDate;
@@ -406,22 +396,22 @@ chanList = cellstr(procCols);  % list of channels
 out.F = [];                    % frequency base (common, if possible)
 out.P_by_trial = cell(numel(chanList), 1);
 
-for c = 1:numel(chanList)
-    col = chanList{c};
+for col_i = 1:numel(chanList)
+    col = chanList{col_i};
     Fref = []; Pcell = cell(nRows,1);
-    for r = 1:nRows
-        x = All_LFPsPerMove_Tbl_filt.(col){r};
-        if isempty(x) || ~isvector(x) || ~isnumeric(x), continue; end
-        [P,F] = computeWelchSafe(x, Fs, fMax, df_target, win_s, win_min, nfft_min, overlapFrac);
+    for curBand = 1:nRows
+        LFPvec_x = All_LFPsPerMove_Tbl_filt.(col){curBand};
+        if isempty(LFPvec_x) || ~isvector(LFPvec_x) || ~isnumeric(LFPvec_x), continue; end
+        [P,F] = computeWelchSafe(LFPvec_x, Fs, fMax, fs_target, win_s, win_min, nfft_min, overlapFrac);
         if isempty(P), continue; end
         if isempty(Fref)
             Fref = F;
         elseif numel(F) ~= numel(Fref) || max(abs(F-Fref)) > 1e-9
             P = interp1(F, P, Fref, 'linear', 'extrap');
         end
-        Pcell{r} = P;
+        Pcell{curBand} = P;
     end
-    out.P_by_trial{c} = Pcell;
+    out.P_by_trial{col_i} = Pcell;
     if isempty(out.F), out.F = Fref; end
 end
 
