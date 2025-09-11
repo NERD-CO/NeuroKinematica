@@ -124,8 +124,6 @@ Move_CaseID = 'IO_03_23_2023_LSTN';
 % 'IO_07_13_2023_LSTN'; % studyID = 15, ptID = 9
 % 'IO_07_13_2023_RSTN'; % studyID = 16, ptID = 9
 
-ephys_offset = 1;
-
 
 %% Config - Input and Output Data Dirs
 
@@ -645,7 +643,7 @@ mean_beta_power_imag = mean(imag(beta_power_time_courses)); % imaginary part
 mean_beta_power_magnitude = mean(abs(beta_power_time_courses)); % mean of magnitudes
 
 % Set threshold at the 75th percentile of the mean beta power
-threshold = prctile(mean_beta_power_magnitude, 75);
+threshold = prctile(mean_beta_power, 75);
 
 % Define beta bursts as time points exceeding the threshold for more than 3 oscillatory cycles (3 oscillatory cycles = ~100ms)
 min_duration = round(0.1 * fs_downsamp); % Minimum duration of a burst in samples (100 ms)
@@ -668,9 +666,8 @@ xlabel('Time (s)');
 ylabel('Normalized Beta Power');
 title('LFP Beta Power')
 
-
-%% Plot the beta power time course and beta burst overlays using xregion (test with L_streamOfInt_s1)
-
+%%
+% Plot the beta power time course and beta burst overlays using xregion (test with L_streamOfInt_s1)
 % https://www.mathworks.com/help/matlab/ref/xregion.html
 
 figure('Renderer', 'opengl');

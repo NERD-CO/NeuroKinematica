@@ -1,4 +1,8 @@
-%% IO LFP analyses
+%% IO LFP analyses - test script for Comps
+
+clear; close all; clc;
+
+%% Environment / Directory Set-up
 
 % specify directory where case-specific data files are located
 curPCname = getenv('COMPUTERNAME');
@@ -8,12 +12,57 @@ switch curPCname
         IO_DataDir = 'X:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
     case 'DSKTP-JTLAB-EMR'  % Lab Desktop
         IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
+        addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\IO_LFP_Analysis'
     case 'NSG-M-H8J3X34'    % PC_2
         IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
+        addpath 'C:\GitHub\NeuroKinematica\IO_LFP_Analysis'
 end
 
 cd(IO_DataDir)
 Subject_AO = readtable('Subject_AO.xlsx');
+
+%% Config - Define datastream sampling rates (Alpha Omega and Video sampling fs)
+
+TTL_fs = 44000;         % Hz, Alpha Omega TTL clock
+AO_spike_fs = 44000;    % Hz, Alpha Omega spike sampling rate
+AO_LFP_fs = 1375;       % Hz, Alpha Omega LFP sampling rate
+DLC_fs = 100;           % fps, Video/DLC frame rate
+
+
+%% Config - Define offset duration and useOffset_LFP function
+
+pre_offset_ms = 50; % milliseconds
+offset_seconds = pre_offset_ms / 1000; % seconds
+
+% Calculate number of TTL samples
+offset_TTLs = round(TTL_fs * offset_seconds); % ensure value is integer
+
+% Calculate number TTL samples in AO_LFP sample domain by downsampling TTL_fs
+offset_LFPs = round((offset_TTLs/TTL_fs)*AO_LFP_fs); % ensure value is integer
+
+useOffset = true;
+% If useOffset == true or pre_offset_ms>0, useOffset_LFP function returns the #
+% of samples to pre-pad in LFP domain based on a set pre-trial offset time
+% (and a meta struct for reference).
+% If useOffset == false or pre_offset_ms<=0, useOffset_LFP function returns 0.
+
+%% Config - Define epoch duration for UniformEpochs_LFP function
+
+epochDur_ms = 1000; % milliseconds
+Epoch_dur_seconds = epochDur_ms / 1000; % seconds
+
+% Calculate number of TTL samples
+epochDur_TTLs = round(TTL_fs * Epoch_dur_seconds); % ensure value is integer
+
+% Calculate number TTL samples in AO_LFP sample domain by downsampling TTL_fs
+epochDur_LFPs = round((epochDur_TTLs/TTL_fs)*AO_LFP_fs); % ensure value is integer
+
+UniformEpochs = true;
+% If UniformEpochs == true or epochDur_ms > 0, useOffset_LFP function returns the #
+% of samples to pre-pad in LFP domain based on a set pre-trial offset time
+% (and a meta struct for reference).
+% If UniformEpochs == false or epochDur_ms <= 0, useOffset_LFP function returns 0.
+
 
 %% Hardcode case-specific ephys data directories
 
@@ -58,25 +107,6 @@ moveCSV_names = {moveCSV.name};
 % Generate list of Motor Index CSVs (filters for CSVs that contain 'Move' string)
 moveCSV_list = moveCSV_names(contains(moveCSV_names,'Move'));
 
-%% define datastream sampling rates (Alpha Omega and Video sampling fs)
-
-TTL_fs = 44000; % Hz
-AO_spike_fs = 44000; % Hz
-AO_LFP_fs = 1375; % Hz
-DLC_fs = 100; % fps
-
-
-%% define offset duration
-offset_ms = 50; % milliseconds
-offset_seconds = offset_ms / 1000; % seconds
-
-% Calculate number of TTL samples
-offset_TTLs = round(TTL_fs * offset_seconds); % ensure value is integer
-
-% Calculate number TTL samples in AO_LFP sample domain by downsampling TTL_fs
-offset_TTLs_LFP = round((offset_TTLs/TTL_fs)*AO_LFP_fs); % ensure value is integer
-
-% for future function input: useOffset; when = 1, use offset; when = 0, don't
 
 %% Load all processed LFPs %%% fix this block later
 
@@ -149,59 +179,111 @@ Tblmatfiles = dir('*.mat');
 Tblmatnames = {Tblmatfiles.name};
 
 use_offset = 1;
+Uniform_Epochs = 1;
+
+% fix this later
 for Tblmat_name = 1:length(Tblmatnames)
     fileparts = split(Tblmatnames{Tblmat_name},'_');
-    if use_offset == 1
-        Tbl_name = fileparts{2:3};
+    if use_offset == 1 && Uniform_Epochs == 1
+        Tbl_name_parts = fileparts{2:5};
+    elseif use_offset == 1
+        Tbl_name_parts = fileparts{2:4}; 
     else
-        Tbl_name = fileparts{2};
+        Tbl_name_parts = fileparts{2:3};
     end
 end
 
-LFPsPerMove_Tbl = Tblmatnames{contains(Tblmatnames, 'All_LFPsPerMove_offset')};
-load(LFPsPerMove_Tbl, 'All_LFPsPerMove_Tbl')
+LFPsPerMove_Tbl_name = Tblmatnames{contains(Tblmatnames, 'All_LFPsPerMove_pre50ms_post1000ms')};
+load(LFPsPerMove_Tbl_name, 'All_LFPsPerMove_Tbl_uniformEpochs')
 
 
 %% LFP frequency domain analysis %%% refine this block 
 
 % Define LFP segment(s) of interest:
-depth_trial_IDs = unique(All_LFPsPerMove_Tbl.move_trial_ID);
-for depth_trial_i = 1:length(depth_trial_IDs)
-    depth_trial = All_LFPsPerMove_Tbl.move_trial_ID{depth_trial_i};
+depth_trial_IDs = unique(All_LFPsPerMove_Tbl_uniformEpochs.move_trial_ID);
+for trial_i = 1:length(depth_trial_IDs)
+    trial_ID = All_LFPsPerMove_Tbl_uniformEpochs.move_trial_ID{trial_i};
     %%% 
 end
 
-motor_trial_t3 = All_LFPsPerMove_Tbl(139:end,1:8); % 3/23/2023 dorsal
-LFP_t3_array = table2array(All_LFPsPerMove_Tbl(139:end,8));
-LFP_t3 = horzcat(LFP_t3_array{:});
-TTL_idx_t3 = motor_trial_t3{:,5};
+% Define test trial IDS: 
+dorsal_test_trialID = 't3_d5p5';    % top STN
+central_test_trialID = 'c2_d3p48';  % center STN
+ventral_test_trialID = 'b2_d1p06';  % bottom STN
 
-motor_trial_c2 = All_LFPsPerMove_Tbl(75:92,1:8); % 3/23/2023 central
-LFP_c2_array = table2array(All_LFPsPerMove_Tbl(75:92,8));
-LFP_t2 = horzcat(LFP_c2_array{:});
-TTL_idx_c2 = motor_trial_c2{:,5};
+for LFP_row_i = 1:height(All_LFPsPerMove_Tbl_uniformEpochs)
+    % if All_LFPsPerMove_Tbl.move_trial_ID{LFP_row_i} == 't3_d5p5'
+        LFP_t3_r1 = find(contains(All_LFPsPerMove_Tbl_uniformEpochs.move_trial_ID, dorsal_test_trialID), 1, 'first'); % Extract the first row index where this is true
+        LFP_t3_rn = find(contains(All_LFPsPerMove_Tbl_uniformEpochs.move_trial_ID, dorsal_test_trialID), 1, 'last'); % Extract the last row index where this is true
+        LFP_t3 = All_LFPsPerMove_Tbl_uniformEpochs.LFP_E1(LFP_t3_r1:LFP_t3_rn); % Extract LFP segments for trial t3
+    % elseif All_LFPsPerMove_Tbl.move_trial_ID{LFP_row_i} == 'c2_d3p48'
+        LFP_c2_r1 = find(contains(All_LFPsPerMove_Tbl_uniformEpochs.move_trial_ID, central_test_trialID), 1, 'first'); % Extract the first row index where this is true
+        LFP_c2_rn = find(contains(All_LFPsPerMove_Tbl_uniformEpochs.move_trial_ID, central_test_trialID), 1, 'last'); % Extract the last row index where this is true
+        LFP_c2 = All_LFPsPerMove_Tbl_uniformEpochs.LFP_E1(LFP_c2_r1:LFP_c2_rn); % Extract LFP segments for trial c2
+    % elseif All_LFPsPerMove_Tbl.move_trial_ID{LFP_row_i} == 'b2_d1p06'
+        LFP_b2_r1 = find(contains(All_LFPsPerMove_Tbl_uniformEpochs.move_trial_ID, ventral_test_trialID), 1, 'first'); % Extract the first row index where this is true
+        LFP_b2_rn = find(contains(All_LFPsPerMove_Tbl_uniformEpochs.move_trial_ID, ventral_test_trialID), 1, 'last'); % Extract the last row index where this is true
+        LFP_b2 = All_LFPsPerMove_Tbl_uniformEpochs.LFP_E1(LFP_b2_r1:LFP_b2_rn); % Extract LFP segments for trial b2
+    % end
+end
 
-motor_trial_b2 = All_LFPsPerMove_Tbl(17:36,1:8); % 3/23/2023 ventral
-LFP_b2_array = table2array(All_LFPsPerMove_Tbl(17:36,8));
-LFP_b2 = horzcat(LFP_b2_array{:});
-TTL_idx_b2 = motor_trial_b2{:,5};
+
+% define single trial to test
+LFP_test_rowIDX = 5;
+LFP_test_depth = 'dorsal';
+
+if LFP_test_depth == 'dorsal'         % top STN
+    LFP_test_seg = LFP_t3{LFP_test_rowIDX};
+elseif LFP_test_depth == 'central'    % center STN
+    LFP_test_seg = LFP_c2{LFP_test_rowIDX};
+elseif LFP_test_depth == 'ventral'    % bottom STN
+    LFP_test_seg = LFP_b2{LFP_test_rowIDX}; 
+end
 
 
-% extract raw LFP within test trials
-LFP_t = LFP_raw(:, TTL_idx_t3(1):TTL_idx_t3(end)); % top / dorsal STN
-LFP_c = LFP_raw(:, TTL_idx_c2(1):TTL_idx_c2(end)); % central STN
-LFP_b = LFP_raw(:, TTL_idx_b2(1):TTL_idx_b2(end)); % bottom / ventral STN
-
-% define test trial
-LFP_depth_test1 = LFP_t;
 figure;
-plot(LFP_depth_test1)
-hp_LFP = highpass(LFP_depth_test1, 1, 1375);
+plot(LFP_test_seg)
+hp_LFP = highpass(LFP_test_seg, 1, 1375); % high-pass at 0.5 or 1 Hz (low freq. noise / drift removal)
 hold on
 plot(hp_LFP);
-lp_LFP = lowpass(hp_LFP, 100, 1375);
+lp_LFP = lowpass(hp_LFP, 100, 1375); % low-pass at 100 or 250 Hz (keep relevant LFP spectrum)
 hold on
 plot(lp_LFP)
+
+
+%%  old
+
+% motor_trial_t3 = All_LFPsPerMove_Tbl(139:end,1:8); % 3/23/2023 dorsal
+% LFP_t3_array = table2array(All_LFPsPerMove_Tbl(139:end,8));
+% LFP_t3 = horzcat(LFP_t3_array(:));
+% TTL_idx_t3 = motor_trial_t3(:,5);
+% 
+% motor_trial_c2 = All_LFPsPerMove_Tbl(75:92,1:8); % 3/23/2023 central
+% LFP_c2_array = table2array(All_LFPsPerMove_Tbl(75:92,8));
+% LFP_t2 = horzcat(LFP_c2_array(:));
+% TTL_idx_c2 = motor_trial_c2(:,5);
+% 
+% motor_trial_b2 = All_LFPsPerMove_Tbl(17:36,1:8); % 3/23/2023 ventral
+% LFP_b2_array = table2array(All_LFPsPerMove_Tbl(17:36,8));
+% LFP_b2 = horzcat(LFP_b2_array(:));
+% TTL_idx_b2 = motor_trial_b2(:,5);
+% 
+% 
+% % extract raw LFP within test trials
+% LFP_t = LFP_raw(:, TTL_idx_t3(1):TTL_idx_t3(end)); % top / dorsal STN
+% LFP_c = LFP_raw(:, TTL_idx_c2(1):TTL_idx_c2(end)); % central STN
+% LFP_b = LFP_raw(:, TTL_idx_b2(1):TTL_idx_b2(end)); % bottom / ventral STN
+% 
+% % define test trial
+% LFP_depth_test1 = LFP_t;
+% figure;
+% plot(LFP_depth_test1)
+% hp_LFP = highpass(LFP_depth_test1, 1, 1375);
+% hold on
+% plot(hp_LFP);
+% lp_LFP = lowpass(hp_LFP, 100, 1375);
+% hold on
+% plot(lp_LFP)
 
 
 %% refinement next steps 
@@ -209,15 +291,16 @@ plot(lp_LFP)
 % vizualize PSD for each trial - overlay - assess pattern
 
 %% Target signal (LFP) sampling rate (samples per sec)
+
 fs = AO_LFP_fs; % 1375 Hz
 t_step = 1/fs;
 ts_LFP = 0:t_step:(length(lp_LFP)-1)/fs;
 
 % compute power spectral density (PSD) of LFP segment(s) - pspectrum function
-[rawPxx,rawFxx] = pspectrum(lp_LFP,fs,'FrequencyLimits',[0 50],'FrequencyResolution',3); 
+[rawPxx,rawFxx] = pspectrum(lp_LFP,fs,'FrequencyLimits',[0 50],'FrequencyResolution', 3); 
 
 figure;
-pspectrum(lp_LFP,fs,"power",'FrequencyLimits',[0 50],'FrequencyResolution', 2) % 2 or 3
+pspectrum(lp_LFP,fs,"power",'FrequencyLimits',[0 50],'FrequencyResolution', 3) % 2 or 3
 
 % normalize using the common logarithm via decibel conversion - pow2db function
 rawPxx_db = pow2db(rawPxx);
@@ -241,7 +324,7 @@ title('Power Spectral Density of Unfiltered LFP');
 f_notch = 60;  % Notch frequency
 Q = 35;   % Quality factor, q = ω0/bw where ω0 is the frequency to remove from the signal
 [b_notch, a_notch] = iirnotch(f_notch/(fs/2), f_notch/(fs/2)/Q); % 2nd order infinite impulse response (IIR) notch filter
-LFP_dt1_notchfilt = filtfilt(b_notch, a_notch, LFP_depth_test1); % Apply notch filter to remove 60Hz line noise
+LFP_dt1_notchfilt = filtfilt(b_notch, a_notch, LFP_test_seg); % Apply notch filter to remove 60Hz line noise
 
 % Comb Filter centered at 60Hz and its harmonics (120Hz, 180Hz, 240Hz, 300Hz, 360Hz, etc.) 
 bw = f_notch / Q;  % Bandwidth, bw = (fo/(fs/2))/q;
@@ -322,20 +405,21 @@ znorm_betaPxxP = normalize(betaPxx,1,"zscore");
 
 
 %% Hilbert transorm of beta-filtered signal
+
 % %%% fix this
 
-% % compute instantaneous phase and frequency of the LFP beta band via Hilbert transform - hilbert function
-% hilbert_transformed = hilbert(beta_zerophase_filt);
-% inst_phase = angle(hilbert_transformed);
-% inst_freq = diff(unwrap(inst_phase))/(2*pi*t_step);
-% 
-% figure;
-% %plot(ts_LFP,beta_zerophase_filt);
-% plot(ts_LFP(2:end), inst_freq);
-% %xlim([0 round(max(ts_LFP))])
-% xlabel('Time (s)')
-% ylabel('Frequency (Hz)')
-% title('Instantaneous Frequency of Filtered LFP Beta Band (13-30 Hz)');
+% compute instantaneous phase and frequency of the LFP beta band via Hilbert transform - hilbert function
+hilbert_transformed = hilbert(beta_zerophase_filt);
+inst_phase = angle(hilbert_transformed);
+inst_freq = diff(unwrap(inst_phase))/(2*pi*t_step);
+
+figure;
+%plot(ts_LFP,beta_zerophase_filt);
+plot(ts_LFP(2:end), inst_freq);
+%xlim([0 round(max(ts_LFP))])
+xlabel('Time (s)')
+ylabel('Frequency (Hz)')
+title('Instantaneous Frequency of Filtered LFP Beta Band (13-30 Hz)');
 
 
 %% compute PSD of LFP, normalized via decibel conversion, and plot for visualization 
@@ -363,6 +447,7 @@ title('Power Spectral Density of Filtered LFP');
 
 
 %% LFP time-frequency domain analysis
+
 % bursting analysis, based on Torrecillos et al., 2018 (test for LFPs in 1 trial / STN depth)
 % time-frq transform via complex Morlet wavelets (f0/σf = 7, f0 = 1-45 Hz, steps of 0.25 Hz).
 
@@ -387,7 +472,7 @@ pcolor(cwt_power_torr)
 shading flat
 
 
-%%
+%% Continuous Wavelet Transformation
 % look into math behind cwt fun
 
 % bursting analysis, based on Torrecillos et al., 2018 (test for LFPs in 1 trial / STN depth)
