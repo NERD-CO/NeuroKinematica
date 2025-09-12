@@ -30,7 +30,7 @@ AO_LFP_fs = 1375;       % Hz, Alpha Omega LFP sampling rate
 DLC_fs = 100;           % fps, Video/DLC frame rate
 
 
-%% Config - Define offset duration for useOffset_LFP function
+%% Config - Define pre-trial offset duration for useOffset_LFP function
 
 pre_offset_ms = 50; % milliseconds
 offset_seconds = pre_offset_ms / 1000; % seconds
@@ -47,8 +47,18 @@ useOffset = true;
 % (and a meta struct for reference).
 % If useOffset == false or pre_offset_ms<=0, useOffset_LFP function returns 0.
 
+%% Run useOffset_LFP helper function
+
+[offset_LFP_samples, meta_Offset] = useOffset_LFP(TTL_fs, AO_LFP_fs, pre_offset_ms, useOffset);
+
+% If useOffset == true or pre_offset_ms>0, useOffset_LFP function returns the #
+% of samples to pre-pad in LFP domain based on a set pre-trial offset time
+% (and a meta struct for reference).
+% If useOffset == false or pre_offset_ms<=0, useOffset_LFP function returns 0.
+
 %% Config - Define epoch duration for UniformEpochs_LFP function
 
+% Define # of milliseconds to include from start of a move rep
 epochDur_ms = 1000; % milliseconds
 Epoch_dur_seconds = epochDur_ms / 1000; % seconds
 
@@ -63,6 +73,11 @@ UniformEpochs = true;
 % of samples to pre-pad in LFP domain based on a set pre-trial offset time
 % (and a meta struct for reference).
 % If UniformEpochs == false or epochDur_ms <= 0, useOffset_LFP function returns 0.
+
+
+%% Run UniformEpochs_LFP function
+
+[epochDur_LFP_samples, meta_epochDur] = UniformEpochs_LFP(TTL_fs, AO_LFP_fs, epochDur_ms, UniformEpochs);
 
 
 %% Config - Ephys Case Input
@@ -181,7 +196,7 @@ end
 % Add 500-1000 ms from start of each MoveRep
 
 % All_LFPsPerMove_Tbl_uniformEpochs = align_LFPsPerMove_uniformEpochDur(Subject_AO, ProcDataDir, Move_CaseDir, ephysTbl_Dir, TTL_fs, AO_LFP_fs, pre_offset_ms, useOffset, UniformEpochs, epochDur_ms);
-[All_LFPsPerMove_Tbl_uniformEpochs, meta_Offset, meta_epochDur] = align_LFPsPerMove_uniformEpochDur(Subject_AO, ProcDataDir, Move_CaseDir, ephysTbl_Dir, TTL_fs, AO_LFP_fs, pre_offset_ms, useOffset, UniformEpochs, epochDur_ms);
+All_LFPsPerMove_Tbl_uniformEpochs = align_LFPsPerMove_uniformEpochDur(Subject_AO, ProcDataDir, Move_CaseDir, ephysTbl_Dir, TTL_fs, AO_LFP_fs, pre_offset_ms, useOffset, UniformEpochs, epochDur_ms);
 
 % meta structs (ms, sec, ttl_samp, lfp_samp):
 % meta_Offset    :  pre-trial offset from start of rep 
@@ -334,11 +349,11 @@ figure;
 subplot(2,1,1);
 plot(ts_LFP_AO, raw_LFP_vec); title('LFP (post spectrumInterpolation, 1375 Hz)');
 xlabel('Time (s)');
-ylabel('Preprocessed LFP (uV or unscaled)');
+ylabel('Preprocessed LFP'); % (uV or unscaled)
 subplot(2,1,2);
 plot(ts_LFP_proc, proc_LFP_vec); title('Filtered & Processed LFP (post hpfilt + lpfilt + downsampling, 500 Hz)');
 xlabel('Time (s)');
-ylabel('Processed LFP (uV or unscaled)');
+ylabel('Processed LFP'); % (uV or unscaled)
 
 
 %% Questions 

@@ -124,8 +124,6 @@ Move_CaseID = 'IO_03_23_2023_LSTN';
 % 'IO_07_13_2023_LSTN'; % studyID = 15, ptID = 9
 % 'IO_07_13_2023_RSTN'; % studyID = 16, ptID = 9
 
-ephys_offset = 1;
-
 
 %% Config - Input and Output Data Dirs
 

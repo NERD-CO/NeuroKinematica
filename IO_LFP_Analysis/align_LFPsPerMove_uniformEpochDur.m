@@ -1,30 +1,11 @@
-function All_LFPsPerMove_Tbl_uniformEpochs = align_LFPsPerMove_uniformEpochDur(Subject_AO, ProcDataDir, Move_CaseDir, ephysTbl_Dir, TTL_fs, AO_LFP_fs, pre_offset_ms, useOffset, UniformEpochs, epochDur_ms);
+function All_LFPsPerMove_Tbl_uniformEpochs = align_LFPsPerMove_uniformEpochDur(Subject_AO, ProcDataDir, Move_CaseDir, ephysTbl_Dir, TTL_fs, AO_LFP_fs, pre_offset_ms, useOffset, UniformEpochs, epochDur_ms)
 
 % IO LFP alignment and extraction script
 % maps Move Index frames → TTL samples → LFP samples
 % and builds All_LFPsPerMove_Tbl (per movement row)
 
-%% Add 500 ms from start of each MoveRep
 
-epochDur_ms = 500; % milliseconds
-Epoch_dur_seconds = epochDur_ms / 1000; % seconds
-
-% Calculate number of TTL samples
-epochDur_TTLs = round(TTL_fs * Epoch_dur_seconds); % ensure value is integer
-
-% Calculate number TTL samples in AO_LFP sample domain by downsampling TTL_fs
-epochDur_LFPs = round((epochDur_TTLs/TTL_fs)*AO_LFP_fs); % ensure value is integer
-
-
-UniformEpochs = true;
-% If UniformEpochs == true or epochDur_ms > 0, useOffset_LFP function returns the #
-% of samples to pre-pad in LFP domain based on a set pre-trial offset time
-% (and a meta struct for reference).
-% If UniformEpochs == false or epochDur_ms <= 0, useOffset_LFP function returns 0.
-
-[epochDur_LFP_samples, meta_epochDur] = UniformEpochs_LFP(TTL_fs, AO_LFP_fs, epochDur_ms, UniformEpochs)
-
-%% Run useOffset helper function
+%% Run useOffset_LFP helper function
 
 [offset_LFP_samples, meta_Offset] = useOffset_LFP(TTL_fs, AO_LFP_fs, pre_offset_ms, useOffset);
 
@@ -32,6 +13,16 @@ UniformEpochs = true;
 % of samples to pre-pad in LFP domain based on a set pre-trial offset time
 % (and a meta struct for reference).
 % If useOffset == false or pre_offset_ms<=0, useOffset_LFP function returns 0.
+
+
+%% Run UniformEpochs_LFP function
+
+[epochDur_LFP_samples, meta_epochDur] = UniformEpochs_LFP(TTL_fs, AO_LFP_fs, epochDur_ms, UniformEpochs);
+
+% If UniformEpochs == true or epochDur_ms > 0, useOffset_LFP function returns the #
+% of samples to pre-pad in LFP domain based on a set pre-trial offset time
+% (and a meta struct for reference).
+% If UniformEpochs == false or epochDur_ms <= 0, useOffset_LFP function returns 0.
 
 
 %% Define case-specific directory for movement indices per trial
@@ -166,8 +157,9 @@ for LFP_mat_name = 1:length(LFPmatnames)                                    % MA
             TTL_samp_taskEnd   = round((ttl_end  /TTL_fs) * AO_LFP_fs);
 
             % Apply clock offset and pre-offset
-            s0_taskStart_offset = TTL_samp_taskStart + sample_offset - offset_LFP_samples;  % start (with 50 ms pre)
-            sn_taskEnd_offset = TTL_samp_taskEnd + sample_offset; % end
+            s0_taskStart_offset = TTL_samp_taskStart + sample_offset - offset_LFP_samples;  % start (50 ms pre MoveRep start)
+            % sn_taskEnd_offset = TTL_samp_taskEnd + sample_offset; % end
+            sn_taskEnd_offset = TTL_samp_taskStart + sample_offset + epochDur_LFP_samples;  % end (1000 ms post MoveRep start)
 
             % Clamp to LFP array bounds
             s0 = max(1, min(s0_taskStart_offset, numel(LFP_raw)));
@@ -244,23 +236,23 @@ for tbl_i = 1:numel(All_LFPsPerMove)
 end
 
 % vertically concatenate all perMAT tables into one big table
-All_LFPsPerMove_Tbl = vertcat(All_LFPsPerMove{cellfun(@istable, All_LFPsPerMove)}); % one row per movement; electrodes as columns
+All_LFPsPerMove_Tbl_uniformEpochs = vertcat(All_LFPsPerMove{cellfun(@istable, All_LFPsPerMove)}); % one row per movement; electrodes as columns
 
 
 %% Define the standard column order
 
 standard_col_order = {'MoveN', 'MoveType', 'BeginF', 'EndF', 'move_trial_ID', 'LFP_trial_ID', 'TTL_LFP_idx_Start', 'TTL_LFP_idx_End'};
-Tblvars = string(All_LFPsPerMove_Tbl.Properties.VariableNames);
+Tblvars = string(All_LFPsPerMove_Tbl_uniformEpochs.Properties.VariableNames);
 elecs = unique(regexprep(Tblvars(startsWith(Tblvars,"LFP_")), '^LFP_',''), 'stable');
 lfp_cols = "LFP_" + elecs;
 
 want = [standard_col_order, lfp_cols];
-have = string(All_LFPsPerMove_Tbl.Properties.VariableNames);
+have = string(All_LFPsPerMove_Tbl_uniformEpochs.Properties.VariableNames);
 rest = setdiff(have, want, 'stable');
-All_LFPsPerMove_Tbl = All_LFPsPerMove_Tbl(:, [intersect(want, have, 'stable'), rest]);
+All_LFPsPerMove_Tbl_uniformEpochs = All_LFPsPerMove_Tbl_uniformEpochs(:, [intersect(want, have, 'stable'), rest]);
 
 
-%% save All_SpikesPerMove_Tbl and meta_Offset to files
+%% save All_LFPsPerMove_Tbl and meta_Offset to files
 
 cd(ephysTbl_Dir)
 
@@ -270,7 +262,7 @@ else
     outName = 'All_LFPsPerMove_N0offset.mat';
 end
 
-save(outName, "All_LFPsPerMove_Tbl");
+save(outName, "All_LFPsPerMove_Tbl_uniformEpochs");
 
 save("Offset_meta_struct", "meta_Offset")
 
