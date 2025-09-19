@@ -1,4 +1,4 @@
-function [] = save_IO_mat_ProcFiles(mat_filelist, Case_DataDir, ACC_IO)
+function [] = save_IO_mat_ProcFiles(mat_filelist, Case_DataDir, ACC_check)
 
 % hardcode directories
 RawDataDir = [Case_DataDir, filesep, 'Raw Electrophysiology MATLAB']; % directory where raw MATLAB data files are located (case-specific)
@@ -21,11 +21,12 @@ for i = 1:height(mat_filelist)
     matFileVars2 = {matFileVars1.name};     % extract names of all variables in the .mat file and store them in cell array matFileVars2.
 
     % list Ephys filetypes of interest (conditions)
-    if ACC_IO(i) == 0
+    if ACC_check(i) == 0
         ftypes = {'CSPK', 'CLFP', 'CMacro_LFP', 'CDIG'}; % 'CEMG'
     else
         ftypes = {'CSPK', 'CLFP', 'CMacro_LFP', 'CDIG', 'CACC'}; % 'CEMG'
     end
+    
     % isolate fields of interest per filetype
     for f = 1:length(ftypes) % 1:6
         Ftype = ftypes{f};
@@ -33,7 +34,7 @@ for i = 1:height(mat_filelist)
         disp(Ftype)
 
         % use getFILEinfo function to process the data based on the ftype - look at code in GitHub repo: save_DLCprocFiles_er
-        outStruct = getFILEinfo(Ftype, matFileVars2, tmpFilename, ACC_IO(i)); % create new struct containing fields of interest
+        outStruct = getFILEinfo(Ftype, matFileVars2, tmpFilename, ACC_check(i)); % create new struct containing fields of interest
 
         switch Ftype
             case 'CSPK'

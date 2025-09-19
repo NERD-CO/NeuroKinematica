@@ -3,7 +3,7 @@
 % function [] = save_IO_EphysProcFiles(studyID, Case_DataDir)
 
 % Goal: 
-    % query rows in summaryXLSX by specific pt hemisphere/studyID (single integer correlated with StudyNum)
+    % query rows in Subject_AO by specific pt hemisphere/studyID (single integer correlated with StudyNum)
     % identify rows with non-empty/non-NAN cells in the trialNum column 
     % extract relevant .mat filenames in the ao_MAT_file column (output cell array of relevant .mat filenames)
     % extract Ephys fields of interest in relevant .mat files
@@ -11,17 +11,19 @@
     % save processed ephys data matrix in new folder for each case
 
 % Required resources
-    % Summary XLSX file 
+    % Subject_AO file 
         % trial IDs and mat filenames
     % Directories for raw data locs
     % Directories for saving post-processed data
 
+%% functions (2)
+
+% > [mat_filelist, ACC_check] = save_IO_mat_filenames(studyID, IO_DataDir); (1)
+% > save_IO_mat_ProcFiles(mat_filelist, Case_DataDir, ACC_check); (2)
 
 %% CCC
 
-clc
-close 
-clear
+clear; close all; clc;
 
 %% Machine-specific data directory Input
 
@@ -29,23 +31,37 @@ clear
 curPCname = getenv('COMPUTERNAME'); % for windows
 
 switch curPCname
-    case 'DESKTOP-I5CPDO7' 
-        IO_DataDir = 'X:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';  
-    case 'NSG-M-H8J3X34'   % EMR PC (Precision 5490)
-        IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative'; 
-    case 'DSKTP-JTLAB-EMR' % EMR Lab Desktop (DigitalStorm Lumos)
-        IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';  
+    case 'DESKTOP-I5CPDO7'  % PC_1
+        IO_DataDir = 'X:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
+    case 'DSKTP-JTLAB-EMR'  % Lab Desktop
+        IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
+        addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\AO_Processing'
+    case 'NSG-M-H8J3X34'    % PC_2
+        IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
+        addpath 'C:\GitHub\NeuroKinematica\AO_Processing'
 end
 
 cd(IO_DataDir)
+Subject_AO = readtable('Subject_AO.xlsx');
+
 
 %% Subject-specific data directory Inputs
 
 % isolate a specific studyID and CaseDate
-studyID = 28;
-CaseDate = '11_30_2023_bilateral';
+studyID = 10;
+CaseDate = '05_31_2023';
 
 Case_DataDir = [IO_DataDir, filesep, CaseDate];
+
+
+%% Hardcode directories
+
+% directory where all IO data is located
+RawDataDir = [Case_DataDir, filesep, 'Raw Electrophysiology MATLAB'];       % directory where raw MATLAB data files are located (case-specific)
+ProcDataDir = [Case_DataDir, filesep, 'Processed Electrophysiology'];       % directory where processed MATLAB data should be saved (case-specific)
+if ~exist(ProcDataDir,'dir')
+    mkdir(ProcDataDir);
+end
 
 
 %% Completed cases:
@@ -59,7 +75,7 @@ Case_DataDir = [IO_DataDir, filesep, CaseDate];
 % 7: '05_18_2023_a'; *ACC
 % 8: '05_18_2023_b'
 % 9: '05_18_2023_b'
-% 10: '05_31_2023'; *ACC
+% 10: '05_31_2023'; *ACC     %%% ACC raw data is empty
 % 11: '06_08_2023'; *ACC
 % 12: '06_08_2023'; *ACC
 % 13: '07_06_2023_bilateral';
@@ -82,22 +98,6 @@ Case_DataDir = [IO_DataDir, filesep, CaseDate];
 % 30: '12_06_2023_bilateral' *ACC
 
 
-%% Hardcode directories
-
-% directory where all IO data is located
-RawDataDir = [Case_DataDir, filesep, 'Raw Electrophysiology MATLAB'];       % directory where raw MATLAB data files are located (case-specific)
-ProcDataDir = [Case_DataDir, filesep, 'Processed Electrophysiology'];       % directory where processed MATLAB data should be saved (case-specific)
-if ~exist(ProcDataDir,'dir')
-    mkdir(ProcDataDir);
-end
-
-% load XLSX file location
-cd(IO_DataDir)
-
-% load summaryXLSX table (save in GitHub repo)
-summaryXLSX = readtable("Subject_AO.xlsx");
-
-
 %% call main function 1
 
 % extract relevant .mat filenames in the ao_MAT_file column
@@ -109,6 +109,7 @@ summaryXLSX = readtable("Subject_AO.xlsx");
 % extract relevant info from relevant .mat files in mat_filelist
 save_IO_mat_ProcFiles(mat_filelist, Case_DataDir, ACC_check);
 
-cd(IO_DataDir);
 
 %% Ephys Processing done :)
+
+cd(IO_DataDir);

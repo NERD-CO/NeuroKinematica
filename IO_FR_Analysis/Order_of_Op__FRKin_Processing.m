@@ -1,7 +1,6 @@
 %% Order_of_Op__FRKin_Processing
 
-clear; clc;
-addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\IO_FR_Analysis'
+clear; close all; clc;
 
 %% functions:
 
@@ -17,8 +16,10 @@ switch curPCname
         IO_DataDir = 'X:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
     case 'DSKTP-JTLAB-EMR'  % Lab Desktop
         IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
+        addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\IO_FR_Analysis'
     case 'NSG-M-H8J3X34'    % PC_2
         IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
+        addpath 'C:\GitHub\NeuroKinematica\IO_FR_Analysis'
 end
 
 cd(IO_DataDir)
@@ -36,7 +37,8 @@ DLC_fs = 100;           % fps, Video/DLC frame rate
 
 % Hardcode Case-specific Data directories
 
-CaseDate = '04_05_2023';
+CaseDate = '05_31_2023';
+
 % '03_09_2023'; % studyID = 1, ptID 1
 
 % '03_23_2023'; % studyID = 2, ptID 2    * % Use for INS 2026
@@ -61,7 +63,7 @@ CaseDate = '04_05_2023';
     % studyID = 15(L), 16(R), ptID = 9
 
 
-%% Define case-specific Ephys data directory
+%% Define case-specific Ephys data input directory
 
 Case_DataDir = [IO_DataDir, filesep, CaseDate];
 
@@ -71,7 +73,18 @@ ProcDataDir = [Case_DataDir, filesep, 'Processed Electrophysiology'];       % di
 
 % save All_SpikesPerMove_Tbl in this directory (outputs)
 SpikesPerMove_Dir = [Case_DataDir, filesep, 'DLC_Ephys'];
+if ~exist(SpikesPerMove_Dir,'dir')
+    mkdir(SpikesPerMove_Dir);
+end
 
+%% Define output directory:
+
+% Ephys_Kinematics
+FR_Kin_Dir = [IO_DataDir, filesep, 'Ephys_Kinematics', filesep, 'FR_Kinematic_Analyses'];
+Case_FRKin_Dir = [FR_Kin_Dir, filesep, CaseDate];
+if ~exist(Case_FRKin_Dir,'dir')
+    mkdir(Case_FRKin_Dir);
+end
 
 %% Handle bilateral cases and hemisphere selection
 
@@ -97,11 +110,12 @@ if ~isempty(CaseDate_hem)
     ProcDataDir = fullfile(ProcDataDir, CaseDate_hem);
     fprintf('[INFO] Hemisphere-specific input ephys directory set: %s\n', ProcDataDir);
     SpikesPerMove_Dir = fullfile(SpikesPerMove_Dir, CaseDate_hem);
-    fprintf('[INFO] Hemisphere-specific output directory set: %s\n', SpikesPerMove_Dir);
+    Case_FRKin_Dir = fullfile(Case_FRKin_Dir, CaseDate_hem);
+    fprintf('[INFO] Hemisphere-specific output directory set: %s\n', Case_FRKin_Dir);
 
 else
     fprintf('[INFO] Using base input directory: %s\n', ProcDataDir);
-    fprintf('[INFO] Using base output directory: %s\n', SpikesPerMove_Dir);
+    fprintf('[INFO] Using base output directory: %s\n', Case_FRKin_Dir);
 end
 
 
@@ -120,7 +134,7 @@ MoveDataDir = [IO_DataDir, filesep, 'Processed DLC'];
 cd(MoveDataDir)
 
 % Specify case ID
-Move_CaseID = 'IO_04_05_2023_RSTN';
+Move_CaseID = 'IO_05_31_2023_LSTN';
 
 % 'IO_03_09_2023_RSTN'; % studyID = 1, ptID 1 (processed, incomplete case)
 
@@ -153,5 +167,5 @@ Move_CaseDir = [MoveDataDir, filesep, Move_CaseID];
 
 %% Run align_SpikesPerMove_TTL function
 
-align_SpikesPerMove_TTL(Subject_AO, ProcDataDir, ClustSpkTimesDir, Move_CaseDir, SpikesPerMove_Dir)
+align_SpikesPerMove_TTL(Subject_AO, ProcDataDir, ClustSpkTimesDir, Move_CaseDir, Case_FRKin_Dir)
 

@@ -58,6 +58,7 @@ end
 if isempty(spk_case), error('No spike table found'); end
 load(spk_case,'All_SpikesPerMove_Tbl');
 
+
 %% OPTIONAL: Case-specific cleaning (remove duplicates if needed)
 
 % Example: All_SpikesPerMove_Tbl(158:end,:) for case 03_23_2023
@@ -76,6 +77,7 @@ end
 move_types = intersect(sorted_moveTypes, unique(All_SpikesPerMove_Tbl.MoveType),'stable');
 hasREST = any(strcmp(move_types,'REST'));
 
+
 %% Initialize storage
 
 FR_SummaryTbl = {}; % FR summary storage (similar to kinSummaryTbl)
@@ -90,9 +92,9 @@ rest_vs_move_stats = {};
 % Loop through trials and compute FR summary statistics
 for m = 1:numel(move_types)
     move_type = move_types{m};
-    for d = 1:numel(depth_ids)
-        depth_code = depth_ids{d};
-        depth_name = depth_labels{d};
+    for depth_i = 1:numel(depth_ids)
+        depth_code = depth_ids{depth_i};
+        depth_name = depth_labels{depth_i};
 
         % Extract the relevant trials for this MoveType and depth
         move_tbl = All_SpikesPerMove_Tbl(strcmp(All_SpikesPerMove_Tbl.MoveType, move_type) & ...
@@ -106,12 +108,12 @@ for m = 1:numel(move_types)
         spike_list = {};
 
         % Loop through the trials in move_tbl (each trial is identified by move_trial_ID)
-        for row = 1:height(move_tbl)
+        for move_row = 1:height(move_tbl)
             % Get the MoveTrialID for the current trial (e.g., 't1', 'c1', etc.)
-            moveTrialID = move_tbl.move_trial_ID{row};
+            moveTrialID = move_tbl.move_trial_ID{move_row};
 
             % Get spike times for this trial (convert spike times as needed)
-            spkTimes = (move_tbl.C1{row} - move_tbl.TTL_spk_idx_Start(row)) / AO_spike_fs - 0.05;
+            spkTimes = (move_tbl.C1{move_row} - move_tbl.TTL_spk_idx_Start(move_row)) / AO_spike_fs - 0.05;
             spike_list{end+1} = spkTimes;
 
             % Compute the firing rate for this trial (using the helper function `computeFR`)
@@ -126,10 +128,10 @@ for m = 1:numel(move_types)
 
             % For REST vs. Move Stats
             if strcmp(move_type,'REST')
-                restSpikes{d} = spike_list;
+                restSpikes{depth_i} = spike_list;
             elseif ismember(move_type, active_movements)
                 idx = find(strcmp(active_movements, move_type));
-                allDepthSpikes{d,idx} = spike_list;
+                allDepthSpikes{depth_i,idx} = spike_list;
             end
         end
 
@@ -168,8 +170,8 @@ if hasREST
         plotRestVsMoveRasterRescaled(restSpikes, allDepthSpikes(:,m), move_type, depth_labels, depth_colors, rest_color, figName, fontTitle, fontLabel, useFullDuration, window_FR);
 
         % Store comparison stats (N_MoveTrials, N_RESTTrials, p-value, Cohen's d)
-        for d = 1:3
-            rest_vs_move_stats(end+1,:) = {CaseDate, CaseDate_hem, depth_labels{d}, move_type, length(allDepthSpikes{d,m}), length(restSpikes{d}), pVals(d), cohenD_vals(d)};
+        for depth_i = 1:3
+            rest_vs_move_stats(end+1,:) = {CaseDate, CaseDate_hem, depth_labels{depth_i}, move_type, length(allDepthSpikes{depth_i,m}), length(restSpikes{depth_i}), pVals(depth_i), cohenD_vals(depth_i)};
         end
     end
 end
@@ -203,8 +205,6 @@ end
 
 %% === Helper Functions ===
 
-function res = ternary(cond,a,b), if cond,res=a;else,res=b;end,end
-
 %% === Compute FR ===
 
 function FR = computeFR(spikeTimes, useActualDuration, window)
@@ -229,6 +229,9 @@ end
 % Compute firing rate
 FR = numSpikes / dur;  % in Hz
 end
+
+
+function res = ternary(cond,a,b), if cond,res=a;else,res=b;end,end
 
 %% === Check Normality ===
 

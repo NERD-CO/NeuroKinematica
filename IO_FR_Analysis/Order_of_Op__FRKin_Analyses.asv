@@ -42,14 +42,14 @@ DLC_fs = 100;           % fps, Video/DLC frame rate
 
 %% Inputs:
 
-CaseDate = '03_23_2023'; % Adjust as needed
+CaseDate = '05_31_2023'; % Adjust as needed
 % '03_23_2023'; % NER 2025
 % '04_05_2023'; % NER 2025
 % '05_18_2023_b_bilateral'; % NER 2025
 % '05_31_2023';
 % '06_08_2023_bilateral'; % NER 2025
 
-MoveDir_CaseID = 'IO_03_23_2023_LSTN'; % Adjust as needed
+MoveDir_CaseID = 'IO_05_31_2023_LSTN'; % Adjust as needed
 % 'IO_03_23_2023_LSTN'; % NER 2025
 % 'IO_04_05_2023_RSTN'; % NER 2025
 % 'IO_05_18_2023_b_LSTN'; % NER 2025

@@ -1,9 +1,6 @@
 %% Goal: Update Subject_AO excel file with trialNum iteration per STN depth based on defined criteria
 
-%% CCC
-clc
-close 
-clear
+clear; close all; clc;
 
 %% Machine-specific data directory Input
 
@@ -15,22 +12,24 @@ switch curPCname
         IO_DataDir = 'X:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
     case 'DSKTP-JTLAB-EMR'  % Lab Desktop
         IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
+        addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\AO_Processing'
     case 'NSG-M-H8J3X34'    % PC_2
         IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
+        addpath 'C:\GitHub\NeuroKinematica\AO_Processing'
 end
 
 % navigate to summaryXLSX file location (IO_DataDir)
 cd(IO_DataDir)
 
-% read in summaryXLSX table (Subject_AO)
-summaryXLSX = readtable("Subject_AO.xlsx");
+% read in Subject_AO csv as table
+Subject_AO = readtable("Subject_AO.xlsx");
 
 
 %% Subject-specific data directory Inputs
 
 % Isolate a specific subject/case date & case-specific data directories
-studyID = 28;
-CaseDate = '11_30_2023_bilateral';
+studyID = 10;
+CaseDate = '05_31_2023';
 
 Case_DataDir = [IO_DataDir, filesep, CaseDate];
 cd(Case_DataDir)
@@ -42,8 +41,8 @@ MatDataDir = [Case_DataDir, filesep, 'Raw Electrophysiology MATLAB'];
 %% function
 
 % Define data table and indexing variables:
-studyTable = summaryXLSX(ismember(summaryXLSX.StudyNum,studyID),:);
-studyTblIndex = ismember(summaryXLSX.StudyNum,studyID); % logical index = loc of subject
+studyTable = Subject_AO(ismember(Subject_AO.StudyNum,studyID),:);
+studyTblIndex = ismember(Subject_AO.StudyNum,studyID); % logical index = loc of subject
 
 % create and extract list of unique stn locations
 stn_locs = unique(studyTable.stn_loc);
@@ -66,7 +65,7 @@ for sti = 1:length(stn_locs)
     for stf = 1:height(stnlTable)
         temp_file = stnlTable.ao_MAT_file{stf};
         % find loc of temp file
-        fileTblIndex = matches(summaryXLSX.ao_MAT_file,temp_file); % notes row to save relvant experimental rec. ID 
+        fileTblIndex = matches(Subject_AO.ao_MAT_file,temp_file); % notes row to save relvant experimental rec. ID 
         temp_dir = [MatDataDir,filesep,temp_file];
         % load(temp_dir)
 
@@ -83,7 +82,7 @@ for sti = 1:length(stn_locs)
 
         % How many ttls?
         if firstfilecheck
-            summaryXLSX.trialNum(fileTblIndex) = NaN;
+            Subject_AO.trialNum(fileTblIndex) = NaN;
         else
 
             if ttlCHECK
@@ -91,14 +90,14 @@ for sti = 1:length(stn_locs)
                 ttl_num =  length(CDIG_IN_1_Down) % 60 frames per sec.
                 ttl_thresh = 60*25; % ((30 sec, 1800 ttls; 28 sec, 1680 ttls; 25 sec, 1500 ttls) 
                 if ttl_num < ttl_thresh
-                    summaryXLSX.trialNum(fileTblIndex) = NaN;
+                    Subject_AO.trialNum(fileTblIndex) = NaN;
                 else
                     % populate row with ID
-                    summaryXLSX.trialNum(fileTblIndex) = keepCount;
+                    Subject_AO.trialNum(fileTblIndex) = keepCount;
                     keepCount = keepCount +1;
                 end
             else
-                summaryXLSX.trialNum(fileTblIndex) = NaN; % why is this condition here?
+                Subject_AO.trialNum(fileTblIndex) = NaN; % why is this condition here?
             end
         end
 
@@ -107,7 +106,7 @@ end
 
 % save new CSV with trial ID
 cd(IO_DataDir) 
-writetable(summaryXLSX,'Subject_AO.xlsx') % fill trial column
+writetable(Subject_AO,'Subject_AO.xlsx') % fill trial column
 
 
 %% Output:
