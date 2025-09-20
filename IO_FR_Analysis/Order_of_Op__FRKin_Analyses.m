@@ -40,24 +40,41 @@ AO_spike_fs = 44000;    % Hz, Alpha Omega spike sampling rate
 AO_LFP_fs = 1375;       % Hz, Alpha Omega LFP sampling rate
 DLC_fs = 100;           % fps, Video/DLC frame rate
 
+
+%% Config - Define pre-trial offset duration for useOffset_spikes function
+
+pre_offset_ms = 50; % milliseconds
+offset_seconds = pre_offset_ms / 1000; % seconds
+
+% Calculate number of TTL samples
+offset_TTLs = round(TTL_fs * offset_seconds); % ensure value is integer
+
+% Calculate number TTL samples in AO_LFP sample domain by downsampling TTL_fs
+offset_spikes = round((offset_TTLs/TTL_fs)*AO_spike_fs); % ensure value is integer
+
+useOffset = true;
+% If useOffset == true or pre_offset_ms>0, useOffset_spikes function returns the #
+% of samples to pre-pad in spike sample domain based on a set pre-trial offset time
+% (and a meta struct for reference).
+% If useOffset == false or pre_offset_ms<=0, useOffset_spike function returns 0.
+
+
 %% Inputs:
 
-CaseDate = '03_23_2023'; % Adjust as needed
+CaseDate = '05_31_2023'; % Adjust as needed
 % '03_23_2023'; % NER 2025
 % '04_05_2023'; % NER 2025
 % '05_18_2023_b_bilateral'; % NER 2025
 % '05_31_2023';
 % '06_08_2023_bilateral'; % NER 2025
 
-MoveDir_CaseID = 'IO_03_23_2023_LSTN'; % Adjust as needed
+MoveDir_CaseID = 'IO_05_31_2023_LSTN'; % Adjust as needed
 % 'IO_03_23_2023_LSTN'; % NER 2025
 % 'IO_04_05_2023_RSTN'; % NER 2025
 % 'IO_05_18_2023_b_LSTN'; % NER 2025
 % 'IO_05_31_2023_LSTN';
 % 'IO_06_08_2023_LSTN'; % NER 2025
 
-% Config use offset
-ephys_offset = 1;
 
 % Data folder paths
 Case_DataDir = fullfile(IO_DataDir, CaseDate);
@@ -108,13 +125,23 @@ end
 
 %% ===== Functions =====
 
-%% Run compute_FRperMove_perSTNdepth
+%% Run MaxSpkDuration_Raster_PSTH
 
-compute_FRperMove_perSTNdepth(CaseDate, Case_FRKin_Dir, All_SpikesPerMove_Tbl)
+[Max_SpikeDuration_samples, spikesMatrix] = MaxSpkDuration_Raster_PSTH(CaseDate, All_SpikesPerMove_Tbl, AO_spike_fs, Case_FRKin_Dir);
+
+%% Run compute_FRperMove_perSTNdepth_v3
+
+[FR_perTrial_All, FR_Summary_All] = compute_FRperMove_perSTNdepth_v3(CaseDate, All_SpikesPerMove_Tbl, AO_spike_fs, Case_FRKin_Dir);
+
+%% Run compute_FRperMove_perSTNdepth
+% 
+% compute_FRperMove_perSTNdepth(CaseDate, Case_FRKin_Dir, All_SpikesPerMove_Tbl)
 
 %% Run run_IO_FR_Analysis_and_Plotting
 
-[FR_SummaryTbl] = run_IO_FR_Analysis_and_Plotting(CaseDate, CaseDate_hem, Case_FRKin_Dir, ephys_offset, FR_Kin_Dir);
+[FR_SummaryTbl] = run_IO_FR_Analysis_and_Plotting(CaseDate, CaseDate_hem, Case_FRKin_Dir, useOffset, FR_Kin_Dir);
+
+%%% update this %%%
 
 % Example:
 % IO_plotting_vCombined('03_23_2023', '', 1);                 % unilateral

@@ -1,23 +1,23 @@
-function Max_SpkDur_samples = calculate_MaxSpikeSeg_Duration(All_SpikesPerMove_Tbl, AO_spike_fs)
+function [Max_SpikeDuration_samples, spikesMatrix] = MaxSpkDuration_Raster_PSTH(CaseDate, All_SpikesPerMove_Tbl, AO_spike_fs, Case_FRKin_Dir)
 
 % Calculate the max spike segment duration (# of samples in longest segment)
-max_SpkDuruation_All = zeros(height(All_SpikesPerMove_Tbl), 1);
+max_SpkDuration_All = zeros(height(All_SpikesPerMove_Tbl), 1);
 
 for row_i = 1:height(All_SpikesPerMove_Tbl)
     tempSpk_vec = All_SpikesPerMove_Tbl.C1{row_i};
     if isempty(tempSpk_vec) || numel(tempSpk_vec) < 3
-        max_SpkDuruation_All(row_i) = NaN;
+        max_SpkDuration_All(row_i) = NaN;
     else
-        max_SpkDuruation_All(row_i) = max(tempSpk_vec - All_SpikesPerMove_Tbl.TTL_spk_idx_Start(row_i));
+        max_SpkDuration_All(row_i) = max(tempSpk_vec - All_SpikesPerMove_Tbl.TTL_spk_idx_Start(row_i));
     end
 end
 
-Max_SpkDur_samples = max(max_SpkDuruation_All); % samples in longest segment
-Max_SpkDur_seconds = Max_SpkDur_samples/AO_spike_fs; % seconds
+Max_SpikeDuration_samples = max(max_SpkDuration_All); % samples in longest segment
+Max_SpkDur_seconds = Max_SpikeDuration_samples/AO_spike_fs; % seconds
 Max_SpkDus_ms = Max_SpkDur_seconds * 1000; % milliseconds
 
 
-spikesMatrix = zeros(height(All_SpikesPerMove_Tbl), Max_SpkDur_samples);
+spikesMatrix = zeros(height(All_SpikesPerMove_Tbl), Max_SpikeDuration_samples);
 for row_i = 1:height(All_SpikesPerMove_Tbl)
     tempSpk_vec = All_SpikesPerMove_Tbl.C1{row_i};
     if isempty(tempSpk_vec) || numel(tempSpk_vec) < 3
@@ -48,6 +48,7 @@ psth_bin_Hz = (counts_bin / nTrials) / bin_sec;
 time_bin_samp = (0:M-1) * bin_samp + (bin_samp/2); % bin centers (samples)
 time_bin_ms = (time_bin_samp / AO_spike_fs) * 1000;   % bin centers (ms)
 
+fig = figure('Position',[100 100 800 600]);
 
 % Plot the scatter of spikes and the PSTH in the same figure
 [row, col] = find(spikesMatrix);      % row = trial index, col = spike sample index
@@ -69,6 +70,12 @@ ylabel('PSTH (Hz)');
 title('Peri-Stimulus Time Histogram (All Trials)');
 xlim([0, max(time_bin_ms)]);
 grid on;
+
+%% Save figure
+
+save_filename = fullfile(Case_FRKin_Dir, [CaseDate '_Raster_PSTH.png']);
+saveas(fig, save_filename);
+fprintf('Saved figure to: %s\n', save_filename);
 
 
 end

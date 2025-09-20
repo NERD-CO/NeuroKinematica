@@ -32,6 +32,26 @@ AO_spike_fs = 44000;    % Hz, Alpha Omega spike sampling rate
 AO_LFP_fs = 1375;       % Hz, Alpha Omega LFP sampling rate
 DLC_fs = 100;           % fps, Video/DLC frame rate
 
+%% define offset duration
+
+pre_offset_ms = 50; % milliseconds
+offset_seconds = pre_offset_ms / 1000; % seconds
+
+% Calculate the number of TTL samples
+offset_TTLs = round(TTL_fs * offset_seconds); % ensure value is integer
+
+useOffset = true;
+% If useOffset == true or pre_offset_ms>0, useOffset_spikes function returns the #
+% of samples to pre-pad in spike sample domain based on a set pre-trial offset time
+% (and a meta struct for reference).
+% If useOffset == false or pre_offset_ms<=0, useOffset_spike function returns 0.
+
+% for future function input: useOffset; when = 1,  offset = offset; when = 0, offset = 0
+
+%% Run useOffset_spikes function
+
+[offset_spike_samples, meta_Offset_spk] = useOffset_spikes(TTL_fs, AO_spike_fs, pre_offset_ms, useOffset);
+
 
 %% Inputs
 
@@ -77,7 +97,7 @@ if ~exist(SpikesPerMove_Dir,'dir')
     mkdir(SpikesPerMove_Dir);
 end
 
-%% Define output directory:
+%% Define new output directory:
 
 % Ephys_Kinematics
 FR_Kin_Dir = [IO_DataDir, filesep, 'Ephys_Kinematics', filesep, 'FR_Kinematic_Analyses'];
@@ -167,5 +187,6 @@ Move_CaseDir = [MoveDataDir, filesep, Move_CaseID];
 
 %% Run align_SpikesPerMove_TTL function
 
-align_SpikesPerMove_TTL(Subject_AO, ProcDataDir, ClustSpkTimesDir, Move_CaseDir, Case_FRKin_Dir)
+All_SpikesPerMove_Tbl = align_SpikesPerMove_TTL(Subject_AO, AO_spike_fs, TTL_fs, ProcDataDir, ClustSpkTimesDir, Move_CaseDir, pre_offset_ms, useOffset, Case_FRKin_Dir);
+
 

@@ -230,7 +230,7 @@ end
 FR = numSpikes / dur;  % in Hz
 end
 
-
+%%
 function res = ternary(cond,a,b), if cond,res=a;else,res=b;end,end
 
 %% === Check Normality ===

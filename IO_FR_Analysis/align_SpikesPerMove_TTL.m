@@ -1,8 +1,7 @@
-function [] = align_SpikesPerMove_TTL(Subject_AO, ProcDataDir, ClustSpkTimesDir, Move_CaseDir, SpikesPerMove_Dir)
+function All_SpikesPerMove_Tbl = align_SpikesPerMove_TTL(Subject_AO, AO_spike_fs, TTL_fs, ProcDataDir, ClustSpkTimesDir, Move_CaseDir, pre_offset_ms, useOffset, SpikesPerMove_Dir)
 
 % Align IO spike data segments with corresponding movement data segments per trial
 
-addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\IO_FR_Analysis'
 
 %% Define case-specific directory for movement indices per trial
 
@@ -17,23 +16,18 @@ cd(Move_CaseVideos)
 % moveMat_names = {moveMat.name};
 
 
-%% define datastream sampling rates (Alpha Omega and Video sampling fs)
-
-TTL_fs = 44000; % Hz
-AO_spike_fs = 44000; % Hz
-AO_LFP_fs = 1375; % Hz
-DLC_fs = 100; % fps
-
-
 %% define offset duration
 
-offset_ms = 50; % milliseconds
-offset_seconds = offset_ms / 1000; % seconds
+offset_seconds = pre_offset_ms / 1000; % seconds
 
 % Calculate the number of TTL samples
 offset_TTLs = round(TTL_fs * offset_seconds); % ensure value is integer
 
 % for future function input: useOffset; when = 1,  offset = offset; when = 0, offset = 0
+
+%% Run useOffset_spikes function
+
+[offset_spike_samples, meta_Offset_spk] = useOffset_spikes(TTL_fs, AO_spike_fs, pre_offset_ms, useOffset);
 
 %% Main function
 
@@ -99,6 +93,7 @@ for spk_mat_name = 1:length(SPKmatnames)
     spike_trial_ID = repmat({ProcFile}, height(SpkMoveTbl), 1);
     move_trial_ID = repmat({motor_trial_ID}, height(SpkMoveTbl), 1);
     TTL_spk_idx_Start = nan(height(SpkMoveTbl), 1);
+    TTL_spk_idx_End = nan(height(SpkMoveTbl), 1);                               
     trial_seconds = nan(height(SpkMoveTbl), 1);
 
     % loop through trials and pull out BeginF and EndF indices in MoveIndex csv per corresponding trial
@@ -130,10 +125,11 @@ for spk_mat_name = 1:length(SPKmatnames)
 
         % convert TTL sample indices by the sample offset to transform into AO_spike clock / spike sample domain
         TTL_spk_idx_Start(move_i) = TTL_samp_taskStart + sample_offset; % number of samples wrt AO clock
-        TTL_spk_idx_End = TTL_samp_taskEnd + sample_offset;
+        TTL_spk_idx_End(move_i) = TTL_samp_taskEnd + sample_offset;
 
         % incorporate offset
-        TTL_spk_idx_Start(move_i) =  TTL_spk_idx_Start(move_i) - offset_TTLs; % start [50 ms] before
+        % TTL_spk_idx_Start(move_i) =  TTL_spk_idx_Start(move_i) - offset_TTLs; % start [50 ms] before
+        TTL_spk_idx_Start(move_i) =  TTL_spk_idx_Start(move_i) - offset_spike_samples; 
 
         % check # of clusters in spike file
         if numel(unique(spikeClInfo.clusterIDS)) == 1
@@ -141,7 +137,7 @@ for spk_mat_name = 1:length(SPKmatnames)
             clust_time = spikeClInfo.SpikeTSindex; % samples wrt AO clock
 
             % determine spikes in cluster within movement block
-            spikes_in_move1 = clust_time > TTL_spk_idx_Start(move_i) & clust_time < TTL_spk_idx_End; % logical indicating spikes w/in moveblock in AO_time
+            spikes_in_move1 = clust_time > TTL_spk_idx_Start(move_i) & clust_time < TTL_spk_idx_End(move_i); % logical indicating spikes w/in moveblock in AO_time
 
             % get spike times in cluster within movement block
             clustered_spikeTimes = clust_time(spikes_in_move1);
@@ -179,6 +175,8 @@ for spk_mat_name = 1:length(SPKmatnames)
     SpkMoveTbl.spike_trial_ID = spike_trial_ID;
     SpkMoveTbl.move_trial_ID = move_trial_ID;
     SpkMoveTbl.TTL_spk_idx_Start = TTL_spk_idx_Start;
+    SpkMoveTbl.TTL_spk_idx_End = TTL_spk_idx_End;
+
 
     All_spikesPermove{spk_mat_name} = SpkMoveTbl;
 
@@ -186,7 +184,7 @@ end
 
 
 % Define the standard column order
-standard_col_order = {'MoveN', 'MoveType', 'BeginF', 'EndF', 'TTL_spk_idx_Start', 'spike_trial_ID', 'move_trial_ID'}; % add 'trial_seconds'
+standard_col_order = {'MoveN', 'MoveType', 'BeginF', 'EndF', 'TTL_spk_idx_Start', 'TTL_spk_idx_End', 'spike_trial_ID', 'move_trial_ID'}; % add 'trial_seconds'
 
 % Get the unique cluster IDs from all tables
 cluster_ids = {};
