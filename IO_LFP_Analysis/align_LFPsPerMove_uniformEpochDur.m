@@ -109,6 +109,26 @@ for LFP_mat_name = 1:length(LFPmatnames)                                    % MA
     TTL_Down = ProcEphys.TTL.Down; % voltage deflection, frames -> TTL sample index (1 cell represents frame#, values within the cell represent sample#s)
     TTL_clockStart = ProcEphys.TTL.startTime; % in seconds
 
+
+    %%
+    % (A) Make indices 1-based if they’re 0-based
+    numelTTL = numel(TTL_Down);
+    if any(LFPsMoveTbl.BeginF == 0) || any(LFPsMoveTbl.EndF == 0)
+        LFPsMoveTbl.BeginF = LFPsMoveTbl.BeginF + 1;
+        LFPsMoveTbl.EndF   = LFPsMoveTbl.EndF   + 1;
+    end
+
+    % (B) Rebase absolute frames to trial-relative (start at 1)
+    baseF = min(LFPsMoveTbl.BeginF);
+    LFPsMoveTbl.BeginF_rel = LFPsMoveTbl.BeginF - baseF + 1;
+    LFPsMoveTbl.EndF_rel   = LFPsMoveTbl.EndF   - baseF + 1;
+
+    % (C) Clamp to TTL range
+    clamp = @(x) max(1, min(numelTTL, round(x)));
+    LFPsMoveTbl.BeginF_rel = arrayfun(clamp, LFPsMoveTbl.BeginF_rel);
+    LFPsMoveTbl.EndF_rel   = arrayfun(clamp, LFPsMoveTbl.EndF_rel);
+    %%
+
     % Robust accessor: works for cell, table, or numeric TTL_Down
     if iscell(TTL_Down)
         getTTL = @(i) TTL_Down{i};
@@ -148,9 +168,12 @@ for LFP_mat_name = 1:length(LFPmatnames)                                    % MA
             frame_startTime = LFPsMoveTbl.BeginF(move_i);
             frame_endTime   = LFPsMoveTbl.EndF(move_i);
 
+            frame_start_idx = LFPsMoveTbl.BeginF_rel(move_i);
+            frame_end_idx   = LFPsMoveTbl.EndF_rel(move_i);
+
             % TTL samples at frame boundaries (TTL domain, wrt AO clock)
-            ttl_start = getTTL(frame_startTime);
-            ttl_end   = getTTL(frame_endTime);
+            ttl_start = getTTL(frame_start_idx);
+            ttl_end   = getTTL(frame_end_idx);
 
             % TTL domain → AO/LFP domain (samples)
             TTL_samp_taskStart = round((ttl_start/TTL_fs) * AO_LFP_fs);

@@ -68,33 +68,43 @@ for i = 1:numel(moveFiles)
 
     % Extract base name of moveFiles (Movement Index CSVs in vidDir)
     [~, basePrefix, ~] = fileparts(moveFile);
-    % fprintf('[CHECK] Processing: %s\n', moveFile);
     % disp(basePrefix);
 
-    % Attempt to extract coreID using two regex patterns
-    tokensA = regexp(basePrefix, '(20\d{6}_[bct]\d+_d\d+p\d+_session\d+)', 'tokens');
-    tokensB = regexp(basePrefix, '(20\d{6}_[LR]H_[bct]\d+_d\d+p\d+_session\d+)', 'tokens');
+    % Attempt to extract coreID using flexible patterns:
+    % Matches:
+    %   20230823_b1_d2p6_session001
+    %   20230823_R_b1_d2p6_session001
+    %   20230823_LH_b1_d2p6_session001
+    core_pat = '(20\d{6}_(?:[LR]H|[LR])?_[bct]\d+_d\d+p\d+_session\d+)';
+    tokC = regexp(basePrefix, core_pat, 'tokens', 'once');
 
-    if ~isempty(tokensA)
-        coreID = tokensA{1}{1};
-    elseif ~isempty(tokensB)
-        coreID = tokensB{1}{1};
+    if ~isempty(tokC)
+        coreID = tokC{1};
     else
-        % warning('[SKIP] Could not extract coreID from: %s', basePrefix);
-        SkippedTbl = [SkippedTbl; {string(basePrefix), moveFile, "CoreID_Extraction_Failed"}];
-        continue;
+        % Fall back to older forms just in case
+        tokA = regexp(basePrefix, '(20\d{6}_[bct]\d+_d\d+p\d+_session\d+)', 'tokens', 'once');
+        tokB = regexp(basePrefix, '(20\d{6}_[LR]H_[bct]\d+_d\d+p\d+_session\d+)', 'tokens', 'once');
+        if ~isempty(tokA)
+            coreID = tokA{1};
+        elseif ~isempty(tokB)
+            coreID = tokB{1};
+        else
+            SkippedTbl = [SkippedTbl; {string(basePrefix), moveFile, "CoreID_Extraction_Failed"}];
+            continue;
+        end
     end
-    % fprintf('[DEBUG] coreID extracted: %s\n', coreID);
+
+
 
     %  Find matching DLC CSV
     dlcMatch = dir(fullfile(csvDir, ['*' coreID '*DLC*.csv']));
-
     if isempty(dlcMatch)
-        % warning('[SKIP] DLC CSV not found for coreID: %s', coreID);
+        % Fallback: some exports may not include 'DLC' in the filename
+        dlcMatch = dir(fullfile(csvDir, ['*' coreID '*.csv']));
+    end
+    if isempty(dlcMatch)
         SkippedTbl = [SkippedTbl; {string(coreID), moveFile, "DLC_Missing"}];
         continue;
-    else
-        % fprintf('[MATCHED] DLC file: %s\n', dlcMatch(1).name);
     end
 
 
@@ -185,8 +195,6 @@ for i = 1:numel(moveFiles)
             minDist = minDist_sec;
 
             normalizedMoveType = upper(strrep(moveType, ' ', ''));
-            % fprintf('[DEBUG] MoveType: %s → Normalized: %s\n', moveType, normalizedMoveType);
-            % fprintf('[DEBUG] MoveTypes in %s: %s\n', moveFile, strjoin(unique(moveIndex.MoveType), ', '));
 
             % Determine findpeaks parameters based on MoveType
             switch upper(strrep(moveType, ' ', ''))  % normalize input
@@ -202,12 +210,12 @@ for i = 1:numel(moveFiles)
 
                 case {'ARMEF', 'ARM_EXTENSION_FLEXION'}
                     minProm = std(MovSeg) * 0.2;
-                    minHeight = mean(MovSeg) + std(MovSeg);
+                    minHeight = mean(MovSeg) + std(MovSeg) * 0.1;
                     minDist = minDist_sec * 1.4;
 
                 case {'REST'}
                     minProm = std(MovSeg) * 0.5;
-                    minHeight = mean(MovSeg) + std(MovSeg);
+                    minHeight = mean(MovSeg) + std(MovSeg) * 0.1;
                     minDist = minDist_sec;
 
                 otherwise
@@ -232,11 +240,16 @@ for i = 1:numel(moveFiles)
             end
 
             ampAll = [ampAll, pks(:)'];
+
             vel = pks ./ widths;  % mm/s
             velAll = [velAll, vel(:)'];
-            repDur = diff(locs) / fps;
-            interDur = repDur(1:end-1);
+
+            % repDur = diff(locs) / fps;
+            repDur   = widths;       % seconds, peak 'extent' as repetition duration
             repDurAll = [repDurAll, repDur(:)'];
+
+            % interDur = repDur(1:end-1);
+            interDur = diff(locs);   % seconds between successive peaks
             interDurAll = [interDurAll, interDur(:)'];
 
             % Plot once per MoveType per trial

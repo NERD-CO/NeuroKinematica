@@ -150,7 +150,7 @@ save(['FR_Results_' CaseDate '.mat'], 'FR_Results');
 %% Convert to summary tables for export
 
 FR_Summary_Table = cell2table(summary_Data, ...
-    'VariableNames', {'CaseDate','STN_Depth','MoveType','N','MeanFR_Hz','StdFR_Hz'});
+    'VariableNames', {'CaseDate','STN_Depth','MoveType','MeanFR_Hz','StdFR_Hz'});
 
 %% Concatenate and export
 

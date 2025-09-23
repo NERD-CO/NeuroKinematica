@@ -67,62 +67,28 @@ UniformEpochs = true;
 % If UniformEpochs == false or epochDur_ms <= 0, useOffset_LFP function returns 0.
 
 
-%% Config - Ephys Case Input
+%% Config - Case-specific Inputs
 
 % isolate a specific CaseDate / studyID (StudyNum in Subject_AO csv)
-CaseDate = '03_23_2023';
-
-% '03_09_2023'; % studyID = 1, ptID 1
-
-% '03_23_2023'; % studyID = 2, ptID 2    * % Use for INS 2026
-% '04_05_2023'; % studyID = 3, ptID 2    * % Use for INS 2026
-
-% '04_13_2023_bilateral'; ptID 3
-% studyID = 4(L), 5(R),
-
-% '05_11_2023'; % studyID = 6, ptID 4
-% '05_18_2023_a'; % studyID = 7, ptID 4
-
-% '05_18_2023_b_bilateral';
-% LSTN: studyID = 8, ptID = 5    % Use for INS 2026
-% RSTN: studyID = 9, ptID = 5
-
-% '05_31_2023';  % studyID = 10, ptID 6
-
-% '06_08_2023_bilateral'; ptID = 7
-% LSTN: studyID = 11,
-% RSTN: studyID = 12(R),
-
-% '07_13_2023_bilateral';
-% studyID = 15(L), 16(R), ptID = 9
+CaseDate = '03_23_2023';  % Adjust as needed
+% '03_23_2023'; % NER 2025
+% '04_05_2023'; % NER 2025
+% '05_18_2023_b_bilateral'; % NER 2025
+% '05_31_2023';
+% '06_08_2023_bilateral'; % NER 2025
+% '08_23_2023'; % NANS 2026
 
 
 %% Config - Movement Case Input
 
 % Specify case ID
-Move_CaseID = 'IO_03_23_2023_LSTN';
-
-% 'IO_03_09_2023_RSTN'; % studyID = 1, ptID 1 (processed, incomplete case)
-
-% 'IO_03_23_2023_LSTN'; % studyID = 2, ptID 2 (processed, complete case) *
-% 'IO_04_05_2023_RSTN'; % studyID = 3, ptID 2 (processed, complete case) *
-
-% 'IO_04_13_2023_LSTN'; % studyID = 4, ptID 3 (processed, complete case)
-% 'IO_04_13_2023_RSTN'; % studyID = 5, ptID 3
-
-% 'IO_05_11_2023_LSTN'; % studyID = 6, ptID 4 (processed, incomplete case)
-% 'IO_05_18_2023_a_RSTN'; % studyID = 7, ptID 4
-
-% 'IO_05_18_2023_b_LSTN'; % studyID = 8, ptID 5 (processed, complete case) *
-% 'IO_05_18_2023_b_RSTN'; % studyID = 9, ptID 5
-
-% 'IO_05_31_2023_LSTN'; % studyID = 10, ptID 6
-
-% 'IO_06_08_2023_LSTN'; % studyID = 11, ptID = 7 (processed, complete case)
-% 'IO_06_08_2023_RSTN'; % studyID = 12, ptID = 7 (processed, incomplete case)
-
-% 'IO_07_13_2023_LSTN'; % studyID = 15, ptID = 9
-% 'IO_07_13_2023_RSTN'; % studyID = 16, ptID = 9
+MoveDir_CaseID = 'IO_03_23_2023_LSTN';  % Adjust as needed
+% 'IO_03_23_2023_LSTN'; % NER 2025
+% 'IO_04_05_2023_RSTN'; % NER 2025
+% 'IO_05_18_2023_b_LSTN'; % NER 2025
+% 'IO_05_31_2023_LSTN';
+% 'IO_06_08_2023_LSTN'; % NER 2025
+% 'IO_08_23_2023_RSTN'; % NANS 2026
 
 
 %% Config - Input and Output Data Dirs
@@ -132,14 +98,14 @@ MoveDataDir = [IO_DataDir, filesep, 'Processed DLC'];
 
 % Case-specific Input dirs
 ProcDataDir = [Case_DataDir, filesep, 'Processed Electrophysiology'];       % directory for processed ephys data and spike clusters
-Move_CaseDir = [MoveDataDir, filesep, Move_CaseID];                         % directory for processed DLC data and Movement Indices
+Move_CaseDir = [MoveDataDir, filesep, MoveDir_CaseID];                         % directory for processed DLC data and Movement Indices
 
 % Case-specific Output dir
 ephysTbl_Dir = [Case_DataDir, filesep, 'DLC_Ephys'];                        % directory where all ephys per move-rep tables are located
 
 % Data folder paths
 KinematicsDir = fullfile(IO_DataDir, 'Kinematic Analyses');
-Case_KinDir = fullfile(KinematicsDir, Move_CaseID);
+Case_KinDir = fullfile(KinematicsDir, MoveDir_CaseID);
 Ephys_Kin_Dir = fullfile(IO_DataDir, 'Ephys_Kinematics');
 LFP_Kin_Dir = fullfile(Ephys_Kin_Dir, 'LFP_Kinematic_Analyses');
 % Case_LFP_Kin = fullfile(LFP_Kin_Dir, CaseDate); % case-specific results from run_FR_KinematicCorr saved here
@@ -254,34 +220,69 @@ xlabel('Frequency (Hz)');
 ylabel('Power (dB)');
 title('Power Spectral Density of Processed LFP');
 
+%% Auto-split STN depths
+
+dorsalSTN_tbl  = All_LFPsPerMove_Tbl_filt(contains(All_LFPsPerMove_Tbl_filt.move_trial_ID,'t'),:);
+centralSTN_tbl = All_LFPsPerMove_Tbl_filt(contains(All_LFPsPerMove_Tbl_filt.move_trial_ID,'c'),:);
+ventralSTN_tbl = All_LFPsPerMove_Tbl_filt(contains(All_LFPsPerMove_Tbl_filt.move_trial_ID,'b'),:);
+LFPs_perSTNdepth_Tables = struct('dorsal', dorsalSTN_tbl, 'central', centralSTN_tbl, 'ventral', ventralSTN_tbl);
+
+
+%% Move Types
+
+moveType_ids = unique(All_LFPsPerMove_Tbl_filt.MoveType); % Rest, Hand OC, Arm Pro/Sup, Arm Exten/Flex
+moveType_ids_tbl = cell2table(moveType_ids);
+
+for moveT_i = 1:height(moveType_ids_tbl)
+    ArmEF = moveType_ids_tbl.moveType_ids{1};
+    HandOC = moveType_ids_tbl.moveType_ids{2};
+    HandPS = moveType_ids_tbl.moveType_ids{3};
+    Rest = moveType_ids_tbl.moveType_ids{4};
+end
+
+%move_type = moveType_ids_tbl.moveType_ids{3}; % 'HAND PS'
+
 %% Test Plot per STN depth & trial number
 
 % Input - define STN depth & move_trial # of trial to test:
-STN_depth = 'dorsal';   % adjust
-move_trial_num = '3';   % adjust
+STN_depth = 'dorsal';    % adjust
+move_type = HandPS;      % adjust 
+move_trial_num = '2';    % adjust
 rep_idx = 5;
 
 switch STN_depth
     case 'dorsal'
         LFP_test_depth = 't'; % top/dorsal STN
         trialID = [LFP_test_depth, move_trial_num];
-        LFP_t_r1 = find(contains(All_LFPsPerMove_Tbl_filt.move_trial_ID, trialID), 1, 'first'); % Extract the first row index where this is true
-        LFP_t_rn = find(contains(All_LFPsPerMove_Tbl_filt.move_trial_ID, trialID), 1, 'last'); % Extract the last row index where this is true
-        LFP_t = All_LFPsPerMove_Tbl_filt.(char(lfp_colProc_500))(LFP_t_r1:LFP_t_rn); % Extract LFP segments for trial t3
-        LFP_test_row = LFP_t{rep_idx};
+        moveID = move_type;
+        dorsal_r1 = find(contains(All_LFPsPerMove_Tbl_filt.move_trial_ID, trialID), 1, 'first'); % Extract the first row index where this is true
+        dorsal_rn = find(contains(All_LFPsPerMove_Tbl_filt.move_trial_ID, trialID), 1, 'last'); % Extract the last row index where this is true
+        dorsal_tbl = All_LFPsPerMove_Tbl_filt(dorsal_r1:dorsal_rn,:); 
+        t_moveType_r1 = find(contains(dorsal_tbl.MoveType, moveID), 1, 'first'); 
+        t_moveType_rn = find(contains(dorsal_tbl.MoveType, moveID), 1, 'last');
+        LFP_t_moveType = dorsal_tbl.(char(lfp_colProc_500))(t_moveType_r1:t_moveType_rn); % Extract LFP segments for trial t3
+        LFP_test_row = LFP_t_moveType{rep_idx};
     case 'central'
         LFP_test_depth = 'c'; % central STN
         trialID = [LFP_test_depth, move_trial_num];
-        LFP_c_r1 = find(contains(All_LFPsPerMove_Tbl_filt.move_trial_ID, trialID), 1, 'first'); % Extract the first row index where this is true
-        LFP_c_rn = find(contains(All_LFPsPerMove_Tbl_filt.move_trial_ID, trialID), 1, 'last'); % Extract the last row index where this is true
-        LFP_c = All_LFPsPerMove_Tbl_filt.(char(lfp_colProc_500))(LFP_c_r1:LFP_c_rn); % Extract LFP segments for trial c2
-        LFP_test_row = LFP_c{rep_idx};
+        moveID = move_type;
+        central_r1 = find(contains(All_LFPsPerMove_Tbl_filt.move_trial_ID, trialID), 1, 'first'); % Extract the first row index where this is true
+        central_rn = find(contains(All_LFPsPerMove_Tbl_filt.move_trial_ID, trialID), 1, 'last'); % Extract the last row index where this is true
+        central_tbl = All_LFPsPerMove_Tbl_filt(central_r1:central_rn,:); 
+        c_moveType_r1 = find(contains(central_tbl.MoveType, moveID), 1, 'first'); 
+        c_moveType_rn = find(contains(central_tbl.MoveType, moveID), 1, 'last');
+        LFP_c_moveType = central_tbl.(char(lfp_colProc_500))(c_moveType_r1:c_moveType_rn); % Extract LFP segments for trial c2
+        LFP_test_row = LFP_c_moveType{rep_idx};
     case 'ventral'
         LFP_test_depth = 'b'; % bottom/ventral STN
         trialID = [LFP_test_depth, move_trial_num];
-        LFP_b_r1 = find(contains(All_LFPsPerMove_Tbl_filt.move_trial_ID, trialID), 1, 'first'); % Extract the first row index where this is true
-        LFP_b_rn = find(contains(All_LFPsPerMove_Tbl_filt.move_trial_ID, trialID), 1, 'last'); % Extract the last row index where this is true
-        LFP_b = All_LFPsPerMove_Tbl_filt.(char(lfp_colProc_500))(LFP_b_r1:LFP_b_rn); % Extract LFP segments for trial b2
+        moveID = move_type;
+        ventral_r1 = find(contains(All_LFPsPerMove_Tbl_filt.move_trial_ID, trialID), 1, 'first'); % Extract the first row index where this is true
+        ventral_rn = find(contains(All_LFPsPerMove_Tbl_filt.move_trial_ID, trialID), 1, 'last'); % Extract the last row index where this is true
+        ventral_tbl = All_LFPsPerMove_Tbl_filt(ventral_r1:ventral_rn,:); 
+        b_moveType_r1 = find(contains(ventral_tbl.MoveType, moveID), 1, 'first'); 
+        b_moveType_rn = find(contains(ventral_tbl.MoveType, moveID), 1, 'last');
+        LFP_b_moveType = ventral_tbl.(char(lfp_colProc_500))(b_moveType_r1:b_moveType_rn); % Extract LFP segments for trial b2
         LFP_test_row = LFP_b{rep_idx};
 end
 
@@ -359,6 +360,17 @@ ylim([0 60])
 xlabel('Frequency (Hz)');
 ylabel('Power (dB)');
 title('PSD of LFP beta band (13-30 Hz)');
+
+%% Run plot_LFPbeta_byDepthTrial function for a test trial rep at each depth
+
+% adjust function to create subplot:
+
+dorsalSTN_rowIDX_beta = plot_LFPbeta_byDepthTrial(All_LFPsPerMove_Tbl_filt, 'dorsal', ...
+                   move_trial_num, rep_idx, fs_downsamp);
+centralSTN_rowIDX_beta = plot_LFPbeta_byDepthTrial(All_LFPsPerMove_Tbl_filt, 'central', ... 
+                    move_trial_num, rep_idx, fs_downsamp);
+ventralSTN_rowIDX_beta = plot_LFPbeta_byDepthTrial(All_LFPsPerMove_Tbl_filt, 'ventral', ... 
+                    move_trial_num, rep_idx, fs_downsamp);
 
 
 %% Hilbert transorm of beta-filtered signal
@@ -713,3 +725,4 @@ ylabel('Normalized Beta Power');
 title('Beta Bursting Dynamics');
 hold off;
 
+%%

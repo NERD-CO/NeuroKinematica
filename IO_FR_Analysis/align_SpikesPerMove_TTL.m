@@ -145,7 +145,7 @@ for spk_mat_name = 1:length(SPKmatnames)
             SpkMoveTbl.('C1'){move_i} = clustered_spikeTimes;
             %((temp_spks - temp_row.TTL_spk_idx_Start)/AO_spike_fs) - 0.05)
 
-            trial_seconds = (clustered_spikeTimes - TTL_spk_idx_Start(move_i)/AO_spike_fs) - offset_seconds; % incorporate this in All_SpikesPerMove_Tbl
+            trial_seconds = ((clustered_spikeTimes - TTL_spk_idx_Start(move_i))/AO_spike_fs) - offset_seconds; % incorporate this in All_SpikesPerMove_Tbl
             SpkMoveTbl.('C1_ts'){move_i} = trial_seconds;
 
         else
@@ -158,14 +158,14 @@ for spk_mat_name = 1:length(SPKmatnames)
                 clust_time = spikeClInfo.SpikeTSindex(clust_index); % samples wrt AO clock
 
                 % determine spikes in distinct clusters within movement block
-                spikes_in_move1 = clust_time > TTL_spk_idx_Start(move_i) & clust_time < TTL_spk_idx_End; % logical indicating spikes w/in moveblock in AO_time
+                spikes_in_move1 = clust_time > TTL_spk_idx_Start(move_i) & clust_time < TTL_spk_idx_End(move_i); % logical indicating spikes w/in moveblock in AO_time
 
                 % get spike times in distinct clusters within movement block
                 clustered_spikeTimes = clust_time(spikes_in_move1);
 
                 SpkMoveTbl.(['C', num2str(cii)]){move_i} = clustered_spikeTimes;
 
-                trial_seconds = (clustered_spikeTimes - TTL_spk_idx_Start(move_i)/AO_spike_fs) - offset_seconds; % incorporate this in All_SpikesPerMove_Tbl
+                trial_seconds = ((clustered_spikeTimes - TTL_spk_idx_Start(move_i))/AO_spike_fs) - offset_seconds; % incorporate this in All_SpikesPerMove_Tbl
                 SpkMoveTbl.(['C', num2str(cii), '_ts']){move_i} = trial_seconds;
             end
         end

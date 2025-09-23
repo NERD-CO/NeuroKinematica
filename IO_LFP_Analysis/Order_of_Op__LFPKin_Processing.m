@@ -80,62 +80,23 @@ UniformEpochs = true;
 [epochDur_LFP_samples, meta_epochDur] = UniformEpochs_LFP(TTL_fs, AO_LFP_fs, epochDur_ms, UniformEpochs);
 
 
-%% Config - Ephys Case Input
+%% Config - Case-specific Inputs
 
-% isolate a specific CaseDate / studyID (StudyNum in Subject_AO csv)
-CaseDate = '03_23_2023';
+CaseDate = '08_23_2023'; % Adjust as needed
+% '03_23_2023'; % NER 2025
+% '04_05_2023'; % NER 2025
+% '05_18_2023_b_bilateral'; % NER 2025
+% '05_31_2023';
+% '06_08_2023_bilateral'; % NER 2025
+% '08_23_2023'; % NANS 2026
 
-% '03_09_2023'; % studyID = 1, ptID 1
-
-% '03_23_2023'; % studyID = 2, ptID 2    * % Use for INS 2026
-% '04_05_2023'; % studyID = 3, ptID 2    * % Use for INS 2026
-
-% '04_13_2023_bilateral'; ptID 3
-% studyID = 4(L), 5(R),
-
-% '05_11_2023'; % studyID = 6, ptID 4
-% '05_18_2023_a'; % studyID = 7, ptID 4
-
-% '05_18_2023_b_bilateral';
-% LSTN: studyID = 8, ptID = 5    % Use for INS 2026
-% RSTN: studyID = 9, ptID = 5
-
-% '05_31_2023';  % studyID = 10, ptID 6
-
-% '06_08_2023_bilateral'; ptID = 7
-% LSTN: studyID = 11,
-% RSTN: studyID = 12(R),
-
-% '07_13_2023_bilateral';
-% studyID = 15(L), 16(R), ptID = 9
-
-
-%% Config - Movement Case Input
-
-% Specify case ID
-Move_CaseID = 'IO_03_23_2023_LSTN';
-
-% 'IO_03_09_2023_RSTN'; % studyID = 1, ptID 1 (processed, incomplete case)
-
-% 'IO_03_23_2023_LSTN'; % studyID = 2, ptID 2 (processed, complete case) *
-% 'IO_04_05_2023_RSTN'; % studyID = 3, ptID 2 (processed, complete case) *
-
-% 'IO_04_13_2023_LSTN'; % studyID = 4, ptID 3 (processed, complete case)
-% 'IO_04_13_2023_RSTN'; % studyID = 5, ptID 3
-
-% 'IO_05_11_2023_LSTN'; % studyID = 6, ptID 4 (processed, incomplete case)
-% 'IO_05_18_2023_a_RSTN'; % studyID = 7, ptID 4
-
-% 'IO_05_18_2023_b_LSTN'; % studyID = 8, ptID 5 (processed, complete case) *
-% 'IO_05_18_2023_b_RSTN'; % studyID = 9, ptID 5
-
-% 'IO_05_31_2023_LSTN'; % studyID = 10, ptID 6
-
-% 'IO_06_08_2023_LSTN'; % studyID = 11, ptID = 7 (processed, complete case)
-% 'IO_06_08_2023_RSTN'; % studyID = 12, ptID = 7 (processed, incomplete case)
-
-% 'IO_07_13_2023_LSTN'; % studyID = 15, ptID = 9
-% 'IO_07_13_2023_RSTN'; % studyID = 16, ptID = 9
+MoveDir_CaseID = 'IO_08_23_2023_RSTN'; % Adjust as needed
+% 'IO_03_23_2023_LSTN'; % NER 2025
+% 'IO_04_05_2023_RSTN'; % NER 2025
+% 'IO_05_18_2023_b_LSTN'; % NER 2025
+% 'IO_05_31_2023_LSTN';
+% 'IO_06_08_2023_LSTN'; % NER 2025
+% 'IO_08_23_2023_RSTN'; % NANS 2026
 
 
 %% Config - Input and Output Data Dirs
@@ -145,7 +106,7 @@ MoveDataDir = [IO_DataDir, filesep, 'Processed DLC'];
 
 % Case-specific Input dirs
 ProcDataDir = [Case_DataDir, filesep, 'Processed Electrophysiology'];       % directory for processed ephys data and spike clusters
-Move_CaseDir = [MoveDataDir, filesep, Move_CaseID];                         % directory for processed DLC data and Movement Indices
+Move_CaseDir = [MoveDataDir, filesep, MoveDir_CaseID];                      % directory for processed DLC data and Movement Indices
 
 % Case-specific Output dir
 ephysTbl_Dir = [Case_DataDir, filesep, 'DLC_Ephys'];                        % directory where all ephys per move-rep tables are located

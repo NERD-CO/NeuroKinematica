@@ -57,7 +57,13 @@ cd(KinematicsDir)
 % MoveCaseFolders = dir(KinematicsDir);
 % MoveCaseFolders = MoveCaseFolders([MoveCaseFolders.isdir] & ~startsWith({MoveCaseFolders.name}, '.'));
 
-MoveCaseFolders = {'IO_03_23_2023_LSTN', 'IO_04_05_2023_RSTN', 'IO_05_18_2023_b_LSTN', 'IO_06_08_2023_LSTN'};
+MoveCaseFolders = {'IO_03_23_2023_LSTN', 'IO_04_05_2023_RSTN', 'IO_05_18_2023_b_LSTN', 'IO_05_31_2023_LSTN', 'IO_06_08_2023_LSTN', 'IO_08_23_2023_RSTN'};
+% 'IO_03_23_2023_LSTN'; % NER 2025
+% 'IO_04_05_2023_RSTN'; % NER 2025
+% 'IO_05_18_2023_b_LSTN'; % NER 2025
+% 'IO_05_31_2023_LSTN';
+% 'IO_06_08_2023_LSTN'; % NER 2025
+% 'IO_08_23_2023_RSTN'; % NANS 2026
 
 % Loop through each MoveDir_CaseID in KinematicsDir
 for movecase_i = 1:numel(MoveCaseFolders)
