@@ -1,4 +1,4 @@
-function [FR_perTrial_All, FR_Summary_All] = compute_FRperMove_perSTNdepth_v3(CaseDate, All_SpikesPerMove_Tbl, AO_spike_fs, Case_FRKin_Dir)
+function [FR_perTrialRep_All, FR_perMoveType_perDepth_Summary] = compute_FRperMove_perSTNdepth_v3(CaseDate, All_SpikesPerMove_Tbl, AO_spike_fs, Case_FRKin_Dir)
 
 % Compute mean FR per Movement context per STN depth, Export full Data Table
 
@@ -14,11 +14,12 @@ moveType_ids = unique(All_SpikesPerMove_Tbl.MoveType);
 
 %% Compute FR for each depth & move type
 
-window_FR  = [-0.05 0.45]; % 50 ms pre, 450 ms post
+% window_FR  = [-0.05 0.45]; % 50 ms pre, 450 ms post
 
 % Initialize storage containers
 FR_Results = struct();
-summary_Data_tbl = {};
+% summary_Data_tbl = {};
+summary_Data = {};
 full_FR_Data  = {};
 
 for depthName = {'dorsal','central','ventral'}
@@ -37,7 +38,6 @@ for depthName = {'dorsal','central','ventral'}
         end
 
         %% run MaxSpkDuration_Raster_PSTH
-
         % [Max_SpikeDuration_samples, spikesMatrix] = MaxSpkDuration_Raster_PSTH(CaseDate, move_subtbl, AO_spike_fs, Case_FRKin_Dir);
 
         % Calculate the max spike segment duration (# of samples in longest segment)
@@ -69,6 +69,8 @@ for depthName = {'dorsal','central','ventral'}
             end
 
         end
+
+
         %%
 
         % --- Compute FR per trial inside segment window (TTL start→end) ---
@@ -122,19 +124,14 @@ for depthName = {'dorsal','central','ventral'}
         FR_Results.(depthName{1}).(safeMoveName).Duration_all_trials_sec = Dur_all_trials_sec;
         FR_Results.(depthName{1}).(safeMoveName).SpikeCount_all_trials = SpikeCount_all_trials;
 
-        summary_Data_tbl{end+1,1} = table(...
-            string(depthName{1}), string(moveType_ids{movT_i}), n_FR, mu_FR, sd_FR, ...
-            'VariableNames', {'Depth','MoveType','N','Mean_FR_Hz','SD_FR_Hz'});
+        % summary_Data_tbl{end+1,1} = table(...
+        %     string(depthName{1}), string(moveType_ids{movT_i}), n_FR, mu_FR, sd_FR, ...
+        %     'VariableNames', {'Depth','MoveType','N','Mean_FR_Hz','SD_FR_Hz'});
 
         % Append to summaryData (for CSV 1)
         summary_Data(end+1,:) = {CaseDate, depthName{1}, moveType_ids{movT_i}, ...
                                 n_FR, mu_FR, sd_FR};
 
-        %
-        % % Append to fullFRData (for CSV 2)
-        % full_FR_Data(end+1,:) = {CaseDate, depthName{1}, moveType_ids{movT_i}, ...
-        %     strjoin(string(edges_FR),','), ...
-        %     strjoin(string(mean_FR),',')};
 
     end
 end
@@ -142,76 +139,75 @@ end
 % Append CaseDate to struct
 FR_Results.CaseDate = CaseDate;
 
-%% Save Results
-
-cd(ephysTbl_Dir)
-save(['FR_Results_' CaseDate '.mat'], 'FR_Results');
-
-%% Convert to summary tables for export
-
-FR_Summary_Table = cell2table(summary_Data, ...
-    'VariableNames', {'CaseDate','STN_Depth','MoveType','N','MeanFR_Hz','StdFR_Hz'});
-
-%% Concatenate and export
+%% Concatenate for export
 
 if ~isempty(full_FR_Data)
-    FR_perTrial_All = vertcat(full_FR_Data{:});
+    FR_perTrialRep_All = vertcat(full_FR_Data{:});
 else
-    FR_perTrial_All = table();
+    FR_perTrialRep_All = table();
 end
 
-if ~isempty(summary_Data_tbl)
-    FR_Summary_All = vertcat(summary_Data_tbl{:});
-else
-    FR_Summary_All = table();
-end
+
+%% Convert summaryData cell array to table for export
+
+FR_perMoveType_perDepth_Summary = cell2table(summary_Data, ...
+    'VariableNames', {'CaseDate','STN_Depth','MoveType','N','MeanFR_Hz','StdFR_Hz'});
+
+FR_perMoveTperDepth_summary = ['FR_perMoveType_perDepth_Summary_' CaseDate '.csv'];
+
+%% Save outputs
+
+cd(Case_FRKin_Dir)
+save(['FR_Results_' CaseDate '.mat'], 'FR_Results');
 
 % Write CSVs
-writetable(FR_perTrial_All, fullfile(Case_FRKin_Dir, sprintf('%s_FR_perTrial_All.csv', CaseDate)));
-writetable(FR_Summary_All,  fullfile(Case_FRKin_Dir, sprintf('%s_FR_Summary_byDepth_MoveType.csv', CaseDate)));
+writetable(FR_perTrialRep_All, fullfile(Case_FRKin_Dir, sprintf('%s_FR_perTrialRep_All.csv', CaseDate)));
+writetable(FR_perMoveType_perDepth_Summary, FR_perMoveTperDepth_summary);
 
 fprintf('\nSaved per-trial FR and summary CSVs to: %s\n', Case_FRKin_Dir);
 
 
+
 %% Raster & PSTH Plotting code
 
-% % Calculate the peri-stimulus time histogram (PSTH) and prepare for plotting
-% binSize_ms = 10; % 10 ms
-% bin_sec = binSize_ms ./ 1000; % 0.01
-% bin_samp = AO_spike_fs * bin_sec; % 440
-%
-% [nTrials, Time_samples] = size(spikesMatrix); % T (time in samp)
-% M = floor(Time_samples/bin_samp); % samples
-%
-% spk_counts_per_sample = sum(spikesMatrix(:,1:M*bin_samp), 1); % total across trials
-% spk_counts = reshape(spk_counts_per_sample, bin_samp, M);
-% counts_bin = sum(spk_counts,1);  % spikes per bin across all trials
-%
-% % psth_bin_Hz = (counts_bin / nTrials) * (1000/bin_samp);
-% psth_bin_Hz = (counts_bin / nTrials) / bin_sec;
-%
-% time_bin_samp = (0:M-1) * bin_samp + (bin_samp/2); % bin centers (samples)
-% time_bin_ms = (time_bin_samp / AO_spike_fs) * 1000;   % bin centers (ms)
-%
+% Calculate the peri-stimulus time histogram (PSTH) and prepare for plotting
+binSize_ms = 10; % 10 ms
+bin_sec = binSize_ms ./ 1000; % 0.01
+bin_samp = AO_spike_fs * bin_sec; % 440
+
+[nTrials, Time_samples] = size(spikesMatrix); % T (time in samp)
+M = floor(Time_samples/bin_samp); % samples
+
+spk_counts_per_sample = sum(spikesMatrix(:,1:M*bin_samp), 1); % total across trials
+spk_counts = reshape(spk_counts_per_sample, bin_samp, M);
+counts_bin = sum(spk_counts,1);  % spikes per bin across all trials
+
+% psth_bin_Hz = (counts_bin / nTrials) * (1000/bin_samp);
+psth_bin_Hz = (counts_bin / nTrials) / bin_sec;
+
+time_bin_samp = (0:M-1) * bin_samp + (bin_samp/2); % bin centers (samples)
+time_bin_ms = (time_bin_samp / AO_spike_fs) * 1000;   % bin centers (ms)
+
+
 % fig = figure('Position',[100 100 800 600]);
-%
-% % Plot the scatter of spikes and the PSTH in the same figure
-% [row, col] = find(spikesMatrix);      % row = trial index, col = spike sample index
-% col_ms = (col / AO_spike_fs) * 1000;  % convert to ms (col = spike time)
-% figure;
-% subplot(2,1,1);
-% scatter(col_ms, row, 8, 'b', 'filled');
-% xlabel('Time (samples)');
-% ylabel('Trial Index');
-% title('Spike Raster Plot');
-% xlim([0, max(col_ms)]);
-% hold on;
-%
-% % Peri-Stimulus Time Histogram
-% subplot(2,1,2);
-% plot(time_bin_ms,psth_bin_Hz,'k','LineWidth',3)
-% xlabel('Time (ms)');
-% ylabel('PSTH (Hz)');
-% title('Peri-Stimulus Time Histogram');
-% xlim([0, max(time_bin_ms)]);
-% grid on;
+
+% Plot the scatter of spikes and the PSTH in the same figure
+[row, col] = find(spikesMatrix);      % row = trial index, col = spike sample index
+col_ms = (col / AO_spike_fs) * 1000;  % convert to ms (col = spike time)
+figure;
+subplot(2,1,1);
+scatter(col_ms, row, 8, 'b', 'filled');
+xlabel('Time (samples)');
+ylabel('Trial Index');
+title('Spike Raster Plot');
+xlim([0, max(col_ms)]);
+hold on;
+
+% Peri-Stimulus Time Histogram
+subplot(2,1,2);
+plot(time_bin_ms,psth_bin_Hz,'k','LineWidth',3)
+xlabel('Time (ms)');
+ylabel('PSTH (Hz)');
+title('Peri-Stimulus Time Histogram');
+xlim([0, max(time_bin_ms)]);
+grid on;

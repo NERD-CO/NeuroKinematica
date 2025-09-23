@@ -56,9 +56,9 @@ col_ms = (col / AO_spike_fs) * 1000;  % convert to ms (col = spike time)
 figure; 
 subplot(2,1,1);
 scatter(col_ms, row, 8, 'b', 'filled');
-xlabel('Time (samples)');
+xlabel('Time (ms)');
 ylabel('Trial Index');
-title('Spike Raster Plot (All Trials)');
+title('Spike Raster Plot');
 xlim([0, max(col_ms)]);
 hold on;
 
@@ -67,7 +67,7 @@ subplot(2,1,2);
 plot(time_bin_ms,psth_bin_Hz,'k','LineWidth',3)
 xlabel('Time (ms)');
 ylabel('PSTH (Hz)');
-title('Peri-Stimulus Time Histogram (All Trials)');
+title('Peri-Stimulus Time Histogram');
 xlim([0, max(time_bin_ms)]);
 grid on;
 

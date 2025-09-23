@@ -25,7 +25,7 @@ useFullDuration = false; % true = Option A, false = Option B
 window_FR = [-0.05 0.45];  % Fixed window for Option B
 
 % Raster
-binSize_FR = 0.01;
+% binSize_FR = 0.01;
 % edges_FR = window_FR(1):binSize_FR:window_FR(2);
 
 depth_ids = {'t','c','b'};
@@ -106,11 +106,96 @@ for m = 1:numel(move_types)
 
         % Initialize container to store spkTimes list
         spike_list = {};
+        Dur_sec = nan(height(move_tbl),1);
+        SpikeCount = nan(height(move_tbl),1);
+
+        % Calculate the max spike segment duration (# of samples in longest segment)
+        max_SpkDuration_All = zeros(height(move_tbl), 1);
 
         % Loop through the trials in move_tbl (each trial is identified by move_trial_ID)
         for move_row = 1:height(move_tbl)
             % Get the MoveTrialID for the current trial (e.g., 't1', 'c1', etc.)
             moveTrialID = move_tbl.move_trial_ID{move_row};
+
+            tempSpk_vec = move_tbl.C1{move_row};
+            if isempty(tempSpk_vec) || numel(tempSpk_vec) < 1
+                max_SpkDuration_All(move_row) = NaN;
+                continue;
+            else
+                max_SpkDuration_All(move_row) = max(tempSpk_vec - move_tbl.TTL_spk_idx_Start(move_row));
+            end
+
+            Max_SpikeDuration_samples = max(max_SpkDuration_All); % samples in longest segment
+            Max_SpkDur_seconds = Max_SpikeDuration_samples/AO_spike_fs; % seconds
+            Max_SpkDus_ms = Max_SpkDur_seconds * 1000; % milliseconds
+
+            spikesMatrix = zeros(height(move_tbl), Max_SpikeDuration_samples, 'logical');
+            for row_i = 1:height(move_tbl)
+                tempSpk_vec = move_tbl.C1{row_i};
+                if isempty(tempSpk_vec) || numel(tempSpk_vec) < 3
+                    continue;
+                else
+                    spike_indices = tempSpk_vec - move_tbl.TTL_spk_idx_Start(row_i);
+                    spike_indices = spike_indices(spike_indices >= 1 & spike_indices <= Max_SpikeDuration_samples);
+                    spikesMatrix(row_i, spike_indices) = true;
+                end
+            end
+
+            % %% Raster & PSTH Plotting code
+            % 
+            % % Calculate the peri-stimulus time histogram (PSTH) and prepare for plotting
+            % binSize_ms = 10; % 10 ms
+            % bin_sec = binSize_ms ./ 1000; % 0.01
+            % bin_samp = AO_spike_fs * bin_sec; % 440
+            % 
+            % [nTrials, Time_samples] = size(spikesMatrix); % T (time in samp)
+            % M = floor(Time_samples/bin_samp); % samples
+            % 
+            % spk_counts_per_sample = sum(spikesMatrix(:,1:M*bin_samp), 1); % total across trials
+            % spk_counts = reshape(spk_counts_per_sample, bin_samp, M);
+            % counts_bin = sum(spk_counts,1);  % spikes per bin across all trials
+            % 
+            % % psth_bin_Hz = (counts_bin / nTrials) * (1000/bin_samp);
+            % psth_bin_Hz = (counts_bin / nTrials) / bin_sec;
+            % 
+            % time_bin_samp = (0:M-1) * bin_samp + (bin_samp/2); % bin centers (samples)
+            % time_bin_ms = (time_bin_samp / AO_spike_fs) * 1000;   % bin centers (ms)
+            % 
+            % 
+            % % fig = figure('Position',[100 100 800 600]);
+            % 
+            % % Plot the scatter of spikes and the PSTH in the same figure
+            % [row, col] = find(spikesMatrix);      % row = trial index, col = spike sample index
+            % col_ms = (col / AO_spike_fs) * 1000;  % convert to ms (col = spike time)
+            % figure;
+            % subplot(2,1,1);
+            % scatter(col_ms, row, 8, 'b', 'filled');
+            % xlabel('Time (samples)');
+            % ylabel('Trial Index');
+            % title('Spike Raster Plot');
+            % % xlim([0, max(col_ms)]);
+            % hold on;
+            % 
+            % % Peri-Stimulus Time Histogram
+            % subplot(2,1,2);
+            % plot(time_bin_ms,psth_bin_Hz,'k','LineWidth',3)
+            % xlabel('Time (ms)');
+            % ylabel('PSTH (Hz)');
+            % title('Peri-Stimulus Time Histogram');
+            % % xlim([0, max(time_bin_ms)]);
+            % grid on;
+            % %%
+
+            % spikes inside [start, end]
+            t_start = move_tbl.TTL_spk_idx_Start(move_row);
+            t_end   = move_tbl.TTL_spk_idx_End(move_row);
+            in_window = tempSpk_vec(tempSpk_vec >= t_start & tempSpk_vec <= t_end);
+            dur_sec  = (t_end - t_start) / AO_spike_fs; % seconds
+
+            Dur_sec(move_row) = dur_sec;
+            SpikeCount(move_row) = numel(in_window);
+            FR_new(move_row) = numel(in_window) / dur_sec; % Hz
+
 
             % Get spike times for this trial (convert spike times as needed)
             spkTimes = (move_tbl.C1{move_row} - move_tbl.TTL_spk_idx_Start(move_row)) / AO_spike_fs - 0.05;
@@ -121,11 +206,12 @@ for m = 1:numel(move_types)
 
             % Store the computed FR for this trial under its MoveTrialID
             if isKey(FR_per_MoveTrialID, moveTrialID)
-                FR_per_MoveTrialID(moveTrialID) = [FR_per_MoveTrialID(moveTrialID), FR];  % Append FR for this MoveTrialID
+                FR_per_MoveTrialID(moveTrialID) = [FR_per_MoveTrialID(moveTrialID), FR_new];  % Append FR for this MoveTrialID
             else
-                FR_per_MoveTrialID(moveTrialID) = FR;  % Initialize with FR for this MoveTrialID
+                FR_per_MoveTrialID(moveTrialID) = FR_new;  % Initialize with FR for this MoveTrialID
             end
 
+            %%% fix this
             % For REST vs. Move Stats
             if strcmp(move_type,'REST')
                 restSpikes{depth_i} = spike_list;
@@ -239,30 +325,30 @@ function isNormal = checkNormality(data)
 % Shapiro-Wilk is not available natively, so we'll use kstest
 % If sample size < 4, we’ll assume normal for stability
 
-data = data(~isnan(data));  % Remove NaNs 
-    if numel(data) < 4
-        warning('[checkNormality] Not enough valid data points (n = %d). Assuming non-normal.', numel(data));
-        isNormal = false;
-        return;
-    end
+data = data(~isnan(data));  % Remove NaNs
+if numel(data) < 4
+    warning('[checkNormality] Not enough valid data points (n = %d). Assuming non-normal.', numel(data));
+    isNormal = false;
+    return;
+end
 
-    % Prevent division by 0 during z-scoring
-    sigma = std(data);
-    if sigma == 0 || isnan(sigma)
-        warning('[checkNormality] Standard deviation is zero or NaN. Cannot z-score. Assuming non-normal.');
-        isNormal = false;
-        return;
-    end
+% Prevent division by 0 during z-scoring
+sigma = std(data);
+if sigma == 0 || isnan(sigma)
+    warning('[checkNormality] Standard deviation is zero or NaN. Cannot z-score. Assuming non-normal.');
+    isNormal = false;
+    return;
+end
 
-    data = (data - mean(data)) / sigma;  % z-score
-    if isempty(data) || all(isnan(data))
-        warning('[checkNormality] Data became empty or NaN after z-scoring. Assuming non-normal.');
-        isNormal = false;
-        return;
-    end
+data = (data - mean(data)) / sigma;  % z-score
+if isempty(data) || all(isnan(data))
+    warning('[checkNormality] Data became empty or NaN after z-scoring. Assuming non-normal.');
+    isNormal = false;
+    return;
+end
 
-    [h, ~] = kstest(data);  % h=0 → normal
-    isNormal = (h == 0);
+[h, ~] = kstest(data);  % h=0 → normal
+isNormal = (h == 0);
 end
 
 
@@ -323,6 +409,8 @@ saveas(gcf,strrep(savePath,'.png','_rescaled.png')); savefig(strrep(savePath,'.p
 end
 
 
+%% Fix this:
+
 %% === Plotting: REST vs Movement (Original) ===
 
 function [pVals,cohenD_vals]=plotRestVsMoveRaster(restSpikes,moveSpikes,move_type,depth_labels,colors,restColor,savePath,fontTitle,fontLabel,useActualDuration,window_FR)
@@ -375,7 +463,7 @@ for d=1:3
         cohenD_vals(d) = computeCohensD(FR_move, FR_rest);  % still valid to show
         stars = getSigStars(p);
 
-        subtitle(ax2, sprintf('p=%.3f (%s, %s)\nd=%.2f', p, stars, testType, cohenD_vals(d)));
+        % subtitle(ax2, sprintf('p=%.3f (%s, %s)\nd=%.2f', p, stars, testType, cohenD_vals(d)));
     end
     xlim([-0.05 0.45]); ylim([0 numel(trialsM)+1]);
 end
@@ -439,7 +527,7 @@ for d=1:3
         cohenD_vals(d) = computeCohensD(FR_move, FR_rest);  % still valid to show
         stars = getSigStars(p);
 
-        subtitle(ax2, sprintf('p=%.3f (%s, %s)\nd=%.2f', p, stars, testType, cohenD_vals(d)));
+        % subtitle(ax2, sprintf('p=%.3f (%s, %s)\nd=%.2f', p, stars, testType, cohenD_vals(d)));
     end
     ylim([0 max(1,ceil(numel(trialsM)*scaleFactor))]); xlim([-0.05 0.45]);
 

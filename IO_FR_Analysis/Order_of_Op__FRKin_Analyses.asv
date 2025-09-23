@@ -131,16 +131,16 @@ end
 
 [Max_SpikeDuration_samples, spikesMatrix] = MaxSpkDuration_Raster_PSTH(CaseDate, All_SpikesPerMove_Tbl, AO_spike_fs, Case_FRKin_Dir);
 
+
 %% Run compute_FRperMove_perSTNdepth_v3
 
-[FR_perTrial_All, FR_Summary_All] = compute_FRperMove_perSTNdepth_v3(CaseDate, All_SpikesPerMove_Tbl, AO_spike_fs, Case_FRKin_Dir);
+% Outputs FR per moveRep and a summary per moveType
+[FR_perTrialRep_All, FR_perMoveType_perDepth_Summary] = compute_FRperMove_perSTNdepth_v3(CaseDate, All_SpikesPerMove_Tbl, AO_spike_fs, Case_FRKin_Dir);
 
-%% Run compute_FRperMove_perSTNdepth
-
-% compute_FRperMove_perSTNdepth(CaseDate, Case_FRKin_Dir, All_SpikesPerMove_Tbl)
 
 %% Run run_IO_FR_Analysis_and_Plotting
 
+% Outputs FR summary per move trial per depth
 [FR_SummaryTbl] = run_IO_FR_Analysis_and_Plotting(CaseDate, CaseDate_hem, Case_FRKin_Dir, useOffset, FR_Kin_Dir);
 
 %%% update this %%%

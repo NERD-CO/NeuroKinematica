@@ -93,13 +93,7 @@ end
 FR_Results.CaseDate = CaseDate;
 
 
-%% Save Results (Optional)
-
-cd(ephysTbl_Dir)
-
-save(['FR_Results_' CaseDate '.mat'], 'FR_Results');
-
-%% Convert to summary tables for export
+%% Convert to summary cell arrays to tables for export
 
 FR_Summary_Table = cell2table(summary_Data, ...
     'VariableNames', {'CaseDate','STN_Depth','MoveType','MeanFR_Hz','StdFR_Hz'});
@@ -109,12 +103,14 @@ FR_Full_Table = cell2table(full_FR_Data, ...
 
 %% Save outputs
 
+cd(ephysTbl_Dir)
+save(['FR_Results_' CaseDate '.mat'], 'FR_Results');
+
 summaryFile = ['FR_Summary_Table_' CaseDate '.csv'];
 fullFile    = ['FR_FullPSTH_Table_' CaseDate '.csv'];
 
 writetable(FR_Summary_Table, summaryFile);
 writetable(FR_Full_Table, fullFile);
-save(['FR_Results_' CaseDate '.mat'], 'FR_Results');
 
 fprintf('\n[INFO] Exported:\n - %s\n - %s\n - FR_Results_%s.mat\n', summaryFile, fullFile, CaseDate);
 

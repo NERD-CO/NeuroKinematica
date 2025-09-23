@@ -119,7 +119,7 @@ load(spk_case, 'All_SpikesPerMove_Tbl');
 
 % for 3_23_2023 case - remove duplicates / only plot for primary electrode
 if CaseDate == '03_23_2023'
-    All_SpikesPerMove_Tbl = All_SpikesPerMove_Tbl(158:end,1:13); % Comment or adjust as needed
+    All_SpikesPerMove_Tbl = All_SpikesPerMove_Tbl(168:end,1:13); % Comment or adjust as needed
 else
     All_SpikesPerMove_Tbl = All_SpikesPerMove_Tbl;
 end
@@ -129,18 +129,19 @@ end
 
 %% Run MaxSpkDuration_Raster_PSTH
 
+% outputs max spige segment duration and a raster + PSTH for all trials
 [Max_SpikeDuration_samples, spikesMatrix] = MaxSpkDuration_Raster_PSTH(CaseDate, All_SpikesPerMove_Tbl, AO_spike_fs, Case_FRKin_Dir);
+
 
 %% Run compute_FRperMove_perSTNdepth_v3
 
-[FR_perTrial_All, FR_Summary_All] = compute_FRperMove_perSTNdepth_v3(CaseDate, All_SpikesPerMove_Tbl, AO_spike_fs, Case_FRKin_Dir);
+% Outputs FR per moveRep and a summary per moveType
+[FR_perTrialRep_All, FR_perMoveType_perDepth_Summary] = compute_FRperMove_perSTNdepth_v3(CaseDate, All_SpikesPerMove_Tbl, AO_spike_fs, Case_FRKin_Dir);
 
-%% Run compute_FRperMove_perSTNdepth
-
-% compute_FRperMove_perSTNdepth(CaseDate, Case_FRKin_Dir, All_SpikesPerMove_Tbl)
 
 %% Run run_IO_FR_Analysis_and_Plotting
 
+% Outputs FR summary per move trial per depth
 [FR_SummaryTbl] = run_IO_FR_Analysis_and_Plotting(CaseDate, CaseDate_hem, Case_FRKin_Dir, useOffset, FR_Kin_Dir);
 
 %%% update this %%%
@@ -153,6 +154,7 @@ end
 
 fprintf('[INFO] Loading movement data from: %s\n', MoveDataDir);
 
+% Outputs kinematics summary per move trial per depth
 [kinTbl, kinSummaryTbl] = run_MovementFeatureAnalysis_IO_v2(IO_DataDir, MoveDataDir, MoveDir_CaseID);
 
 
