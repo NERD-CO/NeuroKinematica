@@ -61,24 +61,31 @@ useOffset = true;
 
 %% Inputs:
 
-CaseDate = '03_23_2023'; % Adjust as needed
+CaseDate = '08_23_2023'; % Adjust as needed
+
 % '03_23_2023'; % NER 2025
 % '04_05_2023'; % NER 2025
-% '05_18_2023_b_bilateral'; % NER 2025
-% '05_31_2023';
-% '06_08_2023_bilateral'; % NER 2025
+% '05_18_2023_b_bilateral'; % NER 2025      %% errors using new pipeline
+% '05_31_2023'; % INS 2026
+% '06_08_2023_bilateral'; % NER 2025        %% errors using new pipeline
+% '07_06_2023_bilateral'; % INS 2026
+% '07_13_2023_bilateral'; % INS 2026
 % '08_23_2023'; % NANS 2026
 
-MoveDir_CaseID = 'IO_03_23_2023_LSTN'; % Adjust as needed
+MoveDir_CaseID = 'IO_08_23_2023_RSTN'; % Adjust as needed
+
 % 'IO_03_23_2023_LSTN'; % NER 2025
 % 'IO_04_05_2023_RSTN'; % NER 2025
 % 'IO_05_18_2023_b_LSTN'; % NER 2025
 % 'IO_05_31_2023_LSTN';
 % 'IO_06_08_2023_LSTN'; % NER 2025
+% 'IO_07_06_2023_LSTN';
+% 'IO_07_13_2023_LSTN';
 % 'IO_08_23_2023_RSTN'; % NANS 2026
 
 
-% Data folder paths
+%% Data folder paths
+
 Case_DataDir = fullfile(IO_DataDir, CaseDate);
 % ephysTbl_Dir = fullfile(Case_DataDir,'DLC_Ephys');
 MoveDataDir = fullfile(IO_DataDir, 'Processed DLC');
@@ -118,12 +125,12 @@ load(spk_case, 'All_SpikesPerMove_Tbl');
 %% OPTIONAL: Case-specific cleaning (remove duplicates if needed)
 
 % for 3_23_2023 case - remove duplicates / only plot for primary electrode
-if CaseDate == '03_23_2023'
-    All_SpikesPerMove_Tbl = All_SpikesPerMove_Tbl(168:end,1:13); % Comment or adjust as needed
-else
-    All_SpikesPerMove_Tbl = All_SpikesPerMove_Tbl;
+if strcmp(char(CaseDate), '03_23_2023')
+    % All_SpikesPerMove_Tbl = All_SpikesPerMove_Tbl(158:end,1:13); % Comment or adjust as needed
+    All_SpikesPerMove_Tbl = All_SpikesPerMove_Tbl(168:end,1:13);
+elseif strcmp(char(CaseDate), '04_25_2023')
+    All_SpikesPerMove_Tbl = [All_SpikesPerMove_Tbl(1:68,1:11); All_SpikesPerMove_Tbl(133:197,1:11); All_SpikesPerMove_Tbl(266:329,1:11)];
 end
-
 
 %% ===== Functions =====
 
@@ -132,6 +139,12 @@ end
 % outputs max spige segment duration and a raster + PSTH for all trials
 [Max_SpikeDuration_samples, spikesMatrix] = MaxSpkDuration_Raster_PSTH(CaseDate, All_SpikesPerMove_Tbl, AO_spike_fs, Case_FRKin_Dir);
 
+Max_SpkDur_seconds = Max_SpikeDuration_samples/AO_spike_fs; % seconds
+Max_SpkDus_ms = Max_SpkDur_seconds * 1000; % milliseconds
+
+%% plot_Raster_PSTH per move rep
+
+plot_Raster_PSTH(CaseDate, All_SpikesPerMove_Tbl, AO_spike_fs, Case_FRKin_Dir)
 
 %% Run compute_FRperMove_perSTNdepth_v3
 
@@ -142,7 +155,7 @@ end
 %% Run run_IO_FR_Analysis_and_Plotting
 
 % Outputs FR summary per move trial per depth
-[FR_SummaryTbl] = run_IO_FR_Analysis_and_Plotting(CaseDate, CaseDate_hem, Case_FRKin_Dir, useOffset, FR_Kin_Dir);
+[FR_SummaryTbl] = run_IO_FR_Analysis_and_Plotting(CaseDate, CaseDate_hem, All_SpikesPerMove_Tbl, Case_FRKin_Dir, useOffset, FR_Kin_Dir);
 
 %%% update this %%%
 
@@ -166,5 +179,6 @@ merge_FRKin_SummaryTbls(IO_DataDir, Case_FRKin_Dir, useOffset, MoveDir_CaseID, F
 %% Run aggregate_FRKinematic_Correlations
 
 aggregate_FRKinematic_Correlations(KinematicsDir, Ephys_Kin_Dir, Case_FRKin_Dir)
+
 
 %%

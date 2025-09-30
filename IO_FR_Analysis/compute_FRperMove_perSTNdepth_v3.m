@@ -166,48 +166,4 @@ writetable(FR_perMoveType_perDepth_Summary, FR_perMoveTperDepth_summary);
 
 fprintf('\nSaved per-trial FR and summary CSVs to: %s\n', Case_FRKin_Dir);
 
-
-
-%% Raster & PSTH Plotting code
-
-% Calculate the peri-stimulus time histogram (PSTH) and prepare for plotting
-binSize_ms = 10; % 10 ms
-bin_sec = binSize_ms ./ 1000; % 0.01
-bin_samp = AO_spike_fs * bin_sec; % 440
-
-[nTrials, Time_samples] = size(spikesMatrix); % T (time in samp)
-M = floor(Time_samples/bin_samp); % samples
-
-spk_counts_per_sample = sum(spikesMatrix(:,1:M*bin_samp), 1); % total across trials
-spk_counts = reshape(spk_counts_per_sample, bin_samp, M);
-counts_bin = sum(spk_counts,1);  % spikes per bin across all trials
-
-% psth_bin_Hz = (counts_bin / nTrials) * (1000/bin_samp);
-psth_bin_Hz = (counts_bin / nTrials) / bin_sec;
-
-time_bin_samp = (0:M-1) * bin_samp + (bin_samp/2); % bin centers (samples)
-time_bin_ms = (time_bin_samp / AO_spike_fs) * 1000;   % bin centers (ms)
-
-
-% fig = figure('Position',[100 100 800 600]);
-
-% Plot the scatter of spikes and the PSTH in the same figure
-[row, col] = find(spikesMatrix);      % row = trial index, col = spike sample index
-col_ms = (col / AO_spike_fs) * 1000;  % convert to ms (col = spike time)
-figure;
-subplot(2,1,1);
-scatter(col_ms, row, 8, 'b', 'filled');
-xlabel('Time (samples)');
-ylabel('Trial Index');
-title('Spike Raster Plot');
-xlim([0, max(col_ms)]);
-hold on;
-
-% Peri-Stimulus Time Histogram
-subplot(2,1,2);
-plot(time_bin_ms,psth_bin_Hz,'k','LineWidth',3)
-xlabel('Time (ms)');
-ylabel('PSTH (Hz)');
-title('Peri-Stimulus Time Histogram');
-xlim([0, max(time_bin_ms)]);
-grid on;
+%%

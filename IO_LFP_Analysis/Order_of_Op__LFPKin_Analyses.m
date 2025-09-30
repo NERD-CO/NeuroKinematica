@@ -70,7 +70,8 @@ UniformEpochs = true;
 %% Config - Case-specific Inputs
 
 % isolate a specific CaseDate / studyID (StudyNum in Subject_AO csv)
-CaseDate = '03_23_2023';  % Adjust as needed
+CaseDate = '07_06_2023_bilateral';  % Adjust as needed
+
 % '03_23_2023'; % NER 2025
 % '04_05_2023'; % NER 2025
 % '05_18_2023_b_bilateral'; % NER 2025
@@ -82,7 +83,8 @@ CaseDate = '03_23_2023';  % Adjust as needed
 %% Config - Movement Case Input
 
 % Specify case ID
-MoveDir_CaseID = 'IO_03_23_2023_LSTN';  % Adjust as needed
+MoveDir_CaseID = 'IO_07_06_2023_LSTN';  % Adjust as needed
+
 % 'IO_03_23_2023_LSTN'; % NER 2025
 % 'IO_04_05_2023_RSTN'; % NER 2025
 % 'IO_05_18_2023_b_LSTN'; % NER 2025
@@ -191,8 +193,8 @@ proc_LFP_vec = All_LFPsPerMove_Tbl_filt.(char(lfp_colProc_500)){test_rowIDX};
 
 % Ensure frequency and time params are loaded
 fs_downsamp = 500;              % downsampled rate = 500 Hz
-t_step_proc = 1/fs_downsamp;    % 0.0020 sec
-ts_LFP_proc = 0:t_step_proc:(length(proc_LFP_vec)-1)/fs_downsamp; % time vec
+t_step = 1/fs_downsamp;    % 0.0020 sec
+ts_LFP_proc = 0:t_step:(length(proc_LFP_vec)-1)/fs_downsamp; % time vec
 
 % Plot test trial
 figure;
@@ -240,15 +242,26 @@ for moveT_i = 1:height(moveType_ids_tbl)
     Rest = moveType_ids_tbl.moveType_ids{4};
 end
 
-%move_type = moveType_ids_tbl.moveType_ids{3}; % 'HAND PS'
 
 %% Test Plot per STN depth & trial number
 
 % Input - define STN depth & move_trial # of trial to test:
 STN_depth = 'dorsal';    % adjust
 move_type = HandPS;      % adjust 
-move_trial_num = '2';    % adjust
+move_trial_num = '3';    % adjust
 rep_idx = 5;
+
+% dorsal, HandOC, t2 (rep 5) or t3 (rep 4)
+% dorsal, HandPS, t3 (rep 5)
+% dorsal, ArmEF, t3 (rep 6)
+
+% central, HandOC, c3 (rep 4 or 5)
+% central, HandPS, c3 (rep 6)
+% central, ArmEF, c3 (rep 5 or 2)
+
+% ventral, HandOC, b2 (rep 2)
+% ventral, HandPS, b2 (rep 2)
+% ventral, ArmEF, b2 (rep 5)
 
 switch STN_depth
     case 'dorsal'
@@ -283,15 +296,17 @@ switch STN_depth
         b_moveType_r1 = find(contains(ventral_tbl.MoveType, moveID), 1, 'first'); 
         b_moveType_rn = find(contains(ventral_tbl.MoveType, moveID), 1, 'last');
         LFP_b_moveType = ventral_tbl.(char(lfp_colProc_500))(b_moveType_r1:b_moveType_rn); % Extract LFP segments for trial b2
-        LFP_test_row = LFP_b{rep_idx};
+        LFP_test_row = LFP_b_moveType{rep_idx};
 end
 
 % Display test trial ID prefix;
 disp(trialID);
+disp(moveID);
+ts_LFP_test = 0:t_step:(length(LFP_test_row)-1)/fs_downsamp; % time vec
 
 % Plot test trial
 figure;
-plot(ts_LFP_proc, LFP_test_row)
+plot(ts_LFP_test, LFP_test_row)
 xlabel('Time (s)');
 ylabel('LFP amplitude (µV)');
 title('Processed LFP trial segment', ...
@@ -311,7 +326,8 @@ Pxx_db = pow2db(Pxx);
 figure;
 %plot(freq, 10*log10(power));
 plot(Fxx, Pxx_db);
-xlim([0 50])
+xlim([0 40])
+ylim([-10 30])
 xlabel('Frequency (Hz)');
 ylabel('Power (dB)');
 title('Power Spectral Density of Processed LFP', ...
@@ -320,19 +336,22 @@ title('Power Spectral Density of Processed LFP', ...
 
 %% Run plot_LFP_byDepthTrial function for a test trial rep at each depth
 
-% adjust function to create subplot:
-
-dorsalSTN_rowIDX = plot_LFP_byDepthTrial(All_LFPsPerMove_Tbl_filt, 'dorsal', ...
-                   move_trial_num, rep_idx, fs_downsamp);
-centralSTN_rowIDX = plot_LFP_byDepthTrial(All_LFPsPerMove_Tbl_filt, 'central', ... 
-                    move_trial_num, rep_idx, fs_downsamp);
-ventralSTN_rowIDX = plot_LFP_byDepthTrial(All_LFPsPerMove_Tbl_filt, 'ventral', ... 
-                    move_trial_num, rep_idx, fs_downsamp);
+% % adjust function to create subplot:
+% 
+% dorsalSTN_rowIDX = plot_LFP_byDepthTrial(All_LFPsPerMove_Tbl_filt, 'dorsal', ...
+%                    '3', rep_idx, fs_downsamp);
+% centralSTN_rowIDX = plot_LFP_byDepthTrial(All_LFPsPerMove_Tbl_filt, 'central', ... 
+%                     '3', rep_idx, fs_downsamp);
+% ventralSTN_rowIDX = plot_LFP_byDepthTrial(All_LFPsPerMove_Tbl_filt, 'ventral', ... 
+%                     '2', rep_idx, fs_downsamp);
 
 
 %% Beta Bandpass Filtering + log normalizing
 
-lfp_data_test = proc_LFP_vec; 
+% Input - define single trial (row) to vizualize
+% lfp_data_test = proc_LFP_vec; 
+lfp_data_test = LFP_test_row;
+disp(trialID);
 
 % extract beta band using a 4th order IIR bandpass filter between 13-30 Hz 
 % - designfilt function
@@ -356,21 +375,22 @@ figure;
 %plot(freq, 10*log10(power));
 plot(beta_Fxx, beta_Pxx);
 xlim([0 40])  % Limit x-axis to 50 Hz for better visualization
-ylim([0 60])
+ylim([0 50])
 xlabel('Frequency (Hz)');
 ylabel('Power (dB)');
 title('PSD of LFP beta band (13-30 Hz)');
+
 
 %% Run plot_LFPbeta_byDepthTrial function for a test trial rep at each depth
 
 % adjust function to create subplot:
 
-dorsalSTN_rowIDX_beta = plot_LFPbeta_byDepthTrial(All_LFPsPerMove_Tbl_filt, 'dorsal', ...
-                   move_trial_num, rep_idx, fs_downsamp);
-centralSTN_rowIDX_beta = plot_LFPbeta_byDepthTrial(All_LFPsPerMove_Tbl_filt, 'central', ... 
-                    move_trial_num, rep_idx, fs_downsamp);
-ventralSTN_rowIDX_beta = plot_LFPbeta_byDepthTrial(All_LFPsPerMove_Tbl_filt, 'ventral', ... 
-                    move_trial_num, rep_idx, fs_downsamp);
+% dorsalSTN_rowIDX_beta = plot_LFPbeta_byDepthTrial(All_LFPsPerMove_Tbl_filt, 'dorsal', ...
+%                    move_trial_num, rep_idx, fs_downsamp);
+% centralSTN_rowIDX_beta = plot_LFPbeta_byDepthTrial(All_LFPsPerMove_Tbl_filt, 'central', ... 
+%                     move_trial_num, rep_idx, fs_downsamp);
+% ventralSTN_rowIDX_beta = plot_LFPbeta_byDepthTrial(All_LFPsPerMove_Tbl_filt, 'ventral', ... 
+%                     move_trial_num, rep_idx, fs_downsamp);
 
 
 %% Hilbert transorm of beta-filtered signal
@@ -378,7 +398,7 @@ ventralSTN_rowIDX_beta = plot_LFPbeta_byDepthTrial(All_LFPsPerMove_Tbl_filt, 've
 % compute instantaneous phase and frequency of the LFP beta band via Hilbert transform - hilbert function
 hilbert_transformed = hilbert(beta_zerophase_filt);
 inst_phase = angle(hilbert_transformed);
-inst_freq = diff(unwrap(inst_phase))/(2*pi*t_step_proc);
+inst_freq = diff(unwrap(inst_phase))/(2*pi*t_step);
 
 LFP_beta_amp     = abs(hilbert(beta_zerophase_filt));    % inst. amplitude
 LFP_beta_power   = LFP_beta_amp.^2;                      % inst. power
@@ -576,7 +596,8 @@ end
 % time-frq transform via complex Morlet wavelets (f0/σf = 7, f0 = 1-45 Hz, steps of 0.25 Hz).
 
 % define 'lfp_data' as a LFP data matrix with dimensions [samples x trials]
-lfp_data_test = proc_LFP_vec; 
+% lfp_data_test = proc_LFP_vec; 
+lfp_data_test = LFP_test_row;
 lfp_data_test_beta = beta_zerophase_filt;
 time = (1:length(lfp_data_test)) / fs_downsamp;
 time_beta = (1:length(lfp_data_test_beta)) / fs_downsamp;

@@ -82,37 +82,53 @@ UniformEpochs = true;
 
 %% Config - Case-specific Inputs
 
-CaseDate = '08_23_2023'; % Adjust as needed
+CaseDate = '07_06_2023_bilateral'; % Adjust as needed
+
 % '03_23_2023'; % NER 2025
 % '04_05_2023'; % NER 2025
 % '05_18_2023_b_bilateral'; % NER 2025
 % '05_31_2023';
 % '06_08_2023_bilateral'; % NER 2025
 % '08_23_2023'; % NANS 2026
+% '07_06_2023_bilateral';
 
-MoveDir_CaseID = 'IO_08_23_2023_RSTN'; % Adjust as needed
+MoveDir_CaseID = 'IO_07_06_2023_LSTN'; % Adjust as needed
+
 % 'IO_03_23_2023_LSTN'; % NER 2025
 % 'IO_04_05_2023_RSTN'; % NER 2025
 % 'IO_05_18_2023_b_LSTN'; % NER 2025
 % 'IO_05_31_2023_LSTN';
 % 'IO_06_08_2023_LSTN'; % NER 2025
 % 'IO_08_23_2023_RSTN'; % NANS 2026
+% 'IO_07_06_2023_LSTN';
 
 
 %% Config - Input and Output Data Dirs
 
-Case_DataDir = [IO_DataDir, filesep, CaseDate];
-MoveDataDir = [IO_DataDir, filesep, 'Processed DLC'];
-
 % Case-specific Input dirs
-ProcDataDir = [Case_DataDir, filesep, 'Processed Electrophysiology'];       % directory for processed ephys data and spike clusters
+Ephys_CaseDir = [IO_DataDir, filesep, CaseDate];
+ProcDataDir = [Ephys_CaseDir, filesep, 'Processed Electrophysiology'];      % directory for processed ephys data and spike clusters
+
+MoveDataDir = [IO_DataDir, filesep, 'Processed DLC'];
 Move_CaseDir = [MoveDataDir, filesep, MoveDir_CaseID];                      % directory for processed DLC data and Movement Indices
 
 % Case-specific Output dir
-ephysTbl_Dir = [Case_DataDir, filesep, 'DLC_Ephys'];                        % directory where all ephys per move-rep tables are located
+ephysTbl_Dir = [Ephys_CaseDir, filesep, 'DLC_Ephys'];                       % directory where all ephys per move-rep tables are located
+if ~exist(ephysTbl_Dir,'dir')
+    mkdir(ephysTbl_Dir);
+end
 
+%% Define new output directory:
+
+% Ephys_Kinematics
+LFP_Kin_Dir = [IO_DataDir, filesep, 'Ephys_Kinematics', filesep, 'LFP_Kinematic_Analyses'];
+Case_LFPKin_Dir = [LFP_Kin_Dir, filesep, CaseDate];
+if ~exist(Case_LFPKin_Dir,'dir')
+    mkdir(Case_LFPKin_Dir);
+end
 
 %% Config - Handle bilateral cases and hemisphere selection
+
 % create metadata sheet to pull from (for future users)
 
 isBilateral = contains(CaseDate, 'bilateral', 'IgnoreCase', true);
@@ -137,11 +153,15 @@ if ~isempty(CaseDate_hem)
     ProcDataDir = fullfile(ProcDataDir, CaseDate_hem);
     fprintf('[INFO] Hemisphere-specific input ephys directory set: %s\n', ProcDataDir);
     ephysTbl_Dir = fullfile(ephysTbl_Dir, CaseDate_hem);
-    fprintf('[INFO] Hemisphere-specific output directory set: %s\n', ephysTbl_Dir);
+    Case_LFPKin_Dir = fullfile(Case_LFPKin_Dir, CaseDate_hem);
+    if ~exist(Case_LFPKin_Dir,'dir')
+        mkdir(Case_LFPKin_Dir);
+    end
+    fprintf('[INFO] Hemisphere-specific output directory set: %s\n', Case_LFPKin_Dir);
 
 else
     fprintf('[INFO] Using base ephys input directory: %s\n', ProcDataDir);
-    fprintf('[INFO] Using base output directory: %s\n', ephysTbl_Dir);
+    fprintf('[INFO] Using base output directory: %s\n', Case_LFPKin_Dir);
 end
 
 
@@ -157,10 +177,10 @@ end
 % Add 500-1000 ms from start of each MoveRep
 
 % All_LFPsPerMove_Tbl_uniformEpochs = align_LFPsPerMove_uniformEpochDur(Subject_AO, ProcDataDir, Move_CaseDir, ephysTbl_Dir, TTL_fs, AO_LFP_fs, pre_offset_ms, useOffset, UniformEpochs, epochDur_ms);
-All_LFPsPerMove_Tbl_uniformEpochs = align_LFPsPerMove_uniformEpochDur(Subject_AO, ProcDataDir, Move_CaseDir, ephysTbl_Dir, TTL_fs, AO_LFP_fs, pre_offset_ms, useOffset, UniformEpochs, epochDur_ms);
+All_LFPsPerMove_Tbl_uniformEpochs = align_LFPsPerMove_uniformEpochDur(Subject_AO, ProcDataDir, Move_CaseDir, Case_LFPKin_Dir, TTL_fs, AO_LFP_fs, pre_offset_ms, useOffset, UniformEpochs, epochDur_ms);
 
 % meta structs (ms, sec, ttl_samp, lfp_samp):
-% meta_Offset    :  pre-trial offset from start of rep 
+% meta_Offset    :  pre-trial offset from start of rep
 % meta_epochDur  :  post-trial duration from start rep
 
 
@@ -203,7 +223,7 @@ All_LFPsPerMove_Tbl_filt = wrapper_applySpectrumInterpolation_LFPs(All_LFPsPerMo
 
 %% save All_LFPsPerMove_Tbl with LFP_E column vectors filtered by spectrumInterpolation
 
-cd(ephysTbl_Dir)
+cd(Case_LFPKin_Dir)
 
 if useOffset && pre_offset_ms > 0 && UniformEpochs && epochDur_ms > 0
     specI_filt_outName = sprintf('specI_All_LFPsPerMove_pre%ims_post%ims.mat', pre_offset_ms, epochDur_ms);
@@ -220,8 +240,8 @@ save(specI_filt_outName, "All_LFPsPerMove_Tbl_filt");
 % low freq. noise + drift removal
 % use designfilt + filtfilt
 
-% 1) low-pass at 250 Hz            
-% anti-alias + keep LFP band 
+% 1) low-pass at 250 Hz
+% anti-alias + keep LFP band
 % use designfilt + filtfilt
 
 % 3) downsample / resample 1375 to 500 Hz
@@ -317,22 +337,22 @@ xlabel('Time (s)');
 ylabel('Processed LFP'); % (uV or unscaled)
 
 
-%% Questions 
+%% Questions
 
-% 1) Why/how are the y-axis magnitudes this different? 
+% 1) Why/how are the y-axis magnitudes this different?
 % is this ok/expected or is there something wrong in my filtering methods?
 
 % 2) Are the LFP units in microVolts (uV) and being plotted as such,
 % or are the y-axis units different/unscaled?
 
-% 3) Do I need to adjust the lowpass cutoff from 250 Hz to ~200–230 Hz 
-% to be below the Nyquist of the downsampled fs (500 Hz)? 
+% 3) Do I need to adjust the lowpass cutoff from 250 Hz to ~200–230 Hz
+% to be below the Nyquist of the downsampled fs (500 Hz)?
 
 
 %% Plot Power Spectral Density of Raw LFP (post spectrumInterpolation)
 
 % compute power spectral density (PSD) of LFP segment(s) - pspectrum function
-[rawPxx,rawFxx] = pspectrum(raw_LFP_vec,fs_AO,'FrequencyLimits',[0 90],'FrequencyResolution', 3); 
+[rawPxx,rawFxx] = pspectrum(raw_LFP_vec,fs_AO,'FrequencyLimits',[0 90],'FrequencyResolution', 3);
 
 figure;
 pspectrum(raw_LFP_vec,fs_AO,"power",'FrequencyLimits',[0 90],'FrequencyResolution', 3) % 2 or 3
@@ -344,7 +364,7 @@ rawPxx_db = pow2db(rawPxx);
 figure;
 %plot(freq, 10*log10(power));
 plot(rawFxx, rawPxx_db);
-xlim([0 80]) 
+xlim([0 80])
 xlabel('Frequency (Hz)');
 ylabel('Power (dB)');
 title('PSD of Preprocessed LFP (post spectrumInterpolation)');
@@ -353,7 +373,7 @@ title('PSD of Preprocessed LFP (post spectrumInterpolation)');
 %% Plot Power Spectral Density of Processed LFP (post hpfilt + lpfilt + downsampling, 500 Hz)
 
 % compute power spectral density (PSD) of LFP segment(s) - pspectrum function
-[procPxx,procFxx] = pspectrum(proc_LFP_vec,fs_downsamp,'FrequencyLimits',[0 100],'FrequencyResolution', 3); 
+[procPxx,procFxx] = pspectrum(proc_LFP_vec,fs_downsamp,'FrequencyLimits',[0 100],'FrequencyResolution', 3);
 
 figure;
 pspectrum(proc_LFP_vec,fs_downsamp,"power",'FrequencyLimits',[0 100],'FrequencyResolution', 3) % 2 or 3
@@ -365,7 +385,7 @@ procPxx_db = pow2db(procPxx);
 figure;
 %plot(freq, 10*log10(power));
 plot(procFxx, procPxx_db);
-xlim([0 80]) 
+xlim([0 80])
 xlabel('Frequency (Hz)');
 ylabel('Power (dB)');
 title('PSD of Processed LFP (post hp/lp filtering and downsampling)');
@@ -374,7 +394,7 @@ title('PSD of Processed LFP (post hp/lp filtering and downsampling)');
 %% Save fully filtered and processed LFP outputs (HP+LP+DS to 500 Hz)
 
 % Resave All_LFPsPerMove_Tbl_filt
-cd(ephysTbl_Dir)
+cd(Case_LFPKin_Dir)
 
 if useOffset && pre_offset_ms > 0 && UniformEpochs && epochDur_ms > 0
     filtProc_outName = sprintf('filtProc_All_LFPsPerMove_pre%ims_post%ims.mat', pre_offset_ms, epochDur_ms);
@@ -383,7 +403,7 @@ else
 end
 
 save(filtProc_outName, "All_LFPsPerMove_Tbl_filt");
-fprintf('[SAVED] Processed table written to %s\n', fullfile(ephysTbl_Dir, filtProc_outName));
+fprintf('[SAVED] Processed table written to %s\n', fullfile(Case_LFPKin_Dir, filtProc_outName));
 
 
 %% Go to Order_of_Op__LFPKin_Analyses script

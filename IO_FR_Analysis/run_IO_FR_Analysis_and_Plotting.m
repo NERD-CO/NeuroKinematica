@@ -1,4 +1,4 @@
-function [FR_SummaryTbl] = run_IO_FR_Analysis_and_Plotting(CaseDate, CaseDate_hem, ephysTbl_Dir, ephys_offset, FR_Kin_Dir)
+function [FR_SummaryTbl] = run_IO_FR_Analysis_and_Plotting(CaseDate, CaseDate_hem, All_SpikesPerMove_Tbl, ephysTbl_Dir, ephys_offset, FR_Kin_Dir)
 
 % Combined script for original + rescaled raster plots with mean ± SD FR in titles
 % Adds p-values and significance stars in subtitles for REST vs Movement plots
@@ -22,11 +22,13 @@ AO_spike_fs = 44000; % MER sampling rate
 
 % FR Calculation Logic
 useFullDuration = false; % true = Option A, false = Option B
-window_FR = [-0.05 0.45];  % Fixed window for Option B
+window_FR = [-0.05 0.50];  % Fixed window for Option B
 
 % Raster
 % binSize_FR = 0.01;
 % edges_FR = window_FR(1):binSize_FR:window_FR(2);
+
+%% STN Depth and Movement Context labels
 
 depth_ids = {'t','c','b'};
 depth_labels = {'dorsal STN','central STN','ventral STN'};
@@ -46,30 +48,30 @@ figMultiDir = fullfile(figDir,'Raster_MultiMovement_and_RestComparison'); if ~ex
 csvDir = fullfile(FR_Kin_Dir, filesep, CaseDate, filesep,'CSV_Outputs'); if ~exist(csvDir,'dir'), mkdir(csvDir); end
 
 
-%% Load Spike Table
-
-cd(ephysTbl_Dir);
-Tbl_list = dir('*Spikes*.mat'); Tbl_names = {Tbl_list.name};
-if ephys_offset
-    spk_case = Tbl_names{contains(Tbl_names,'Spikes') & contains(Tbl_names,'offset')};
-else
-    spk_case = Tbl_names{contains(Tbl_names,'Spikes') & ~contains(Tbl_names,'offset')};
-end
-if isempty(spk_case), error('No spike table found'); end
-load(spk_case,'All_SpikesPerMove_Tbl');
-
-
-%% OPTIONAL: Case-specific cleaning (remove duplicates if needed)
-
-% Example: All_SpikesPerMove_Tbl(158:end,:) for case 03_23_2023
-
-% for 3_23_2023 case - remove duplicates / only plot for primary electrode
-if strcmp(char(CaseDate), '03_23_2023')
-    % All_SpikesPerMove_Tbl = All_SpikesPerMove_Tbl(158:end,1:13); % Comment or adjust as needed
-    All_SpikesPerMove_Tbl = All_SpikesPerMove_Tbl(168:end,1:13);
-elseif strcmp(char(CaseDate), '04_25_2023')
-    All_SpikesPerMove_Tbl = [All_SpikesPerMove_Tbl(1:68,1:11); All_SpikesPerMove_Tbl(133:197,1:11); All_SpikesPerMove_Tbl(266:329,1:11)];
-end
+% %% Load Spike Table
+% 
+% cd(ephysTbl_Dir);
+% Tbl_list = dir('*Spikes*.mat'); Tbl_names = {Tbl_list.name};
+% if ephys_offset
+%     spk_case = Tbl_names{contains(Tbl_names,'Spikes') & contains(Tbl_names,'offset')};
+% else
+%     spk_case = Tbl_names{contains(Tbl_names,'Spikes') & ~contains(Tbl_names,'offset')};
+% end
+% if isempty(spk_case), error('No spike table found'); end
+% load(spk_case,'All_SpikesPerMove_Tbl');
+% 
+% 
+% %% OPTIONAL: Case-specific cleaning (remove duplicates if needed)
+% 
+% % Example: All_SpikesPerMove_Tbl(158:end,:) for case 03_23_2023
+% 
+% % for 3_23_2023 case - remove duplicates / only plot for primary electrode
+% if strcmp(char(CaseDate), '03_23_2023')
+%     % All_SpikesPerMove_Tbl = All_SpikesPerMove_Tbl(158:end,1:13); % Comment or adjust as needed
+%     All_SpikesPerMove_Tbl = All_SpikesPerMove_Tbl(168:end,1:13);
+% elseif strcmp(char(CaseDate), '04_25_2023')
+%     All_SpikesPerMove_Tbl = [All_SpikesPerMove_Tbl(1:68,1:11); All_SpikesPerMove_Tbl(133:197,1:11); All_SpikesPerMove_Tbl(266:329,1:11)];
+% end
 
 
 %% Identify move types
@@ -141,50 +143,27 @@ for m = 1:numel(move_types)
                 end
             end
 
-            % %% Raster & PSTH Plotting code
-            % 
-            % % Calculate the peri-stimulus time histogram (PSTH) and prepare for plotting
-            % binSize_ms = 10; % 10 ms
-            % bin_sec = binSize_ms ./ 1000; % 0.01
-            % bin_samp = AO_spike_fs * bin_sec; % 440
-            % 
-            % [nTrials, Time_samples] = size(spikesMatrix); % T (time in samp)
-            % M = floor(Time_samples/bin_samp); % samples
-            % 
-            % spk_counts_per_sample = sum(spikesMatrix(:,1:M*bin_samp), 1); % total across trials
-            % spk_counts = reshape(spk_counts_per_sample, bin_samp, M);
-            % counts_bin = sum(spk_counts,1);  % spikes per bin across all trials
-            % 
-            % % psth_bin_Hz = (counts_bin / nTrials) * (1000/bin_samp);
-            % psth_bin_Hz = (counts_bin / nTrials) / bin_sec;
-            % 
-            % time_bin_samp = (0:M-1) * bin_samp + (bin_samp/2); % bin centers (samples)
-            % time_bin_ms = (time_bin_samp / AO_spike_fs) * 1000;   % bin centers (ms)
-            % 
-            % 
-            % % fig = figure('Position',[100 100 800 600]);
-            % 
-            % % Plot the scatter of spikes and the PSTH in the same figure
-            % [row, col] = find(spikesMatrix);      % row = trial index, col = spike sample index
-            % col_ms = (col / AO_spike_fs) * 1000;  % convert to ms (col = spike time)
-            % figure;
-            % subplot(2,1,1);
-            % scatter(col_ms, row, 8, 'b', 'filled');
-            % xlabel('Time (samples)');
-            % ylabel('Trial Index');
-            % title('Spike Raster Plot');
-            % % xlim([0, max(col_ms)]);
-            % hold on;
-            % 
-            % % Peri-Stimulus Time Histogram
-            % subplot(2,1,2);
-            % plot(time_bin_ms,psth_bin_Hz,'k','LineWidth',3)
-            % xlabel('Time (ms)');
-            % ylabel('PSTH (Hz)');
-            % title('Peri-Stimulus Time Histogram');
-            % % xlim([0, max(time_bin_ms)]);
-            % grid on;
-            % %%
+            % Calculate the peri-stimulus time histogram (PSTH) and prepare for plotting
+            binSize_ms = 10; % 10 ms
+            bin_sec = binSize_ms ./ 1000; % 0.01
+            bin_samp = AO_spike_fs * bin_sec; % 440
+
+            [nTrials, Time_samples] = size(spikesMatrix); % T (time in samp)
+            M = floor(Time_samples/bin_samp); % samples
+
+            spk_counts_per_sample = sum(spikesMatrix(:,1:M*bin_samp), 1); % total across trials
+            spk_counts = reshape(spk_counts_per_sample, bin_samp, M);
+            counts_bin = sum(spk_counts,1);  % spikes per bin across all trials
+
+            % psth_bin_Hz = (counts_bin / nTrials) * (1000/bin_samp);
+            psth_bin_Hz = (counts_bin / nTrials) / bin_sec;
+
+            time_bin_samp = (0:M-1) * bin_samp + (bin_samp/2); % bin centers (samples)
+            time_bin_ms = (time_bin_samp / AO_spike_fs) * 1000;   % bin centers (ms)
+            
+            [trial_idx, spike_samp_idk] = find(spikesMatrix);      % row = trial index, col = spike sample index
+            spike_ms_idx = (spike_samp_idk / AO_spike_fs) * 1000;  % convert to ms (col = spike time)
+            
 
             % spikes inside [start, end]
             t_start = move_tbl.TTL_spk_idx_Start(move_row);
@@ -194,11 +173,11 @@ for m = 1:numel(move_types)
 
             Dur_sec(move_row) = dur_sec;
             SpikeCount(move_row) = numel(in_window);
-            FR_new(move_row) = numel(in_window) / dur_sec; % Hz
+            FR_new(move_row) = numel(in_window) / dur_sec; % Hz (spikes per second)
 
 
             % Get spike times for this trial (convert spike times as needed)
-            spkTimes = (move_tbl.C1{move_row} - move_tbl.TTL_spk_idx_Start(move_row)) / AO_spike_fs - 0.05;
+            spkTimes = (move_tbl.C1{move_row} - move_tbl.TTL_spk_idx_Start(move_row)) / AO_spike_fs;
             spike_list{end+1} = spkTimes;
 
             % Compute the firing rate for this trial (using the helper function `computeFR`)

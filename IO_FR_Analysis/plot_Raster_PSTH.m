@@ -1,75 +1,5 @@
-%% MaxSpkDuration_Raster_PSTH
-
-% Sampling rates
-TTL_fs = 44000;         % Hz, Alpha Omega TTL clock
-AO_spike_fs = 44000;    % Hz, Alpha Omega spike sampling rate
-AO_LFP_fs = 1375;       % Hz, Alpha Omega LFP sampling rate
-DLC_fs = 100;           % fps, Video/DLC frame rate
-
-% Patient specific file dirs
-CaseDate = '03_23_2023'; % Adjust as needed
-% '03_23_2023'; % NER 2025
-% '04_05_2023'; % NER 2025
-% '05_18_2023_b_bilateral'; % NER 2025
-% '05_31_2023';
-% '06_08_2023_bilateral'; % NER 2025
-% '08_23_2023'; % NANS 2026
-
-MoveDir_CaseID = 'IO_03_23_2023_LSTN'; % Adjust as needed
-% 'IO_03_23_2023_LSTN'; % NER 2025
-% 'IO_04_05_2023_RSTN'; % NER 2025
-% 'IO_05_18_2023_b_LSTN'; % NER 2025
-% 'IO_05_31_2023_LSTN';
-% 'IO_06_08_2023_LSTN'; % NER 2025
-% 'IO_08_23_2023_RSTN'; % NANS 2026
-
-
-% Data folder paths
-Case_DataDir = fullfile(IO_DataDir, CaseDate);
-% ephysTbl_Dir = fullfile(Case_DataDir,'DLC_Ephys');
-MoveDataDir = fullfile(IO_DataDir, 'Processed DLC');
-KinematicsDir = fullfile(IO_DataDir, 'Kinematic Analyses');
-Ephys_Kin_Dir = fullfile(IO_DataDir, 'Ephys_Kinematics');
-FR_Kin_Dir = fullfile(Ephys_Kin_Dir, 'FR_Kinematic_Analyses');
-Case_FRKin_Dir = fullfile(FR_Kin_Dir, CaseDate); % input dir (new ephysTbleDir) and output (results) dir
-
-
-%% Handle Bilateral Cases
-
-% Specify hemisphere in command window if bilateral
-isBilateral = contains(CaseDate,'bilateral','IgnoreCase',true);
-if isBilateral
-    fprintf('[INFO] Bilateral case detected: %s\n',CaseDate);
-    CaseDate_hem = input('Enter hemisphere (LSTN or RSTN): ','s');
-    if ~ismember(CaseDate_hem,{'LSTN','RSTN'})
-        error('Invalid hemisphere');
-    end
-    % Append hemisphere-specific folder
-    Case_FRKin_Dir = fullfile(Case_FRKin_Dir, CaseDate_hem);
-else
-    CaseDate_hem = '';
-end
-fprintf('[INFO] Loading spike data from: %s\n', Case_FRKin_Dir);
-
-
-%% Load All_SpikesPerMove_Tbl
-
-cd(Case_FRKin_Dir)
-Tbl_list = dir('*Spikes*.mat');
-Tbl_names = {Tbl_list.name};
-spk_case = Tbl_names{contains(Tbl_names, 'offset')}; % offset version preferred
-load(spk_case, 'All_SpikesPerMove_Tbl');
-
-
-%% OPTIONAL: Case-specific cleaning (remove duplicates if needed)
-
-% for 3_23_2023 case - remove duplicates / only plot for primary electrode
-if CaseDate == '03_23_2023'
-    All_SpikesPerMove_Tbl = All_SpikesPerMove_Tbl(168:end,1:13); % Comment or adjust as needed
-else
-    All_SpikesPerMove_Tbl = All_SpikesPerMove_Tbl;
-end
-
+function [] = plot_Raster_PSTH(CaseDate, All_SpikesPerMove_Tbl, AO_spike_fs, Case_FRKin_Dir)
+% plot_Raster_PSTH per Move Rep
 
 %% depth and movement ids
 
@@ -131,21 +61,22 @@ for moveT_i = 1:numel(move_types)
 
         
         % Calculate the peri-stimulus time histogram (PSTH) and prepare for plotting
-        binSize_ms = 10; % 10 ms
-        bin_sec = binSize_ms ./ 1000; % 0.01
-        bin_samp = AO_spike_fs * bin_sec; % 440
+        binSize = 10; % 10 ms
+        binSize_sec = binSize ./ 1000; % 0.01
+        binSize_samp = AO_spike_fs * binSize_sec; % 440
 
         [nTrials, Time_samples] = size(spikesMatrix); % T (time in samp)
-        M = floor(Time_samples/bin_samp); % samples
+        M = floor(Time_samples/binSize_samp); % samples
 
-        spk_counts_per_sample = sum(spikesMatrix(:,1:M*bin_samp), 1); % total across trials
-        spk_counts = reshape(spk_counts_per_sample, bin_samp, M);
+        spk_counts_per_sample = sum(spikesMatrix(:,1:M*binSize_samp), 1); % total across trials
+        spk_counts = reshape(spk_counts_per_sample, binSize_samp, M);
         counts_bin = sum(spk_counts,1);  % spikes per bin across all trials
 
-        % psth_bin_Hz = (counts_bin / nTrials) * (1000/bin_samp);
-        psth_bin_Hz = (counts_bin / nTrials) / bin_sec;
+        %psth_bin_Hz = (counts_bin / nTrials) * (1000/bin_samp);
+        % psth_bin_Hz = (counts_bin / nTrials) / binSize_sec;
+        psth_bin_Hz = (counts_bin / nTrials) * (binSize_samp/binSize);
 
-        time_bin_samp = (0:M-1) * bin_samp + (bin_samp/2); % bin centers (samples)
+        time_bin_samp = (0:M-1) * binSize_samp + (binSize_samp/2); % bin centers (samples)
         time_bin_ms = (time_bin_samp / AO_spike_fs) * 1000;   % bin centers (ms)
 
         %fig = figure('Position',[100 100 800 600]);
@@ -159,7 +90,8 @@ for moveT_i = 1:numel(move_types)
         xlabel('Time (ms)');
         ylabel('Trial Index');
         title('Spike Raster Plot', sprintf('%s | %s ', depth_name, move_type));
-        xlim([0, max(col_ms)]);
+        % xlim([0, max(col_ms)]);
+        xlim([0, 400]);
         hold on;
 
         % Peri-Stimulus Time Histogram
@@ -168,7 +100,8 @@ for moveT_i = 1:numel(move_types)
         xlabel('Time (ms)');
         ylabel('PSTH (Hz)');
         title('Peri-Stimulus Time Histogram', sprintf('%s | %s ', depth_name, move_type));
-        xlim([0, max(time_bin_ms)]);
+        % xlim([0, max(time_bin_ms)]);
+        xlim([0, 400]);
         grid on;
 
     end
