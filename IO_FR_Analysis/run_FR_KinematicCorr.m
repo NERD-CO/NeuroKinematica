@@ -109,93 +109,92 @@ if zscoreKin
 end
 
 
-%%
 
-% %% Correlation analysis per MoveType and Depth
-% 
-% movTypes = unique(masterTbl.MoveType);
-% depths   = unique(masterTbl.Depth);
-% 
-% % Kinematic features to correlate (keep simple for now)
-% kinFeatures = {'MeanAmp', 'MeanVel'};
-% 
-% corrResults = table([], [], [], [], [], [], [], [], ...
-%     'VariableNames', {'MovementType','Depth','KinematicFeature','N','R','p','FisherZ','Method'});
-% 
-% % Table to store correlation results
-% corrResults = table([], [], [], [], [], [], [], [], ...
-%     'VariableNames', {'MovementType','Depth','KinematicFeature','N','R','p','FisherZ','Method'});
-% 
-% 
-% % Convert MoveType and Depth to usable character format
-% if iscategorical(masterTbl.MoveType)
-%     masterTbl.MoveType = cellstr(masterTbl.MoveType);
-% end
-% if iscategorical(masterTbl.Depth)
-%     masterTbl.Depth = cellstr(masterTbl.Depth);
-% elseif isnumeric(masterTbl.Depth)
-%     masterTbl.Depth = cellstr(string(masterTbl.Depth));
-% end
-% 
-% 
-% %% Perform correlation analysis
-% 
-% for m = 1:numel(movTypes)
-%     for d = 1:numel(depths)
-%         fprintf('  %s × %s: ', movTypes{m}, depths{d});
-%         sel = strcmp(masterTbl.MoveType, movTypes{m}) & strcmp(masterTbl.Depth, depths{d});
-%         fprintf('%d trials\n', sum(sel));
-% 
-%         for k = 1:numel(kinFeatures)
-%             kinFeat = kinFeatures{k};
-% 
-%             % Select subset of trials
-%             sub = masterTbl(sel, :);
-%             if height(sub) < 3 || all(isnan(sub.(kinFeat)))
-%                 continue;
-%             end
-% 
-%             x_corr_FR = sub.Mean_FR_Hz;  
-%             y_corr_kinFts = sub.(kinFeat);  
-% 
-% 
-%             % Pearson correlation for all trials
-%             [R, p] = corr(x_corr_FR, y_corr_kinFts, 'Type', 'Pearson');
-%             method = 'Pearson';  % using Pearson correlation exclusively for now
-% 
-%             % Fisher z-transform for effect size
-%             eff = atanh(R);
-% 
-%             % Store result
-%             newRow = {movTypes{m}, depths{d}, kinFeat, height(sub), R, p, eff, method};
-%             corrResults = [corrResults;
-%                 cell2table(newRow, 'VariableNames', ...
-%                 {'MovementType','Depth','KinematicFeature','N','R','p','FisherZ','Method'})];
-% 
-%             % Save scatter plot
-%             fig = figure('Visible', 'off');
-%             scatter(x_corr_FR, y_corr_kinFts, 50, 'filled'); hold on;
-%             lsline;
-%             xlabel('Firing Rate (Hz)');
-%             ylabel(kinFeat);
-%             title(sprintf('%s | %s | %s: R = %.2f, p = %.3f (%s)', ...
-%                 depths{d}, movTypes{m}, kinFeat, R, p, method));
-%             saveas(fig, fullfile(output_CorrDir, ...
-%                 sprintf('%s_%s_%s_corr.png', movTypes{m}, depths{d}, kinFeat)));
-%             close(fig);
-%         end
-%     end
-% end
-% 
-% %% Write results to CSV
-% 
-% writetable(corrResults, fullfile(output_CorrDir, 'Correlation_Summary.csv'));
-% 
-% fprintf('Done! Master CSV and Correlation results saved in: %s\n', output_CorrDir);
-% 
-% if isempty(corrResults)
-%     warning('No valid correlation results were computed. Check thresholds and data inputs.');
-% end
+%% Correlation analysis per MoveType and Depth
+
+movTypes = unique(masterTbl.MoveType);
+depths   = unique(masterTbl.Depth);
+
+% Kinematic features to correlate (keep simple for now)
+kinFeatures = {'MeanAmp', 'MeanVel'};
+
+corrResults = table([], [], [], [], [], [], [], [], ...
+    'VariableNames', {'MovementType','Depth','KinematicFeature','N','R','p','FisherZ','Method'});
+
+% Table to store correlation results
+corrResults = table([], [], [], [], [], [], [], [], ...
+    'VariableNames', {'MovementType','Depth','KinematicFeature','N','R','p','FisherZ','Method'});
+
+
+% Convert MoveType and Depth to usable character format
+if iscategorical(masterTbl.MoveType)
+    masterTbl.MoveType = cellstr(masterTbl.MoveType);
+end
+if iscategorical(masterTbl.Depth)
+    masterTbl.Depth = cellstr(masterTbl.Depth);
+elseif isnumeric(masterTbl.Depth)
+    masterTbl.Depth = cellstr(string(masterTbl.Depth));
+end
+
+
+%% Perform correlation analysis
+
+for m = 1:numel(movTypes)
+    for d = 1:numel(depths)
+        fprintf('  %s × %s: ', movTypes{m}, depths{d});
+        sel = strcmp(masterTbl.MoveType, movTypes{m}) & strcmp(masterTbl.Depth, depths{d});
+        fprintf('%d trials\n', sum(sel));
+
+        for k = 1:numel(kinFeatures)
+            kinFeat = kinFeatures{k};
+
+            % Select subset of trials
+            sub = masterTbl(sel, :);
+            if height(sub) < 3 || all(isnan(sub.(kinFeat)))
+                continue;
+            end
+
+            x_corr_FR = sub.Mean_FR_Hz;  
+            y_corr_kinFts = sub.(kinFeat);  
+
+
+            % Pearson correlation for all trials
+            [R, p] = corr(x_corr_FR, y_corr_kinFts, 'Type', 'Pearson');
+            method = 'Pearson';  % using Pearson correlation exclusively for now
+
+            % Fisher z-transform for effect size
+            eff = atanh(R);
+
+            % Store result
+            newRow = {movTypes{m}, depths{d}, kinFeat, height(sub), R, p, eff, method};
+            corrResults = [corrResults;
+                cell2table(newRow, 'VariableNames', ...
+                {'MovementType','Depth','KinematicFeature','N','R','p','FisherZ','Method'})];
+
+            % Save scatter plot
+            fig = figure('Visible', 'off');
+            scatter(x_corr_FR, y_corr_kinFts, 50, 'filled'); hold on;
+            lsline;
+            xlabel('Firing Rate (Hz)');
+            ylabel(kinFeat);
+            title(sprintf('%s | %s | %s: R = %.2f, p = %.3f (%s)', ...
+                depths{d}, movTypes{m}, kinFeat, R, p, method));
+            saveas(fig, fullfile(output_CorrDir, ...
+                sprintf('%s_%s_%s_corr.png', movTypes{m}, depths{d}, kinFeat)));
+            close(fig);
+        end
+    end
+end
+
+%% Write results to CSV
+
+writetable(corrResults, fullfile(output_CorrDir, 'Correlation_Summary.csv'));
+
+fprintf('Done! Master CSV and Correlation results saved in: %s\n', output_CorrDir);
+
+if isempty(corrResults)
+    warning('No valid correlation results were computed. Check thresholds and data inputs.');
+end
 
 end
 

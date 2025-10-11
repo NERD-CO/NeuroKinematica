@@ -1,11 +1,5 @@
 function merge_FRKin_SummaryTbls(IO_DataDir, ephysTbl_Dir, ephys_offset, MoveDir_CaseID, FR_SummaryTbl, kinSummaryTbl)
 
-% run_FR_KinematicCorr  Correlate per‐trial firing rates with kinematic features.
-%
-% This function loads spike-per-move tables and kinematic data, computes correlations,
-% and writes a master CSV containing trial-level data along with correlation metrics.
-% Additionally, it generates scatter plots with linear fits.
-
 
 %% ==== TOGGLE OPTIONS ====
 

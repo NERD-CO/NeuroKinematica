@@ -61,7 +61,7 @@ useOffset = true;
 
 %% Inputs:
 
-CaseDate = '08_23_2023'; % Adjust as needed
+CaseDate = '07_13_2023_bilateral'; % Adjust as needed
 
 % '03_23_2023'; % NER 2025
 % '04_05_2023'; % NER 2025
@@ -72,7 +72,7 @@ CaseDate = '08_23_2023'; % Adjust as needed
 % '07_13_2023_bilateral'; % INS 2026
 % '08_23_2023'; % NANS 2026
 
-MoveDir_CaseID = 'IO_08_23_2023_RSTN'; % Adjust as needed
+MoveDir_CaseID = 'IO_07_13_2023_LSTN'; % Adjust as needed
 
 % 'IO_03_23_2023_LSTN'; % NER 2025
 % 'IO_04_05_2023_RSTN'; % NER 2025

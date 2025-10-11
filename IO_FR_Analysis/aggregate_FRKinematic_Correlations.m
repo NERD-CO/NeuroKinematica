@@ -15,7 +15,9 @@ agg_Merged_FRKinTbl = table(); % for all 'Merged_FR_Kin_Summary.csv' files
 
 
 %% Loop through each CaseDate in FR_Kin_Dir
-
+%
+% after running run_FR_KinematicCorr function 
+%
 % cd(FR_Kin_Dir)
 %
 % % Navigate to the 'FR_Kinematics' subfolder in each CaseDate folder
@@ -57,17 +59,20 @@ cd(KinematicsDir)
 % MoveCaseFolders = dir(KinematicsDir);
 % MoveCaseFolders = MoveCaseFolders([MoveCaseFolders.isdir] & ~startsWith({MoveCaseFolders.name}, '.'));
 
-MoveCaseFolders = {'IO_03_23_2023_LSTN', 'IO_04_05_2023_RSTN', 'IO_05_18_2023_b_LSTN', 'IO_05_31_2023_LSTN', 'IO_06_08_2023_LSTN', 'IO_08_23_2023_RSTN'};
+MoveCaseFolders = {'IO_03_23_2023_LSTN', 'IO_04_05_2023_RSTN', 'IO_05_18_2023_b_LSTN', 'IO_05_31_2023_LSTN', 'IO_06_08_2023_LSTN', ...
+    'IO_07_06_2023_LSTN', 'IO_07_13_2023_LSTN', 'IO_08_23_2023_RSTN'};
 % 'IO_03_23_2023_LSTN'; % NER 2025
 % 'IO_04_05_2023_RSTN'; % NER 2025
 % 'IO_05_18_2023_b_LSTN'; % NER 2025
-% 'IO_05_31_2023_LSTN';
+% 'IO_05_31_2023_LSTN'; % INS 2026
 % 'IO_06_08_2023_LSTN'; % NER 2025
+% 'IO_07_06_2023_LSTN'; % INS 2026
+% 'IO_07_13_2023_LSTN'; % % INS 2026
 % 'IO_08_23_2023_RSTN'; % NANS 2026
 
 % Loop through each MoveDir_CaseID in KinematicsDir
 for movecase_i = 1:numel(MoveCaseFolders)
-    % MoveCaseName = MoveCaseFolders(movecase_i).name;
+    MoveCaseName = MoveCaseFolders{movecase_i};
 
     % Extract the 'Merged_FR_Kin_Summary.csv' file
     masterFRKinPath = fullfile(KinematicsDir, MoveCaseFolders{movecase_i}, 'Merged_FR_Kin_Summary.csv');
@@ -82,7 +87,7 @@ for movecase_i = 1:numel(MoveCaseFolders)
     end
     master_FRKin_Tbl.CaseDate = repmat(MoveCaseFolders(movecase_i), height(master_FRKin_Tbl), 1);
     agg_Merged_FRKinTbl = [agg_Merged_FRKinTbl; master_FRKin_Tbl];
-    % fprintf('[ADDED] Master_FR_Kin.csv from: %s\n', MoveCaseName);
+    fprintf('[ADDED] Master_FR_Kin.csv from: %s\n', MoveCaseName);
     % catch
     %     warning('[SKIP] Failed to read: %s', masterFRKinPath);
     % end

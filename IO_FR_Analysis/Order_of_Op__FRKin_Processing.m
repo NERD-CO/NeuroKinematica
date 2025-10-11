@@ -16,9 +16,11 @@ switch curPCname
         IO_DataDir = 'X:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
     case 'DSKTP-JTLAB-EMR'  % Lab Desktop
         IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
+        GitHub_RepoDir = 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\IO_FR_Analysis';
         addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\IO_FR_Analysis'
     case 'NSG-M-H8J3X34'    % PC_2
         IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
+        GitHub_RepoDir = 'C:\GitHub\NeuroKinematica\IO_FR_Analysis';
         addpath 'C:\GitHub\NeuroKinematica\IO_FR_Analysis'
 end
 
