@@ -51,7 +51,7 @@ useOffset = true;
 
 %% Config - Define epoch duration for UniformEpochs_LFP function
 
-epochDur_ms = 1000; % milliseconds
+epochDur_ms = 3000; % milliseconds
 Epoch_dur_seconds = epochDur_ms / 1000; % seconds
 
 % Calculate number of TTL samples
@@ -110,7 +110,7 @@ KinematicsDir = fullfile(IO_DataDir, 'Kinematic Analyses');
 Case_KinDir = fullfile(KinematicsDir, MoveDir_CaseID);
 Ephys_Kin_Dir = fullfile(IO_DataDir, 'Ephys_Kinematics');
 LFP_Kin_Dir = fullfile(Ephys_Kin_Dir, 'LFP_Kinematic_Analyses');
-% Case_LFP_Kin = fullfile(LFP_Kin_Dir, CaseDate); % case-specific results from run_FR_KinematicCorr saved here
+Case_LFP_Kin = fullfile(LFP_Kin_Dir, CaseDate); % case-specific results from run_FR_KinematicCorr saved here
 
 
 %% Config - Handle bilateral cases and hemisphere selection
@@ -138,18 +138,22 @@ end
 if ~isempty(CaseDate_hem)
     ProcDataDir = fullfile(ProcDataDir, CaseDate_hem);
     fprintf('[INFO] Hemisphere-specific input ephys directory set: %s\n', ProcDataDir);
-    ephysTbl_Dir = fullfile(ephysTbl_Dir, CaseDate_hem);
-    fprintf('[INFO] Hemisphere-specific output directory set: %s\n', ephysTbl_Dir);
+    Case_LFP_Kin = fullfile(Case_LFP_Kin, CaseDate_hem);
+    if ~exist(Case_LFP_Kin,'dir')
+        mkdir(Case_LFP_Kin);
+    end
+    fprintf('[INFO] Hemisphere-specific output directory set: %s\n', Case_LFP_Kin);
 
 else
     fprintf('[INFO] Using base ephys input directory: %s\n', ProcDataDir);
-    fprintf('[INFO] Using base output directory: %s\n', ephysTbl_Dir);
+    fprintf('[INFO] Using base output directory: %s\n', Case_LFP_Kin);
 end
 
 
 %% Load LFPsPerMove Tbl and offset meta structs
 
-cd(ephysTbl_Dir)
+% cd(ephysTbl_Dir)
+cd(Case_LFP_Kin)
 
 if useOffset && pre_offset_ms > 0 && UniformEpochs && epochDur_ms > 0
     load(sprintf('filtProc_All_LFPsPerMove_pre%ims_post%ims.mat', pre_offset_ms, epochDur_ms), 'All_LFPsPerMove_Tbl_filt');
@@ -159,7 +163,7 @@ end
 
 % meta structs (ms, sec, ttl_samp, lfp_samp):
 load('Offset_meta_struct.mat', 'meta_Offset')       % pre-trial offset from start of rep
-load('UniformEpoch_meta_struct', 'meta_epochDur')   % post-trial duration from start rep
+%load('UniformEpoch_meta_struct', 'meta_epochDur')   % post-trial duration from start rep
 
 
 %% ------- Start here (unless workspace is clear) after Order_of_Op__LFPKin_Processing --------
@@ -249,7 +253,7 @@ end
 STN_depth = 'dorsal';    % adjust
 move_type = HandPS;      % adjust 
 move_trial_num = '3';    % adjust
-rep_idx = 5;
+rep_idx = 2;
 
 % dorsal, HandOC, t2 (rep 5) or t3 (rep 4)
 % dorsal, HandPS, t3 (rep 5)
@@ -632,6 +636,30 @@ title('LFP Beta Band in T-F domain during motor trial rep', 'Continuous Wavelet 
 mean_power_beta = mean(cwt_power_beta, 2);
 std_power_beta = std(cwt_power_beta, 0, 2);
 normalized_power_beta = (cwt_power_beta - mean_power_beta) ./ std_power_beta;
+
+%%
+
+% Create time vector
+t_beta = (0:numel(lfp_data_test_beta)-1) / fs_downsamp;
+
+% Plot manually to control axes
+figure;
+surf(t_beta, cwt_freq_beta, abs(cwt_power_beta), 'EdgeColor', 'none');
+axis tight;
+view(0, 90);
+colormap parula;
+
+
+xlabel('Time (s)');
+ylabel('Frequency (Hz)');
+title({'LFP Beta Band in T-F domain during motor trial rep', ...
+       'Continuous Wavelet Transform'});
+
+ylim([2 40]);
+yticks(2:2:40);
+colorbar;
+ylabel(colorbar, 'Magnitude');
+
 
 %% Beta Peak Selection
 

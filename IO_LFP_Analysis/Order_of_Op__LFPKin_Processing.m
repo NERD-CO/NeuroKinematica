@@ -59,7 +59,7 @@ useOffset = true;
 %% Config - Define epoch duration for UniformEpochs_LFP function
 
 % Define # of milliseconds to include from start of a move rep
-epochDur_ms = 1000; % milliseconds
+epochDur_ms = 3000; % milliseconds
 Epoch_dur_seconds = epochDur_ms / 1000; % seconds
 
 % Calculate number of TTL samples
@@ -153,6 +153,9 @@ if ~isempty(CaseDate_hem)
     ProcDataDir = fullfile(ProcDataDir, CaseDate_hem);
     fprintf('[INFO] Hemisphere-specific input ephys directory set: %s\n', ProcDataDir);
     ephysTbl_Dir = fullfile(ephysTbl_Dir, CaseDate_hem);
+    if ~exist(ephysTbl_Dir,'dir')
+        mkdir(ephysTbl_Dir);
+    end
     Case_LFPKin_Dir = fullfile(Case_LFPKin_Dir, CaseDate_hem);
     if ~exist(Case_LFPKin_Dir,'dir')
         mkdir(Case_LFPKin_Dir);

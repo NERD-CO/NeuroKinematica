@@ -1,0 +1,76 @@
+function ZETA_Summary = runZETA_byDepthMove_actualDurations(All_SpikesPerMove_Tbl, AO_spike_fs, varargin)
+
+% Wrapper function to run ZETA for each MoveType × STN depth using true
+% per-trial AO start/stop indices (trial durations)
+
+p = inputParser;
+p.addParameter('UseMaxDur_s', [], @(x) isempty(x) || isscalar(x));   % e.g., 0.4
+p.addParameter('PadITI_s', 0.005, @(x) isscalar(x) && x>=0);
+p.addParameter('Resamples', 2000, @(x) isscalar(x) && x>0);
+p.addParameter('PlotFlag', 0, @(x) isscalar(x) && ismember(x,0:4));
+p.addParameter('RestrictRange', [-inf inf], @(x) isnumeric(x) && numel(x)==2);
+p.addParameter('DirectQuantile', false, @islogical);
+p.addParameter('JitterSize', 2, @(x) isscalar(x) && x>0);
+p.addParameter('Stitch', true, @islogical);
+p.addParameter('DepthIDs', {'t','c','b'});
+p.addParameter('MoveTypeOrder', {'HAND OC','HAND PS','ARM EF','REST'});
+p.parse(varargin{:});
+U = p.Results;
+
+move_types = intersect(U.MoveTypeOrder, unique(All_SpikesPerMove_Tbl.MoveType),'stable');
+rows = {};
+
+for m = 1:numel(move_types)
+    for d = 1:numel(U.DepthIDs)
+        mv = move_types{m};
+        dz = U.DepthIDs{d};
+
+        move_tbl = All_SpikesPerMove_Tbl( ...
+            strcmp(All_SpikesPerMove_Tbl.MoveType, mv) & ...
+            contains(All_SpikesPerMove_Tbl.move_trial_ID, dz), :);
+
+        if isempty(move_tbl), continue; end
+
+        % ---- Build ZETA inputs with TRUE per-trial durations from AO stop indices
+        [spkT, evTimes, useMaxDur, stimDur, kept_tbl] = makeZetaInputs_FromAOStartStop( ...
+            move_tbl, AO_spike_fs, ...
+            'UseMaxDur_s', U.UseMaxDur_s, ...
+            'PadITI_s',    U.PadITI_s);
+
+        if isempty(spkT) || isempty(evTimes)
+            continue
+        end
+
+        % ---- Call ZETA once for this subset
+        [pZ, sZ, sRate, sLat] = zetatest( ...
+            spkT, ...
+            evTimes, ...      % [T×2] on/off per trial
+            useMaxDur, ...
+            U.Resamples, ...
+            U.PlotFlag, ...
+            U.RestrictRange, ...
+            U.DirectQuantile, ...
+            U.JitterSize, ...
+            U.Stitch);
+
+        % ---- Collect summary
+        rows(end+1,:) = { ...
+            mv, dz, height(kept_tbl), useMaxDur, ...
+            pZ, sZ.dblZETA, sZ.dblD, sZ.dblP, ...
+            sZ.dblZetaT, sZ.dblD_InvSign, sZ.dblZetaT_InvSign, ...
+            getOr(sRate,'dblPeakTime',nan), getOr(sRate,'dblOnset',nan), ...
+            mean(stimDur,'omitnan'), std(stimDur,'omitnan')}; %#ok<AGROW>
+    end
+end
+
+ZETA_Summary = cell2table(rows, 'VariableNames', { ...
+    'MoveType','Depth','nTrials','UseMaxDur_s', ...
+    'ZetaP','ZetaZ','ZetaD','ZetaP_again', ...
+    'ZetaTime','ZetaD_Inv','ZetaTime_Inv', ...
+    'IFR_PeakTime','IFR_OnsetTime', ...
+    'MeanStimDur_s','StdStimDur_s'});
+end
+
+function v = getOr(S, fld, defaultVal)
+if isempty(S) || ~isfield(S,fld) || isempty(S.(fld)), v = defaultVal; else, v = S.(fld); end
+end

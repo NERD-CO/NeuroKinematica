@@ -61,7 +61,7 @@ useOffset = true;
 
 %% Inputs:
 
-CaseDate = '07_13_2023_bilateral'; % Adjust as needed
+CaseDate = '03_23_2023'; % Adjust as needed
 
 % '03_23_2023'; % NER 2025
 % '04_05_2023'; % NER 2025
@@ -72,7 +72,7 @@ CaseDate = '07_13_2023_bilateral'; % Adjust as needed
 % '07_13_2023_bilateral'; % INS 2026
 % '08_23_2023'; % NANS 2026
 
-MoveDir_CaseID = 'IO_07_13_2023_LSTN'; % Adjust as needed
+MoveDir_CaseID = 'IO_03_23_2023_LSTN'; % Adjust as needed
 
 % 'IO_03_23_2023_LSTN'; % NER 2025
 % 'IO_04_05_2023_RSTN'; % NER 2025
@@ -128,9 +128,10 @@ load(spk_case, 'All_SpikesPerMove_Tbl');
 if strcmp(char(CaseDate), '03_23_2023')
     % All_SpikesPerMove_Tbl = All_SpikesPerMove_Tbl(158:end,1:13); % Comment or adjust as needed
     All_SpikesPerMove_Tbl = All_SpikesPerMove_Tbl(168:end,1:13);
-elseif strcmp(char(CaseDate), '04_25_2023')
+elseif strcmp(char(CaseDate), '04_05_2023')
     All_SpikesPerMove_Tbl = [All_SpikesPerMove_Tbl(1:68,1:11); All_SpikesPerMove_Tbl(133:197,1:11); All_SpikesPerMove_Tbl(266:329,1:11)];
 end
+
 
 %% ===== Functions =====
 
@@ -146,10 +147,27 @@ Max_SpkDus_ms = Max_SpkDur_seconds * 1000; % milliseconds
 
 plot_Raster_PSTH(CaseDate, All_SpikesPerMove_Tbl, AO_spike_fs, Case_FRKin_Dir)
 
+
 %% Run compute_FRperMove_perSTNdepth_v3
 
 % Outputs FR per moveRep and a summary per moveType
 [FR_perTrialRep_All, FR_perMoveType_perDepth_Summary] = compute_FRperMove_perSTNdepth_v3(CaseDate, All_SpikesPerMove_Tbl, AO_spike_fs, Case_FRKin_Dir);
+
+
+%% Zeta Testing 
+
+% https://github.com/JorritMontijn/zetatest?tab=readme-ov-file
+
+ZETA_Summary = runZETA_byDepthMove_trueStop( ...
+    All_SpikesPerMove_Tbl, AO_spike_fs, ...
+    'UseMaxDur_s', 0.4, ...       % analysis window after onset (optional)
+    'Resamples',    5000, ...
+    'PlotFlag',     0, ...
+    'RestrictRange',[-inf inf], ...
+    'DirectQuantile', false, ...
+    'JitterSize',    2, ...
+    'Stitch',        true);
+
 
 
 %% Run run_IO_FR_Analysis_and_Plotting
