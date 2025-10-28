@@ -181,7 +181,6 @@ rehash
 %% Run Zeta test for each MoveType × STN depth using true per-trial durations
 
 % https://github.com/JorritMontijn/zetatest/blob/main/zetatest.m
-% zetatest.m: Calculates the Zenith of Event-based Time-locked Anomalies (ZETA) for spike times of a single neuron. Outputs a p-value.
 
 % run wrapper + helper function for zetatest.m
 [ZETA_Summary, all_sZETA, all_sRate, all_sLatencies] = runZETA_byDepthMove_actualDurations( ...
