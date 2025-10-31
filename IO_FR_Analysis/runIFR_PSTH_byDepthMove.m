@@ -13,9 +13,13 @@ p.addParameter('UseMaxDur_s', [], @(x) isempty(x) || isscalar(x));
 p.addParameter('PadITI_s', 0.005, @(x) isscalar(x) && x>=0);
 p.addParameter('DepthIDs', {'t','c','b'});
 p.addParameter('MoveTypeOrder', {'HAND OC','HAND PS','ARM EF','REST'});
+% spike fields: allow either SpikeField (single) or SpikeFields (multi/auto)
 p.addParameter('SpikeField', 'C1', @(s) ischar(s) || isstring(s));
+p.addParameter('SpikeFields', [], @(x) iscellstr(x) || isempty(x));
+% start/stop bounds for spike field segments:
 p.addParameter('StartField', 'TTL_spk_idx_Start', @(s) ischar(s) || isstring(s));
-p.addParameter('StopField',  'TTL_spk_idx_End',   @(s) ischar(s) || isstring(s));
+p.addParameter('StopField',  'TTL_spk_idx_End',   @(s) ischar(s) || isstring(s)); %%%
+% optional lead-in/out (sec) padding:
 p.addParameter('PreWindow_s',  0.050, @(x) isscalar(x) && x>=0);
 p.addParameter('PostWindow_s', 0.000, @(x) isscalar(x) && x>=0);
 
@@ -33,64 +37,90 @@ p.addParameter('CaseDate', '', @(s) ischar(s) || isstring(s));  % used in filena
 p.parse(varargin{:});
 U = p.Results;
 
+
+% Normalize spike fields: prefer SpikeFields; else use SpikeField; else auto-detect C\d+ with any spikes
+spikeFields = U.SpikeFields;
+if isempty(spikeFields)
+    if ~isempty(U.SpikeField)
+        spikeFields = {char(U.SpikeField)};
+    else
+        cand = All_SpikesPerMove_Tbl.Properties.VariableNames;
+        isCnum = ~cellfun('isempty', regexp(cand,'^C\d+$','once'));
+        spikeFields = cand(isCnum);
+        keep = false(size(spikeFields));
+        for k = 1:numel(spikeFields)
+            col = All_SpikesPerMove_Tbl.(spikeFields{k});
+            keep(k) = iscell(col) && any(~cellfun(@isempty,col));
+        end
+        spikeFields = spikeFields(keep);
+    end
+end
+
 move_types = intersect(U.MoveTypeOrder, unique(All_SpikesPerMove_Tbl.MoveType),'stable');
 
 rows = {};
 all_IFR = {};
 
-for m = 1:numel(move_types)
-    for d = 1:numel(U.DepthIDs)
-        mv = move_types{m};
-        dz = U.DepthIDs{d};
+% Outer loop over spike fields (C#s)
+for SpkF = spikeFields
+    curSF = SpkF{1};
 
-        move_tbl = All_SpikesPerMove_Tbl( ...
-            strcmp(All_SpikesPerMove_Tbl.MoveType, mv) & ...
-            contains(All_SpikesPerMove_Tbl.move_trial_ID, dz), :);
+    % Loop over MoveType × STN depth
+    for m = 1:numel(move_types)
+        for d = 1:numel(U.DepthIDs)
+            mv = move_types{m};
+            dz = U.DepthIDs{d};
 
-        if isempty(move_tbl), continue; end
+            move_tbl = All_SpikesPerMove_Tbl( ...
+                strcmp(All_SpikesPerMove_Tbl.MoveType, mv) & ...
+                contains(All_SpikesPerMove_Tbl.move_trial_ID, dz), :);
 
-        % --- Stitched inputs (true [start stop], optional pre/post kept in spikes) ---
-        [spkT, evTimes, useMaxDur, trialDur, kept_tbl] = makeZetaInputs_fromAOStartStopTimes( ...
-            move_tbl, AO_spike_fs, ...
-            'UseMaxDur_s', U.UseMaxDur_s, ...
-            'PadITI_s',    U.PadITI_s, ...
-            'SpikeField',  U.SpikeField, ...
-            'StartField',  U.StartField, ...
-            'StopField',   U.StopField, ...
-            'PreWindow_s', U.PreWindow_s, ...
-            'PostWindow_s',U.PostWindow_s);
+            if isempty(move_tbl), continue; end
 
-        if isempty(spkT) || isempty(evTimes), continue; end
-        nTrials = size(evTimes,1);
+            % Helper function:
+            % --- Stitched inputs (true [start stop], optional pre/post kept in spikes) ---
+            [spkT, evTimes, useMaxDur, trialDur, kept_tbl] = makeZetaInputs_fromAOStartStopTimes( ...
+                move_tbl, AO_spike_fs, ...
+                'UseMaxDur_s', U.UseMaxDur_s, ...
+                'PadITI_s',    U.PadITI_s, ...
+                'SpikeField',  curSF, ...
+                'StartField',  U.StartField, ...
+                'StopField',   U.StopField, ...
+                'PreWindow_s', U.PreWindow_s, ...
+                'PostWindow_s',U.PostWindow_s);
 
-        % --- IFR (getIFR works on stitched timeline like zetatest) ---
-        [vecTime, vecRate, sIFR] = getIFR( ...
-            spkT, evTimes, useMaxDur, ...
-            U.IFR_SmoothSd, U.IFR_MinScale, U.IFR_Base, U.IFR_UseParallel);
+            if isempty(spkT) || isempty(evTimes), continue; end
+            nTrials = size(evTimes,1);
 
-        % --- PSTH across trials (aligned to each event onset) ---
-        bin_w   = U.BinSize_ms / 1000;              % seconds
-        tmin    = -U.PreWindow_s;
-        tmax    =  useMaxDur;                       % cap PSTH to the IFR window
-        edges   = tmin:bin_w:tmax;
-        centers = edges(1:end-1) + bin_w/2;
+            % --- IFR (getIFR works on stitched timeline like zetatest) ---
+            [vecTime, vecRate, sIFR] = getIFR( ...
+                spkT, evTimes, useMaxDur, ...
+                U.IFR_SmoothSd, U.IFR_MinScale, U.IFR_Base, U.IFR_UseParallel);
 
-        % build raster (relative times) and histogram
-        ras_t = [];
-        ras_tr = [];
-        counts = zeros(1, numel(edges)-1);
+            % --- PSTH across trials (aligned to each event onset) ---
+            bin_w   = U.BinSize_ms / 1000;              % seconds
+            tmin    = -U.PreWindow_s;
+            tmax    =  useMaxDur;                       % cap PSTH to the IFR window
+            edges   = tmin:bin_w:tmax;
+            centers = edges(1:end-1) + bin_w/2;
 
-        for i = 1:nTrials
-            on  = evTimes(i,1);
-            hi  = on + tmax;
-            lo  = on + tmin;
-            mask = spkT >= lo & spkT < hi;
-            rel  = spkT(mask) - on;
+            % build raster (relative times) and histogram
+            ras_t = [];
+            ras_tr = [];
+            counts = zeros(1, numel(edges)-1);
 
-            if ~isempty(rel)
-                ras_t   = [ras_t; rel];
-                ras_tr  = [ras_tr; i*ones(numel(rel),1)];
-                counts  = counts + histcounts(rel, edges);
+            for i = 1:nTrials
+                on  = evTimes(i,1);
+                hi  = on + tmax;
+                lo  = on + tmin;
+                mask = spkT >= lo & spkT < hi;
+                rel  = spkT(mask) - on;
+
+                if ~isempty(rel)
+                    ras_t   = [ras_t; rel];
+                    ras_tr  = [ras_tr; i*ones(numel(rel),1)];
+                    counts  = counts + histcounts(rel, edges);
+                end
             end
         end
 
@@ -125,8 +155,8 @@ for m = 1:numel(move_types)
             xlabel('Time from onset (s)');
 
             % Title format: Raster | MoveType - Depth (n=## reps)
-            title(sprintf('Raster | %s - %s (n=%d reps)', mv, depthLbl, nTrials));
-
+            title(sprintf('Raster | %s - %s - %s (n=%d reps)', mv, depthLbl, curSF, nTrials));
+            
 
             % IFR + PSTH overlay (two y-axes)
             ax2 = nexttile;
@@ -147,7 +177,7 @@ for m = 1:numel(move_types)
             end
             ylabel('IFR (Hz)');
             yl = ylim; ylim([0 max(yl(2), eps)]); % Force IFR y-axis to start at 0
-            
+
             % Right y-axis: PSTH
             yyaxis right
             plot(centers, psth_Hz, '--', 'LineWidth', 2);
@@ -162,13 +192,14 @@ for m = 1:numel(move_types)
 
         % --- Collect outputs ---
         rows(end+1,:) = { ...
-            mv, dz, nTrials, useMaxDur, ...
+            curSF, mv, dz, nTrials, useMaxDur, ...
             U.BinSize_ms, mean(trialDur,'omitnan'), std(trialDur,'omitnan'), ...
             max(vecRate,[],'omitnan'), ...
             centers, psth_Hz, ...
             vecTime, vecRate};
 
         sOut = struct;
+        sOut.SpikeField = curSF;
         sOut.MoveType = mv; sOut.Depth = dz; sOut.nTrials = nTrials;
         sOut.useMaxDur_s = useMaxDur;
         sOut.PreWindow_s = U.PreWindow_s; sOut.PostWindow_s = U.PostWindow_s;
@@ -182,7 +213,7 @@ for m = 1:numel(move_types)
         % --- Save?
         if ~isempty(U.SaveDir)
             if ~exist(U.SaveDir,'dir'); mkdir(U.SaveDir); end
-            tag = sprintf('%s_%s', mv, dz);
+            tag = sprintf('%s_%s_%s', mv, dz, curSF);
             if ~isempty(U.CaseDate)
                 base = sprintf('%s_IFR-PSTH_%s', U.CaseDate, tag);
             else
@@ -199,7 +230,7 @@ for m = 1:numel(move_types)
 end
 
 varNames = { ...
-    'MoveType','Depth','nTrials','UseMaxDur_s', ...
+    'SpikeField','MoveType','Depth','nTrials','UseMaxDur_s', ...
     'BinSize_ms','MeanDur_s','StdDur_s', ...
     'MaxIFR_Hz','PSTH_TimeCenters_s','PSTH_Hz', ...
     'IFR_Time_s','IFR_Hz'};

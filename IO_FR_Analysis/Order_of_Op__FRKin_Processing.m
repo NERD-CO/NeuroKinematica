@@ -59,7 +59,7 @@ useOffset = true;
 
 % Hardcode Case-specific Data directories
 
-CaseDate = '08_23_2023';
+CaseDate = '03_23_2023';
 
 % '03_23_2023';             % NER 2025, NANS 2026, INS 2026      % 1
 % '04_05_2023';             % NER 2025, NANS 2026, INS 2026      % 2
@@ -112,7 +112,7 @@ MoveDataDir = [IO_DataDir, filesep, 'Processed DLC'];
 cd(MoveDataDir)
 
 % Specify case ID
-MoveDir_CaseID = 'IO_08_23_2023_RSTN'; % Adjust as needed
+MoveDir_CaseID = 'IO_03_23_2023_LSTN'; % Adjust as needed
 
 % 'IO_03_23_2023_LSTN'; % NER 2025, NANS 2026
 % 'IO_04_05_2023_RSTN'; % NER 2025, NANS 2026

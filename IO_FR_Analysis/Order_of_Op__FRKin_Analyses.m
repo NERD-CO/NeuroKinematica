@@ -150,7 +150,7 @@ end
 
 %% Run MaxSpkDuration_Raster_PSTH
 
-% outputs max spige segment duration and a raster + PSTH for all trials
+% outputs max spike segment duration and a raster + PSTH for all trials
 [Max_SpikeDuration_samples, spikesMatrix] = MaxSpkDuration_Raster_PSTH(CaseDate, All_SpikesPerMove_Tbl, AO_spike_fs, Case_FRKin_Dir);
 
 Max_SpkDur_seconds = Max_SpikeDuration_samples/AO_spike_fs; % seconds
@@ -180,8 +180,11 @@ rehash
 
 %% Run Zeta test for each MoveType × STN depth using true per-trial durations
 
+% https://elifesciences.org/articles/71969
 % https://github.com/JorritMontijn/zetatest/blob/main/zetatest.m
 % zetatest.m: Calculates the Zenith of Event-based Time-locked Anomalies (ZETA) for spike times of a single neuron. Outputs a p-value.
+%   % binning-free method for determining whether a neuron shows any time-locked modulation of spiking activity
+%   % detects whether a single neuron is responsive to a stimulus/event in a statistically robust way and avoids binning and parameter selection
 
 % run wrapper + helper function for zetatest.m
 [ZETA_Summary, all_sZETA, all_sRate, all_sLatencies] = runZETA_byDepthMove_actualDurations( ...
@@ -196,7 +199,13 @@ rehash
     'PreWindow_s',   0.050, ...   % 50 ms lead-in
     'PostWindow_s',  0.000);
 
-% --- Save Outputs to "Zeta Testing" folder ---
+% change electrode when necessary when calling function 
+% 'SpikeField', 'C1'
+% or loop through all possible electrodes
+
+
+%% Save Outputs to "Zeta Testing" folder
+
 Zeta_outDir = fullfile(Case_FRKin_Dir, 'Zeta Testing');
 if ~exist(Zeta_outDir,'dir'); mkdir(Zeta_outDir); end
 
@@ -207,6 +216,34 @@ writetable(ZETA_Summary, ZetaSummary_csv);
 save(ZetaAll_mat, 'ZETA_Summary', 'all_sZETA', 'all_sRate', 'all_sLatencies', '-v7.3');
 
 fprintf('ZETA test outputs saved:\n  %s\n  %s\n', ZetaSummary_csv, ZetaAll_mat);
+
+%% Zeta test outputs of interest (p-vals and z-vals):
+
+%	- dblZetaP; p-value based on Zenith of Event-based Time-locked Anomalies
+%   % Low ZETA-test p-values indicate that the neuron's firing pattern is 
+%   % statistically unlikely to be observed if the neuron is not modulated 
+%   % by the event of interest.
+
+%	- sZETA; structure with fields:
+	%	- dblZETA; responsiveness z-score (i.e., >2 is significant), ZETA (ζ) 
+    %       % use p with the standard normal's quantile function Φ−1 to obtain a corrected ZETA, ζ, that is interpretable as a z-score
+    %       % z-score: ζ = Φ−1(1−p2) 
+	%	- dblD; temporal deviation value underlying ZETA
+    %       % d, a time-invariant mean-normalized version of δ, a neuron's deviation from a temporally non-modulated spiking rate at a time point
+    %       % Zenith of Event-based Time-locked Anomalies (ZETA) = most extreme value, that is the maximum of the absolute values: max(|d|)
+    %       % Statistical significance of ZETA ... extreme value theory ... distribution of maximum values is known as a Gumbel distribution (Gumbel, 1941)
+	%	- dblP; p-value corresponding to ZETA 
+    %       % cumulative Gumbel distribution at sample maximum, ζr: 
+    %       % p-value: p = 1−F(ζr;m,β)  ...    % same as dblZetaP
+	%	- dblZetaT; time corresponding to ZETA
+    % ...
+
+%   - vecLatencies; different latency estimates, number determined by intLatencyPeaks.
+    % ...
+%	- sRate; structure with fields:
+    % ...
+%   - sLatencies; structure containing latencies (copy of sZETA.vecLatencies)
+    % ...
 
 
 %% Compute instantaneous firing rate (IFR) + PSTH per MoveType × STN depth using getIFR 
@@ -232,6 +269,11 @@ IFR_outDir = fullfile(Zeta_outDir, 'IFR_PSTH');
     'SaveDir',     IFR_outDir, ...
     'CaseDate',    CaseDate);
 
+% change electrode when necessary when calling function 
+% 'SpikeField', 'C1'
+% or loop through all possible electrodes
+
+
 % Save summary table + all structs
 if ~exist(IFR_outDir,'dir'); mkdir(IFR_outDir); end
 writetable(IFR_PSTH_Summary, fullfile(IFR_outDir, sprintf('%s_IFR_PSTH_Summary.csv', CaseDate)));
@@ -239,6 +281,20 @@ save(fullfile(IFR_outDir, sprintf('%s_IFR_PSTH_All.mat', CaseDate)), 'IFR_PSTH_S
 fprintf('IFR/PSTH saved to %s\n', IFR_outDir);
 
 cd(IFR_outDir)
+
+
+%% PCA of ZETA z-scores per Subject / Spike Field (C1, C2, ..., Cn) for each MoveType per STN Depth
+
+% replicate London et al., 2021 paper's Fig 2
+% PCA on spike response profiles
+
+% Category: each MoveType per STN depth (E.g., Hand OC x dorsal STN)
+
+% x-dim (rows) = time (in PSTH bins), must be conserved across subjects
+% y-dim (cols) = subject neuron/spike field/unit
+
+% distinct PCA per category
+
 
 
 
