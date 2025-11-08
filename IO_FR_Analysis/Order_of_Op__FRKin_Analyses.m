@@ -14,13 +14,16 @@ clear; close all; clc;
 % 2) getIFR.m
 
 % plot_Raster_PSTH
+
 % compute_FRperMove_perSTNdepth_v3
 
-% [FR_SummaryTbl] = run_IO_FR_Analysis_and_Plotting(CaseDate, CaseDate_hem, ephysTbl_Dir, ephys_offset, FR_Kin_Dir);
+% run_IO_FR_Analysis_and_Plotting
 
-% [kinTbl, kinSummaryTbl] = run_MovementFeatureAnalysis_IO_v2(IO_DataDir, MoveDataDir, MoveDir_CaseID);
-% merge_FRKin_SummaryTbls(IO_DataDir, ephysTbl_Dir, ephys_offset, MoveDir_CaseID, FR_SummaryTbl, kinSummaryTbl)
-% aggregate_FRKinematic_Correlations(KinematicsDir, Ephys_Kin_Dir, FR_Kin_Dir)
+% run_MovementFeatureAnalysis_IO_v2
+
+% merge_FRKin_SummaryTbls
+
+% aggregate_FRKinematic_Correlations
 
 
 %% Directory Setup
@@ -44,6 +47,8 @@ switch curPCname
         addpath 'C:\GitHub\NeuroKinematica\Kinematic Analyses'
         addpath 'C:\GitHub\NeuroKinematica\IO_LFP_Analysis'
 end
+cd(IO_DataDir)
+Subject_Hem_CaseMap = readtable('Subject_Hem_MetaSummary.xlsx'); % Subject_Hem_MetaSummary.xlsx
 
 
 %% Config - Define datastream sampling rates (Alpha Omega and Video sampling fs)
@@ -74,27 +79,42 @@ useOffset = true;
 
 %% Inputs:
 
-CaseDate = '03_23_2023'; % Adjust as needed
+% Ephys data folder:
+CaseDate = '04_05_2023'; % Adjust as needed
 
-% '03_23_2023'; % NER 2025
-% '04_05_2023'; % NER 2025
-% '05_18_2023_b_bilateral'; % NER 2025      %% errors using new pipeline
-% '05_31_2023'; % INS 2026
-% '06_08_2023_bilateral'; % NER 2025        %% errors using new pipeline
-% '07_06_2023_bilateral'; % INS 2026
-% '07_13_2023_bilateral'; % INS 2026
-% '08_23_2023'; % NANS 2026
+% 1: '03_23_2023';             % NER 2025
+% 1: '04_05_2023';             % NER 2025
 
-MoveDir_CaseID = 'IO_03_23_2023_LSTN'; % Adjust as needed
+% 2: '04_13_2023_bilateral';   % GRC 2026      %% errors - Unrecognized field name "dblZetaT".
 
-% 'IO_03_23_2023_LSTN'; % NER 2025
-% 'IO_04_05_2023_RSTN'; % NER 2025
+% 3: '05_18_2023_b_bilateral'; % NER 2025      %% errors using new pipeline --> check MIs; 
+%   %   % Other error: Unrecognized field name "dblZetaT".
+
+% 4: '05_31_2023';             % INS 2026
+
+% 5: '06_08_2023_bilateral';   % NER 2025      %% errors using new pipeline --> check MIs; 
+%   %   % Other error: Error using findpeaks>parse_inputs (line 225): Data set must contain at least 3 samples.
+
+% 6: '07_06_2023_bilateral';   % INS 2026
+% 7: '07_13_2023_bilateral';   % INS 2026
+% 10: '08_23_2023';             % INS 2026
+% 12: '11_30_2023_bilateral';   % GRC 2026
+
+
+% Kinematic data folder:
+MoveDir_CaseID = 'IO_04_05_2023_RSTN'; % Adjust as needed
+
+% 'IO_03_23_2023_LSTN';   % NER 2025
+% 'IO_04_05_2023_RSTN';   % NER 2025
+% 'IO_04_13_2023_LSTN';   % GRC 2026
 % 'IO_05_18_2023_b_LSTN'; % NER 2025
-% 'IO_05_31_2023_LSTN';
-% 'IO_06_08_2023_LSTN'; % NER 2025
-% 'IO_07_06_2023_LSTN';
-% 'IO_07_13_2023_LSTN';
-% 'IO_08_23_2023_RSTN'; % NANS 2026
+% 'IO_05_31_2023_LSTN';   % INS 2026
+% 'IO_06_08_2023_LSTN';   % NER 2025
+% 'IO_07_06_2023_LSTN';   % INS 2026
+% 'IO_07_13_2023_LSTN';   % INS 2026
+% 'IO_07_13_2023_RSTN';   % GRC 2026
+% 'IO_08_23_2023_RSTN';   % INS 2026
+% 'IO_11_30_2023_LSTN';   % GRC 2026
 
 
 %% Data folder paths
@@ -187,9 +207,10 @@ rehash
 %   % detects whether a single neuron is responsive to a stimulus/event in a statistically robust way and avoids binning and parameter selection
 
 % run wrapper + helper function for zetatest.m
+% loop through all possible electrodes
 [ZETA_Summary, all_sZETA, all_sRate, all_sLatencies] = runZETA_byDepthMove_actualDurations( ...
     All_SpikesPerMove_Tbl, AO_spike_fs, ...
-    'UseMaxDur_s', 0.4, ...
+    'UseMaxDur_s', 0.8, ...
     'Resamples',    5000, ...
     'PlotFlag',     0, ...
     'RestrictRange',[-inf inf], ...
@@ -198,10 +219,6 @@ rehash
     'Stitch',        true, ...
     'PreWindow_s',   0.050, ...   % 50 ms lead-in
     'PostWindow_s',  0.000);
-
-% change electrode when necessary when calling function 
-% 'SpikeField', 'C1'
-% or loop through all possible electrodes
 
 
 %% Save Outputs to "Zeta Testing" folder
@@ -247,6 +264,9 @@ fprintf('ZETA test outputs saved:\n  %s\n  %s\n', ZetaSummary_csv, ZetaAll_mat);
 
 
 %% Compute instantaneous firing rate (IFR) + PSTH per MoveType × STN depth using getIFR 
+% uses the temporal deviations upon which ZETA is based 
+% d: temporal deviation vector 
+% δ: scaled to lie between –1 and +1, value depends on the difference between the fractional position of a spike (from 0 to 1) and the linear interval from x,y=[0,0] to [τ,1]. 
 
 % https://github.com/JorritMontijn/zetatest/blob/main/getIFR.m
 % getIFR.m: Calculates the instantaneous firing rate (IFR) without running the ZETA-test. Use this as you would a PSTH function.
@@ -254,7 +274,7 @@ fprintf('ZETA test outputs saved:\n  %s\n  %s\n', ZetaSummary_csv, ZetaAll_mat);
 IFR_outDir = fullfile(Zeta_outDir, 'IFR_PSTH');  
 
 [IFR_PSTH_Summary, all_IFR] = runIFR_PSTH_byDepthMove(All_SpikesPerMove_Tbl, AO_spike_fs, ...
-    'UseMaxDur_s', 0.4, ...
+    'UseMaxDur_s', 0.8, ...
     'PadITI_s',    0.005, ...
     'SpikeField',  'C1', ...
     'StartField',  'TTL_spk_idx_Start', ...
@@ -283,10 +303,21 @@ fprintf('IFR/PSTH saved to %s\n', IFR_outDir);
 cd(IFR_outDir)
 
 
+
+%% Plot ZETA z-score scatter plots
+                    
+MasterZETA = aggregate_ZETA_and_plot(FR_Kin_Dir, ...
+    'IO_DataDir', IO_DataDir, ...
+    'ZetaCsvNamePattern','*_ZETA_Summary.csv', ...
+    'SigZ', 2, 'SigP', 0.05, ...
+    'YMax', 5); 
+
+
 %% PCA of ZETA z-scores per Subject / Spike Field (C1, C2, ..., Cn) for each MoveType per STN Depth
 
 % replicate London et al., 2021 paper's Fig 2
-% PCA on spike response profiles
+% PCA on spike response profiles (ZetaZ scores)
+% run through MasterZeta
 
 % Category: each MoveType per STN depth (E.g., Hand OC x dorsal STN)
 
@@ -296,7 +327,16 @@ cd(IFR_outDir)
 % distinct PCA per category
 
 
+%% zetatstest.m: Calculates the time-series version of ZETA, for data such as calcium imaging or EEG recordings.
 
+% run on all_IFR per MoveType x STN depth
+
+%% MUA
+
+%% Heat plot 
+
+
+%% Old pipeline below:
 
 %% plot_Raster_PSTH per move rep
 
@@ -307,7 +347,6 @@ plot_Raster_PSTH(CaseDate, All_SpikesPerMove_Tbl, AO_spike_fs, Case_FRKin_Dir)
 
 % Outputs FR per moveRep and a summary per moveType
 [FR_perTrialRep_All, FR_perMoveType_perDepth_Summary] = compute_FRperMove_perSTNdepth_v3(CaseDate, All_SpikesPerMove_Tbl, AO_spike_fs, Case_FRKin_Dir);
-
 
 
 %% Run run_IO_FR_Analysis_and_Plotting

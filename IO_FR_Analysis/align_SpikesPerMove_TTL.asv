@@ -93,6 +93,7 @@ for spk_mat_name = 1:length(SPKmatnames)
     moveTbl = readtable(moveTbl_name);
     SpkMoveTbl = moveTbl(cellfun(@(X) ~isempty(X), moveTbl.MoveType, 'UniformOutput', true),:); % clean moveTbl (remove zeros)
 
+   
     % initialize arrays
     spike_trial_ID = repmat({ProcFile}, height(SpkMoveTbl), 1);
     move_trial_ID = repmat({motor_trial_ID}, height(SpkMoveTbl), 1);

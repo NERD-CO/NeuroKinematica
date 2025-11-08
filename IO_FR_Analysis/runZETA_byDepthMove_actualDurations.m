@@ -30,7 +30,7 @@ p.addParameter('SpikeField', 'C1', @(s) ischar(s) || isstring(s));   % if single
 p.addParameter('SpikeFields', [], @(x) iscellstr(x) || isempty(x));  % if multiple electrodes {'C1','C2',...}
 % start/stop bounds for spike field segments:
 p.addParameter('StartField', 'TTL_spk_idx_Start', @(s) ischar(s) || isstring(s));
-p.addParameter('StopField',  'TTL_spk_idx_End',   @(s) ischar(s) || isstring(s)); %%% 
+p.addParameter('StopField',  'TTL_spk_idx_End',   @(s) ischar(s) || isstring(s));
 % optional lead-in/out (sec) padding:
 p.addParameter('PreWindow_s',  0.050, @(x) isscalar(x) && x>=0);  % 50 ms pre-trial offset
 p.addParameter('PostWindow_s', 0.000, @(x) isscalar(x) && x>=0);
@@ -65,7 +65,7 @@ all_sZETA = {};       % cell array aligned to rows of ZETA_Summary
 all_sRate = {};
 all_sLatencies = {};
 
-% Outer loop over spike fields (C#s) 
+% Outer loop over spike fields (C#s)
 for SpkF = spikeFields
     curSF = SpkF{1};
 
@@ -81,6 +81,10 @@ for SpkF = spikeFields
 
             if isempty(move_tbl), continue; end
 
+            % Nudge lead-in/out if zero
+            if ParsedInputs.PreWindow_s == 0,  ParsedInputs.PreWindow_s  = 0.050; end  % 50 ms
+            if ParsedInputs.PostWindow_s == 0, ParsedInputs.PostWindow_s = 0.050; end  % 50 ms
+
             % Run helper function: makeZetaInputs_fromAOStartStopTimes
             % Build stitched inputs with true [start stop] and optional pre/post spikes
             [spkT, evTimes, useMaxDur, trialDur, kept_tbl] = makeZetaInputs_fromAOStartStopTimes( ...
@@ -93,14 +97,122 @@ for SpkF = spikeFields
                 'PreWindow_s', ParsedInputs.PreWindow_s, ...
                 'PostWindow_s',ParsedInputs.PostWindow_s);
 
+            % % ---- If not enough trials (< 3), write a NaN row and continue ----
+            % if height(kept_tbl) < 3
+            %     warning('Skipping %s × %s × %s: only %d trial(s). Need >= 3 for stable peaks.', ...
+            %         curSF, mv, dz, height(kept_tbl));
+            % 
+            %     rows(end+1,:) = { ...
+            %         curSF, mv, dz, height(kept_tbl), NaN, ...                 % SpikeField, MoveType, Depth, nTrials, UseMaxDur_s
+            %         NaN, NaN, NaN, NaN, ...                                   % dblZetaP, ZetaZ, ZetaD, ZetaP
+            %         NaN, NaN, NaN, ...                                        % ZetaTime, ZetaD_Inv, ZetaTime_Inv
+            %         NaN, NaN, ...                                             % IFR_PeakTime, IFR_OnsetTime
+            %         mean(trialDur,'omitnan'), std(trialDur,'omitnan'), ...    % MeanStimDur_s, StdStimDur_s
+            %         NaN, NaN, NaN, ...                                        % MeanD, MeanZ, MeanP
+            %         [], NaN, []};                                             % VecSpikeT, ZetaUseMaxDur, VecLatencies
+            % 
+            %     all_sZETA{end+1,1}     = struct();
+            %     all_sRate{end+1,1}     = struct();
+            %     all_sLatencies{end+1,1}= struct();
+            %     continue;
+            % end
+
+            % ---- Debug ----
+            fprintf('Debug: %s %s | trials=%d | dur range [%.4f .. %.4f] s | useMaxDur=%.4f s\n', ...
+                dz, mv, height(kept_tbl), ...
+                min(trialDur,[],'omitnan'), max(trialDur,[],'omitnan'), useMaxDur);
+
+
+            % ---- Sanity & auto-fix the ZETA window / durations ----
+            % 1) If StopField is causing error (durations <= 0), try a common fallback name
+            if all(~isfinite(trialDur) | trialDur <= 0)
+                % Try again with a common alt stop-field name
+                altStop = 'TTL_spk_idx_End';
+                [spkT, evTimes, useMaxDur, trialDur, kept_tbl] = makeZetaInputs_fromAOStartStopTimes( ...
+                    move_tbl, AO_spike_fs, ...
+                    'UseMaxDur_s', ParsedInputs.UseMaxDur_s, ...
+                    'PadITI_s',    ParsedInputs.PadITI_s, ...
+                    'SpikeField',  curSF, ...
+                    'StartField',  ParsedInputs.StartField, ...
+                    'StopField',   altStop, ...
+                    'PreWindow_s', ParsedInputs.PreWindow_s, ...
+                    'PostWindow_s',ParsedInputs.PostWindow_s);
+            end
+
+            % 2) Enforce a sensible analysis window so ZETA has >= 3 samples to work with
+            %    Pick the longest valid trial; if still tiny, inflate to a floor.
+            maxDur   = max(trialDur(isfinite(trialDur) & trialDur>0), [], 'omitnan');
+            minFloor = 0.010;   % 10 ms floor is plenty for findpeaks; bump to 0.02–0.05 if needed
+            if isempty(maxDur) || ~isfinite(maxDur) || maxDur <= 0
+                maxDur = ParsedInputs.UseMaxDur_s;             % fall back
+            end
+            if isempty(maxDur) || ~isfinite(maxDur) || maxDur < minFloor
+                maxDur = minFloor;
+            end
+
+            % If *explicitly* set UseMaxDur_s, respect the smaller of the two only if it's not too tiny
+            if ~isempty(ParsedInputs.UseMaxDur_s)
+                useMaxDur = max(minFloor, ParsedInputs.UseMaxDur_s);
+            else
+                useMaxDur = max(minFloor, maxDur);
+            end
+
             if isempty(spkT) || isempty(evTimes), continue; end
 
-            % Run ZETA
+
+            % ---- Run ZETA with a robust fallback ----
             % (https://github.com/JorritMontijn/zetatest/blob/main/zetatest.m)
-            [pZETA, sZETA, sRate, sLat] = zetatest( ...
-                spkT, evTimes, useMaxDur, ...
-                ParsedInputs.Resamples, ParsedInputs.PlotFlag, ParsedInputs.RestrictRange, ...
-                ParsedInputs.DirectQuantile, ParsedInputs.JitterSize, ParsedInputs.Stitch);
+            hadError = false;
+            try
+                [pZETA, sZETA, sRate, sLat] = zetatest( ...
+                    spkT, evTimes, useMaxDur, ...
+                    ParsedInputs.Resamples, ParsedInputs.PlotFlag, ParsedInputs.RestrictRange, ...
+                    ParsedInputs.DirectQuantile, ParsedInputs.JitterSize, ParsedInputs.Stitch);
+            catch ME
+                hadError = true;
+                if contains(ME.message,'findpeaks') || contains(ME.message,'at least 3 samples')
+                    % Retry: inflate window and disable stitching
+                    useMaxDur_retry = max(useMaxDur, 0.05);   % 50 ms
+                    stitch_retry    = false;
+                    try
+                        [pZETA, sZETA, sRate, sLat] = zetatest( ...
+                            spkT, evTimes, useMaxDur_retry, ...
+                            ParsedInputs.Resamples, ParsedInputs.PlotFlag, ParsedInputs.RestrictRange, ...
+                            ParsedInputs.DirectQuantile, ParsedInputs.JitterSize, stitch_retry);
+                        useMaxDur = useMaxDur_retry; % record what we actually used
+                        hadError = false;
+                    catch
+                        hadError = true;
+                    end
+                else
+                    rethrow(ME);
+                end
+            end
+
+            % If still errored after retry: write a NaN row and continue safely
+            if hadError
+                warning('ZETA failed for %s × %s × %s even after retry. Writing NaNs.', curSF, mv, dz);
+                rows(end+1,:) = { ...
+                    curSF, mv, dz, height(kept_tbl), useMaxDur, ...
+                    NaN, NaN, NaN, NaN, ...
+                    NaN, NaN, NaN, ...
+                    NaN, NaN, ...
+                    mean(trialDur,'omitnan'), std(trialDur,'omitnan'), ...
+                    NaN, NaN, NaN, ...
+                    [], useMaxDur, []};
+
+                all_sZETA{end+1,1}     = struct();
+                all_sRate{end+1,1}     = struct();
+                all_sLatencies{end+1,1}= struct();
+                continue;
+            end
+
+            % ---- Safety: ensure valid ZETA vector length before using latencies ----
+            if isfield(sZETA,'vecZeta') && numel(sZETA.vecZeta) < 3
+                warning('ZETA vector < 3 samples for %s × %s × %s — skipping latency stats.', curSF, mv, dz);
+                sRate = struct();
+                sLat  = struct();
+            end
 
             % Pull optional mean-rate stats (field names differ by version)
             MeanD = getFieldOr(sZETA,'dblMeanD', NaN);   % doc says dblMeanD

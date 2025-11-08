@@ -26,6 +26,8 @@ end
 
 cd(IO_DataDir)
 Subject_AO = readtable('Subject_AO.xlsx');
+Subject_Hem_CaseMap = readtable('Subject_Hem_MetaSummary.xlsx'); % Subject_Hem_MetaSummary.xlsx
+
 
 %% Config - Define datastream sampling rates
 
@@ -48,7 +50,6 @@ useOffset = true;
 % (and a meta struct for reference).
 % If useOffset == false or pre_offset_ms<=0, useOffset_spike function returns 0.
 
-% for future function input: useOffset; when = 1,  offset = offset; when = 0, offset = 0
 
 %% Run useOffset_spikes function
 
@@ -62,18 +63,20 @@ useOffset = true;
 CaseDate = '03_23_2023';
 
 % '03_23_2023';             % NER 2025, NANS 2026, INS 2026      % 1
-% '04_05_2023';             % NER 2025, NANS 2026, INS 2026      % 2
-% '05_18_2023_b_bilateral'; % NER 2025, NANS 2026, INS 2026      % 3 (LSTN)
+% '04_05_2023';             % NER 2025, NANS 2026, INS 2026      % 1
+% '04_13_2023_bilateral';                        % GRC 2026      % 2 (LSTN)
+% '05_18_2023_b_bilateral'; % NER 2025, NANS 2026, INS 2026      % 3 (LSTN) %% error in indice bounds --> check movement indices
 % '05_31_2023';                                  % INS 2026      % 4
 % '06_08_2023_bilateral';   % NER 2025, NANS 2026, INS 2026      % 5 (LSTN)
 % '07_06_2023_bilateral';                        % INS 2026      % 6 (LSTN)
-% '07_13_2023_bilateral';                        % INS 2026      % 7 (LSTN)
+% '07_13_2023_bilateral';                        % INS 2026      % 7 (LSTN, RSTN)
 % '08_23_2023';                       % NANS 2026, INS 2026      % 8
+% '11_30_2023_bilateral';                        % GRC 2026      % 9 (LSTN, RSTN)
 
 
 %% Notes
 
-% '03_09_2023'; % studyID = 1, ptID 1
+% '03_09_2023'; % studyID = 1, ptID 1    x % cut
 
 % '03_23_2023'; % studyID = 2, ptID 2    * % Use for INS 2026
 % '04_05_2023'; % studyID = 3, ptID 2    * % Use for INS 2026
@@ -114,14 +117,17 @@ cd(MoveDataDir)
 % Specify case ID
 MoveDir_CaseID = 'IO_03_23_2023_LSTN'; % Adjust as needed
 
-% 'IO_03_23_2023_LSTN'; % NER 2025, NANS 2026
-% 'IO_04_05_2023_RSTN'; % NER 2025, NANS 2026
-% 'IO_05_18_2023_b_LSTN'; % NER 2025, NANS 2026         %% errors using new pipeline
+% 'IO_03_23_2023_LSTN'; % NER 2025, INS 2026
+% 'IO_04_05_2023_RSTN'; % NER 2025, INS 2026
+% 'IO_04_13_2023_LSTN'; %           GRC 2026
+% 'IO_05_18_2023_b_LSTN'; % NER 2025, INS 2026         %% check movement indices
 % 'IO_05_31_2023_LSTN';
-% 'IO_06_08_2023_LSTN'; % NER 2025, NANS 2026
+% 'IO_06_08_2023_LSTN'; % NER 2025, INS 2026
 % 'IO_07_06_2023_LSTN';
-% 'IO_07_13_2023_LSTN';
-% 'IO_08_23_2023_RSTN'; % NANS 2026
+% 'IO_07_13_2023_LSTN'; % INS 2026
+% 'IO_07_13_2023_RSTN'; %           GRC 2026
+% 'IO_08_23_2023_RSTN'; % INS 2026
+% 'IO_11_30_2023_LSTN'; %           GRC 2026
 
 
 
@@ -222,6 +228,17 @@ cd(ClustSpkTimesDir);
 
 %% Run align_SpikesPerMove_TTL function
 
-All_SpikesPerMove_Tbl = align_SpikesPerMove_TTL(Subject_AO, AO_spike_fs, TTL_fs, ProcDataDir, ClustSpkTimesDir, Move_CaseDir, pre_offset_ms, useOffset, Case_FRKin_Dir);
+All_SpikesPerMove_Tbl = align_SpikesPerMove_TTL(Subject_AO, AO_spike_fs, TTL_fs, ...
+    ProcDataDir, ClustSpkTimesDir, Move_CaseDir, pre_offset_ms, useOffset, Case_FRKin_Dir);
 
-%%
+
+%% Cases to prioritize for spike sorting quality review first
+
+SpkQaulCheck_dir = 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\SpikeQualityReviewer';
+cd(SpkQaulCheck_dir) 
+
+% IO_04_13_2023_LSTN
+% 05_31_2023
+% IO_07_06_2023_LSTN
+% 08_23_2023
+

@@ -21,10 +21,10 @@ p.addParameter('MinDur_s',     0,        @(x) isscalar(x) && x>=0);
 p.addParameter('MaxDur_s',     inf,      @(x) isscalar(x) && x>0);
 p.addParameter('SpikeField',   'C1',     @(s) ischar(s) || isstring(s));
 p.addParameter('StartField',   'TTL_spk_idx_Start', @(s) ischar(s) || isstring(s));
-p.addParameter('StopField',    'TTL_spk_idx_End',   @(s) ischar(s) || isstring(s)); % need to go from start 1 to start 2 for a full move rep
+p.addParameter('StopField',    'TTL_spk_idx_End',   @(s) ischar(s) || isstring(s)); % goes from start of current rep to start of next rep (minus 5 frames), a full move rep
 % lead-in / lead-out to keep around each event (seconds)
-p.addParameter('PreWindow_s',  0.0,      @(x) isscalar(x) && x>=0);
-p.addParameter('PostWindow_s', 0.0,      @(x) isscalar(x) && x>=0);
+p.addParameter('PreWindow_s',  0.050,      @(x) isscalar(x) && x>=0);
+p.addParameter('PostWindow_s', 0.000,      @(x) isscalar(x) && x>=0);
 p.parse(varargin{:}); % parse inputs
 ParsedInputs = p.Results; % holds parsed inputs
 

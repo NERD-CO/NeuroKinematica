@@ -1,0 +1,595 @@
+function MasterZETA = aggregate_ZETA_and_plot(baseFRKinDir, varargin)
+
+% aggregate_ZETA_and_plot:
+%
+% Scans subject case folders in FR_Kinematic_Analyses, loads ZETA_Summary CSVs,
+% aggregates rows (Subject/Hemisphere/SpikeField/MoveType/Depth), and
+% produces per-category scatter plots with significance marking.
+%
+% Usage:
+%   MasterZETA = aggregate_ZETA_and_plot( ...
+%       'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\Ephys_Kinematics\FR_Kinematic_Analyses', ...
+%       'SaveDir', '', 'ZetaCsvNamePattern', '*_ZETA_Summary.csv', ...
+%       'SigZ', 2, 'SigP', 0.05);
+%
+% Outputs:
+%   MasterZETA : table with aggregated ZETA rows from all subjects found.
+
+p = inputParser;
+p.addParameter('IO_DataDir','', @(s) ischar(s) || isstring(s));  % directory containing Subject_Hem_MetaSummary.xlsx
+p.addParameter('SaveDir','', @(s) ischar(s) || isstring(s));                 % where to save group plots (default: under base)
+p.addParameter('ZetaCsvNamePattern','*_ZETA_Summary*.csv', @(s)ischar(s)||isstring(s));
+p.addParameter('SigZ', 2, @(x) isscalar(x) && x>0);                           % z-score threshold line
+p.addParameter('SigP', 0.05, @(x) isscalar(x) && x>0 && x<1);                 % p-value threshold (two-tailed)
+p.addParameter('DepthMap', containers.Map({'t','c','b'},{'dorsal STN','central STN','ventral STN'}));
+p.addParameter('PrettyMoveMap', containers.Map( ...
+    {'HAND OC','HAND PS','ARM EF','REST'}, {'Hand OC','Hand PS','Arm EF','Rest'}));
+p.addParameter('YMax', 5, @(x) isscalar(x) && x>0);     % fix y-axis upper limit
+p.parse(varargin{:});
+U = p.Results;
+
+
+% Output directory to save figures
+if isempty(U.SaveDir)
+    groupOut = fullfile(baseFRKinDir, 'Aggregate Zeta Plots');
+else
+    groupOut = char(U.SaveDir);
+end
+if ~exist(groupOut,'dir'), mkdir(groupOut); end
+
+
+%% 1) Scan case folders and collect ZETA CSVs
+
+fileList = find_ZetaSummary_files(baseFRKinDir, U.ZetaCsvNamePattern);
+
+
+%% 2) Load & unify ZETA rows into a master table (standardize full canonical set)
+
+MasterZETA = table();
+canonOrder = {'CaseDate','Hemisphere','SpikeField','MoveType','Depth','nTrials', ...
+    'dblZetaP','ZetaZ','ZetaD','ZetaTime', ...
+    'IFR_PeakTime','IFR_OnsetTime', ...
+    'MeanStimDur_s','StdStimDur_s', ...
+    'MeanZ','MeanP'};
+
+for k = 1:numel(fileList)
+    Traw = readtable(fileList(k).fullpath, 'TextType','string');
+
+    % Map/standardize to your canonical ZETA columns
+    T = standardizeZetaCoreCols_full(Traw);
+
+    % Add CaseDate & Hemisphere
+    T.CaseDate   = repmat(string(fileList(k).subject), height(T), 1);
+    T.Hemisphere = repmat(string(fileList(k).hemi),    height(T), 1);
+
+    % Enforce types for key variables
+    numVars = {'nTrials','dblZetaP','ZetaZ','ZetaD','ZetaTime', ...
+        'IFR_PeakTime','IFR_OnsetTime', ...
+        'MeanStimDur_s','StdStimDur_s','MeanZ','MeanP'};
+    for v = numVars
+        if ismember(v{1}, T.Properties.VariableNames)
+            T.(v{1}) = double(T.(v{1}));
+        end
+    end
+    strVars = {'CaseDate','Hemisphere','SpikeField','MoveType','Depth'};
+    for v = strVars
+        if ismember(v{1}, T.Properties.VariableNames)
+            T.(v{1}) = string(T.(v{1}));
+        end
+    end
+
+    % Ensure all canonical columns exist and order them
+    for v = canonOrder
+        if ~ismember(v{1}, T.Properties.VariableNames)
+            if ismember(v{1}, strVars)
+                T.(v{1}) = repmat(string(missing), height(T), 1);
+            else
+                T.(v{1}) = nan(height(T),1);
+            end
+        end
+    end
+    T = T(:, canonOrder);
+
+    % Append
+    MasterZETA = [MasterZETA; T];
+end
+
+if isempty(MasterZETA)
+    warning('No ZETA summary rows found. Nothing to plot.');
+    return
+end
+
+
+%% Attach Subject + Hemisphere labels from spreadsheet (simple + robust)
+
+LabelMapCH = [];   % containers.Map for "CaseFolder|HemTag" -> label
+NumMapCH   = [];   % containers.Map for "CaseFolder|HemTag" -> SubjectNum (string)
+LabelMapC  = [];   % containers.Map for "CaseFolder" -> label (only when unambiguous)
+NumMapC    = [];   % containers.Map for "CaseFolder" -> SubjectNum (string)
+HemMapC    = [];   % containers.Map for "CaseFolder" -> HemTag (string)
+haveMeta   = false;
+
+if ~isempty(U.IO_DataDir)
+    metaPath = fullfile(char(U.IO_DataDir),'Subject_Hem_MetaSummary.xlsx');
+    if exist(metaPath,'file')
+        M = readtable(metaPath,'TextType','string');
+
+        % ---- Normalize / derive HemTag ----
+        if ~ismember('HemTag', M.Properties.VariableNames) || any(M.HemTag=="")
+            M.HemTag = strings(height(M),1);
+            M.HemTag(endsWith(M.MoveCaseFolder,"_LSTN")) = "LSTN";
+            M.HemTag(endsWith(M.MoveCaseFolder,"_RSTN")) = "RSTN";
+        end
+        % Be defensive about random whitespace / case
+        M.CaseFolder = strtrim(M.CaseFolder);
+        M.HemTag     = upper(strtrim(M.HemTag));
+        M.SubjectNum = string(M.SubjectNum);
+
+        % ---- Map 1: Case+Hem -> label / SubjectNum ----
+        keyCH   = M.CaseFolder + "|" + M.HemTag;
+        lblCH   = "Subject " + M.SubjectNum + " - " + M.HemTag;
+        [ukCH, iaCH] = unique(keyCH,'stable');    % keep first occurrence
+        LabelMapCH = containers.Map(ukCH, lblCH(iaCH));
+        NumMapCH   = containers.Map(ukCH, M.SubjectNum(iaCH));
+
+        % ---- Map 2: Case (only where unambiguous in spreadsheet) ----
+        % For unilateral cases (appears once) we can resolve without hem on the left.
+        [g, caseCats] = findgroups(M.CaseFolder);
+        counts = splitapply(@numel, M.CaseFolder, g);
+        unilateralCases = caseCats(counts==1);
+        if ~isempty(unilateralCases)
+            % Build case-only label/num/hem maps only for those unilateral cases
+            umask = ismember(M.CaseFolder, unilateralCases);
+            uCase = M.CaseFolder(umask);
+            uHem  = M.HemTag(umask);
+            uNum  = M.SubjectNum(umask);
+            uLbl  = "Subject " + uNum + " - " + uHem;
+            [uCuniq, iu] = unique(uCase,'stable');
+            LabelMapC = containers.Map(uCuniq, uLbl(iu));
+            NumMapC   = containers.Map(uCuniq, uNum(iu));
+            HemMapC   = containers.Map(uCuniq, uHem(iu));
+        end
+
+        haveMeta = true;
+    else
+        warning('Meta spreadsheet not found at: %s. Falling back to generic subject labels.', metaPath);
+    end
+end
+
+% ---- Build per-row labels for MasterZETA ----
+caseF = string(strtrim(MasterZETA.CaseDate));     % case folder in ZETA rows
+hemi  = upper(string(strtrim(MasterZETA.Hemisphere)));  % 'LSTN'/'RSTN' or ""
+
+rowKeyCH = caseF + "|" + hemi;
+
+prettyLabel = strings(height(MasterZETA),1);
+subjNumStr  = strings(height(MasterZETA),1);
+hemiFilled  = hemi;   % will fill from meta when missing
+
+% Fallback generator uses stable per-case index so bilateral days stay split
+[~,~,caseStableIdx] = unique(caseF,'stable');
+
+for i = 1:height(MasterZETA)
+    if haveMeta && hemi(i)~="" && isKey(LabelMapCH, rowKeyCH(i))
+        % Exact case+hem match (bilateral days)
+        prettyLabel(i) = LabelMapCH(rowKeyCH(i));
+        subjNumStr(i)  = NumMapCH(rowKeyCH(i));
+        % hemiFilled(i) already equals hemi(i)
+    elseif haveMeta && isKey(LabelMapC, caseF(i))
+        % Unilateral case (hem missing on left; safe to resolve by case only)
+        prettyLabel(i) = LabelMapC(caseF(i));
+        subjNumStr(i)  = NumMapC(caseF(i));
+        hemiFilled(i)  = HemMapC(caseF(i));   % fill hemisphere for completeness
+    else
+        % Generic fallback (no spreadsheet or unmatched key)
+        prettyLabel(i) = "Subject " + string(caseStableIdx(i)) + " - " + hemi(i);
+        subjNumStr(i)  = string(caseStableIdx(i));
+    end
+end
+
+% Store for plotting/export
+MasterZETA.PrettyLabel     = prettyLabel;   % e.g., "Subject 1 - LSTN"
+MasterZETA.SubjectNum      = subjNumStr;    % "1","2",...
+MasterZETA.HemisphereFilled = hemiFilled;   % 'LSTN'/'RSTN' (filled for unilateral)
+
+% sanity summary
+unmatched = MasterZETA(~startsWith(MasterZETA.PrettyLabel,"Subject "),:);
+fprintf('[Map check] unique x-labels: %d | unmatched rows: %d\n', ...
+        numel(unique(MasterZETA.PrettyLabel,'stable')), height(unmatched));
+
+
+%% 3a) All-categories-in-one scatter (Subjects on x, all MoveType×Depth ZetaZ scores stacked on y with xjitter)
+
+% ---- build friendly labels (global, consistent across whole MasterZETA) ----
+% Subject index in encounter order (Subject 1, Subject 2, ...)
+[~, ~, subjIdxAll] = unique(MasterZETA.CaseDate,'stable');
+subjNum = subjIdxAll;  % numeric 1..N
+
+% % ---- build labels from SubjectNum (+ hemisphere, if present) ----
+% hasHemi  = ~(MasterZETA.Hemisphere=="" | ismissing(MasterZETA.Hemisphere));
+% hemiText = strings(height(MasterZETA),1);
+% hemiText(hasHemi) = "–" + string(MasterZETA.Hemisphere(hasHemi));   % '–LSTN'/'–RSTN'
+% % % don't display hemisphere for now
+% % hemiText(:) = "";
+
+% Build x-axis groups from meta-driven labels
+prettyPerRow = MasterZETA.PrettyLabel; % per-row label like "Subject 1 - LSTN"
+
+% x positions (with jitter)
+[uniqSubsAll, ~, subjIdxX] = unique(prettyPerRow,'stable'); % unique x-tick strings in encounter order
+x_all  = subjIdxX; % x position index for each row
+jitter_all = (rand(size(x_all)) - 0.5) * 0.30; % ±0.15 jitter
+xj_all = x_all + jitter_all;
+
+
+% Sig vs n.s.
+isSig_all = (MasterZETA.ZetaZ >= U.SigZ) & (MasterZETA.dblZetaP <= U.SigP); % ZetaZ > 2 and ZetaP < 0.05
+y_all = MasterZETA.ZetaZ;
+
+
+% Plot
+hAll = figure('Color','w','Position',[80 80 1200 520]); hold on; grid on;
+
+% n.s. gray dots
+scatter(xj_all(~isSig_all), y_all(~isSig_all), 28, [0.6 0.6 0.6], ...
+    'filled', 'MarkerFaceAlpha', 0.8, 'DisplayName','n.s.');
+
+% significant red stars
+scatter(xj_all(isSig_all), y_all(isSig_all), 60, 'r', '*', ...
+    'LineWidth', 1.25, 'DisplayName','p<0.05, Z \geq 2');
+
+% threshold
+yline(U.SigZ, '--', 'Color',[0.3 0.3 0.3], 'LineWidth', 1, ...
+    'DisplayName','ZETA significance threshold');
+
+% x-ticks & labels
+xticks(1:numel(uniqSubsAll));
+xticklabels(uniqSubsAll);
+xtickangle(60);
+xlim([0.5, numel(uniqSubsAll)+0.5]);
+
+% y-axis fixed [0, U.YMax]
+ylim([0, U.YMax]);
+ylabel('ZETA z-score (ZetaZ)');
+title(sprintf('ZETA z-scores | All categories (MoveType × Depth)  (N=%d subjects)', numel(uniqSubsAll)));
+legend('Location','northeastoutside');
+
+% Save
+fnameAll = 'ZETA_Scatter_AllCategories_AllSubjects.png';
+print(hAll, fullfile(groupOut, fnameAll), '-dpng', '-r300');
+close(hAll);
+
+
+
+%% 3b) All-categories-in-one scatter (by category: color=Depth, shape=MoveType, edge=significance)
+% update this to be subplots (tilelayout 3 rows, 1 column) for each depth - use color to differentiate movement type in each subplot
+
+
+% Build x-axis groups from meta-driven labels
+prettyPerRow = MasterZETA.PrettyLabel; % per-row label like "Subject 1 - LSTN"
+
+% x positions (with jitter)
+[uniqSubsAll, ~, subjIdxX] = unique(prettyPerRow,'stable'); % unique x-tick strings in encounter order
+x_all  = subjIdxX; % x position index for each row
+jitter_all = (rand(size(x_all)) - 0.5) * 0.30; % ±0.15 jitter
+xj_all = x_all + jitter_all;
+
+
+% % ----- mappings -----
+% % Depth: color
+% depthColor = containers.Map({'t','c','b'}, ...
+%     {[0.20 0.60 0.20],  ... % dorsal = green
+%     [0.50 0.20 0.70],  ... % central = purple
+%     [0.15 0.45 0.85]});    % ventral = blue
+% fallbackDepthColor = [0.3 0.3 0.3];
+%
+% % MoveType: marker + fill
+% moveMarker = containers.Map( ...
+%     {'HAND OC','HAND PS','ARM EF','REST'}, ...
+%     {'o','s','^','_'});   % OC circle, PS square, EF up-triangle, Rest dash
+% moveFilled = containers.Map( ...
+%     {'HAND OC','HAND PS','ARM EF','REST'}, ...
+%     { true,  true,  true,  false}); % REST is empty
+
+
+% ----- data -----
+y_all    = MasterZETA.ZetaZ;
+isSig    = (MasterZETA.ZetaZ >= U.SigZ) & (MasterZETA.dblZetaP <= U.SigP);
+mv_all   = string(MasterZETA.MoveType);
+dz_all   = string(MasterZETA.Depth);
+
+
+% ----- MoveType colors (fill) -----
+mtColor = containers.Map( ...
+    {'HAND OC','HAND PS','ARM EF','REST'}, ...
+    {[0.95 0.60 0.10],  ... % Hand OC = orange
+    [0.20 0.65 0.30],  ... % Hand PS = green
+    [0.15 0.45 0.85],  ... % Arm EF  = blue
+    [0.75 0.75 0.75]});    % REST    = light gray
+
+% Edge colors by significance
+edgeGray = [0.6 0.6 0.6];
+edgeRed  = [0.85 0.10 0.10];
+
+% Depth order & pretty names (row = depth)
+depthKeys  = {'t','c','b'};
+depthNames = {'dorsal STN','central STN','ventral STN'};
+
+% Figure with 3 rows (one per depth)
+hT = figure('Color','w','Position',[90 90 1200 800]);
+tlo = tiledlayout(3,1,'TileSpacing','compact','Padding','compact');
+
+for dd = 1:numel(depthKeys)
+    dzKey = depthKeys{dd};
+    ax = nexttile; hold(ax,'on'); grid(ax,'on');
+
+    % within this depth, plot each MoveType with its color and edge by significance
+    movesHere = unique(mv_all(dz_all==dzKey),'stable');
+
+    for im = 1:numel(movesHere)
+        mv = movesHere(im);
+        % pick fill color
+        if isKey(mtColor, char(mv)), fc = mtColor(char(mv));
+        else, fc = [0.5 0.5 0.5]; end
+
+        idx = (dz_all==dzKey) & (mv_all==mv) & ~isnan(y_all);
+        if ~any(idx), continue; end
+
+        % non-sig
+        idx_ns = idx & ~isSig;
+        if any(idx_ns)
+            scatter(ax, xj_all(idx_ns), y_all(idx_ns), 36, fc, ...
+                'filled', 'MarkerEdgeColor', edgeGray, 'MarkerFaceAlpha', 0.95, 'MarkerEdgeAlpha', 0.95);
+        end
+
+        % sig
+        idx_sig = idx & isSig;
+        if any(idx_sig)
+            scatter(ax, xj_all(idx_sig), y_all(idx_sig), 60, fc, ...
+                'filled', 'MarkerEdgeColor', edgeRed, 'LineWidth', 1.2, ...
+                'MarkerFaceAlpha', 0.95, 'MarkerEdgeAlpha', 0.95);
+        end
+    end
+
+    % threshold and axes for this depth
+    yline(ax, U.SigZ, '--', 'Color',[0.3 0.3 0.3], 'LineWidth', 1);
+    xticks(ax, 1:numel(uniqSubsAll));
+    xticklabels(ax, uniqSubsAll);
+    xtickangle(ax, 60);
+    xlim(ax, [0.5, numel(uniqSubsAll)+0.5]);
+    ylim(ax, [0, U.YMax]);
+    ylabel(ax, 'ZETA z-score (ZetaZ)');
+    title(ax, sprintf('All MoveTypes | %s', depthNames{dd}));
+end
+
+% --- Legend (robust across MATLAB versions) ---
+% Dummy handles for MoveType colors + edge significance
+hOC = scatter(nan,nan,50,mtColor('HAND OC'),'filled','MarkerEdgeColor',edgeGray,'DisplayName','Hand OC');
+hPS = scatter(nan,nan,50,mtColor('HAND PS'),'filled','MarkerEdgeColor',edgeGray,'DisplayName','Hand PS');
+hEF = scatter(nan,nan,50,mtColor('ARM EF'), 'filled','MarkerEdgeColor',edgeGray,'DisplayName','Arm EF');
+hRE = scatter(nan,nan,50,mtColor('REST'),   'filled','MarkerEdgeColor',edgeGray,'DisplayName','Rest');
+hNS = scatter(nan,nan,36,[1 1 1],'filled','MarkerEdgeColor',edgeGray,'DisplayName','n.s. edge');
+hSG = scatter(nan,nan,36,[1 1 1],'filled','MarkerEdgeColor',edgeRed, 'DisplayName','sig edge');
+
+% Try to dock in the tiledlayout header (newer MATLAB), otherwise overlay legend on an invisible axes
+try
+    lgd = legend([hOC hPS hEF hRE hNS hSG], 'Orientation','horizontal');
+    if isprop(lgd,'Layout') && isprop(lgd.Layout,'Tile')
+        lgd.Layout.Tile = 'north';     % docks legend above the tiles
+    else
+        % Fallback: overlay legend in figure using an invisible, full-figure axes
+        delete(lgd); % remove the axes-attached legend first
+        axLeg = axes('Parent',hT,'Units','normalized','Position',[0 0 1 1], 'Visible','off');
+        lgd = legend(axLeg,[hOC hPS hEF hRE hNS hSG], 'Orientation','horizontal','Box','off');
+        % Tweak position near the top center (x y w h in normalized fig coords)
+        lgd.Units = 'normalized';
+        lgd.Position = [0.32 0.965 0.36 0.03];   % adjust if needed
+    end
+catch
+    % Absolute fallback: put a standard legend below the bottom tile
+    lgd = legend([hOC hPS hEF hRE hNS hSG], 'Orientation','horizontal', 'Location','southoutside');
+end
+
+% Figure title for the whole tiledlayout
+title(tlo, sprintf('ZETA z-scores | All categories by depth '));
+
+fnameAll2 = 'ZETA_Scatter_AllCategories_ByDepth_Tiles.png';
+print(hT, fullfile(groupOut, fnameAll2), '-dpng', '-r300');
+close(hT);
+
+
+%% 4) Scatter per category (MoveType × Depth) on x, ZetaZ on y with jitter
+
+cats = unique(MasterZETA(:, {'MoveType','Depth'}), 'rows', 'stable');
+for i = 1:height(cats)
+    mv = cats.MoveType(i);
+    dz = cats.Depth(i);
+
+    sel = MasterZETA(MasterZETA.MoveType==mv & MasterZETA.Depth==dz, :);
+    if isempty(sel), continue; end
+
+    % ---- build friendly labels (safe string construction) ----
+    % Subject index in encounter order (Subject 1, Subject 2, ...)
+    [~, ~, subjIdxAll] = unique(sel.CaseDate,'stable');
+    subjNum = subjIdxAll;  % numeric 1..N
+
+    % % ---- labels by SubjectNum (+ hem) for the selected subset ----
+    % hasHemi  = ~(sel.Hemisphere=="" | ismissing(sel.Hemisphere));
+    % hemiText = strings(height(sel),1); % initialize all empty
+    % hemiText(hasHemi) = "–" + string(sel.Hemisphere(hasHemi));
+    % % % don't display hemisphere for now
+    % % hemiText(:) = "";
+
+    prettyPerRow = sel.PrettyLabel;
+    [uniqSubs, ~, xIdx] = unique(prettyPerRow,'stable');
+    x = xIdx;  % (no jitter for the per-category plots)
+
+    % sig vs nonsig
+    isSig = (sel.ZetaZ >= U.SigZ) & (sel.dblZetaP <= U.SigP); % ZetaZ > 2, ZetaP < 0.05
+    y = sel.ZetaZ;
+
+    % Pretty labels
+    depthLbl = mapOrDefault(U.DepthMap, dz, dz);
+    mvPretty = mapOrDefault(U.PrettyMoveMap, mv, mv);
+
+    % Plot
+    h = figure('Color','w','Position',[100 100 1100 500]);
+    hold on; grid on;
+
+    % nonsig: gray dots
+    scatter(x(~isSig), y(~isSig), 28, [0.6 0.6 0.6], 'filled', 'MarkerFaceAlpha', 0.8, 'DisplayName','n.s.');
+    % sig: red stars
+    scatter(x(isSig),  y(isSig),  60, 'r', '*', 'LineWidth', 1.25, 'DisplayName','p<0.05, Z \geq 2');
+
+    % dashed threshold line at Z = SigZ
+    yline(U.SigZ, '--', 'Color',[0.3 0.3 0.3], 'LineWidth', 1, 'DisplayName','ZETA significance threshold');
+
+    % x-axis ticks per subject, rotate labels
+    xticks(1:numel(uniqSubs));
+    xticklabels(uniqSubs);
+    xtickangle(60);
+    xlim([0.5, numel(uniqSubs)+0.5]);
+
+    % y-axis limits (start at 0 for clarity)
+    ylim([0, U.YMax]);              % fixed y-axis
+
+    ylabel('ZETA z-score (ZetaZ)');
+    title(sprintf('ZETA z-scores | %s × %s  (N=%d subjects)', mvPretty, depthLbl, numel(uniqSubs)));
+
+    legend('Location','northeastoutside');
+
+    % Save
+    fname = sprintf('ZETA_Scatter_%s_%s.png', sanitize_filename(mv), sanitize_filename(dz));
+    print(h, fullfile(groupOut, fname), '-dpng', '-r300');
+    close(h);
+end
+
+
+%% Save the Master table for reference
+
+writetable(MasterZETA, fullfile(groupOut, 'MasterZETA_AllSubjects.csv'));
+
+writetable(MasterZETA(:,[ ...
+  "SubjectNum", "CaseDate","Hemisphere","HemisphereFilled","PrettyLabel", ...
+  "MoveType","Depth", "nTrials", "dblZetaP", "ZetaZ", "ZetaD" ...
+]), fullfile(groupOut,'MasterZETA_AllSubjects_Summary.csv'));
+
+
+fprintf('[OK] Aggregated %d rows across %d subjects. Plots saved to:\n  %s\n', ...
+    height(MasterZETA), numel(unique(MasterZETA.CaseDate)), groupOut);
+end
+
+
+%% Helpers
+
+function list = find_ZetaSummary_files(baseFRKinDir, zetaCsvPattern)
+% Returns struct array with fields: fullpath, subject, hemi ('' if unilateral)
+
+list = struct('fullpath',{},'subject',{},'hemi',{});
+
+caseDirs = dir(fullfile(baseFRKinDir,'*'));
+caseDirs = caseDirs([caseDirs.isdir]);
+caseDirs = caseDirs(~ismember({caseDirs.name},{'.','..'}));
+
+for i = 1:numel(caseDirs)
+    caseName = caseDirs(i).name;               % e.g., '03_23_2023' or '07_06_2023_bilateral'
+    casePath = fullfile(baseFRKinDir, caseName);
+
+    % First check unilateral: Case/Zeta Testing/*.csv
+    zetaDir = fullfile(casePath,'Zeta Testing');
+    files = dir(fullfile(zetaDir, zetaCsvPattern));
+
+    % If none, look for hemisphere subfolders: Case/LSTN or Case/RSTN/Zeta Testing/*.csv
+    if isempty(files)
+        hemiDirs = dir(fullfile(casePath,'*STN'));
+        hemiDirs = hemiDirs([hemiDirs.isdir]);
+        for h = 1:numel(hemiDirs)
+            hemiName = hemiDirs(h).name; % 'LSTN' or 'RSTN'
+            zetaDirH = fullfile(casePath, hemiName, 'Zeta Testing');
+            filesH = dir(fullfile(zetaDirH, zetaCsvPattern));
+            for k = 1:numel(filesH)
+                list(end+1) = struct( ...
+                    'fullpath', fullfile(filesH(k).folder, filesH(k).name), ...
+                    'subject', caseName, ...
+                    'hemi', hemiName);
+            end
+        end
+    else
+        for k = 1:numel(files)
+            list(end+1) = struct( ...
+                'fullpath', fullfile(files(k).folder, files(k).name), ...
+                'subject', caseName, ...
+                'hemi', '');
+        end
+    end
+end
+end
+
+
+function s = sanitize_filename(s)
+s = regexprep(char(s), '[^\w\-\(\)\[\]\.]+', '_');
+end
+
+function v = mapOrDefault(mapObj, key, defaultVal)
+try
+    if isKey(mapObj, char(key)), v = mapObj(char(key)); else, v = defaultVal; end
+catch
+    v = defaultVal;
+end
+end
+
+
+function T = standardizeZetaCoreCols_full(T_in)
+% Standardize ZETA summary table to the canonical set of columns used for group aggregation.
+% Returns all columns listed in the canonOrder defined in aggregate_ZETA_and_plot.
+
+vars = T_in.Properties.VariableNames;
+
+% Safe getters (fills with NaN/missing if not found)
+getStr = @(name) string(extractfield_ifexist(T_in, name, missing));
+getNum = @(name) double(extractfield_ifexist(T_in, name, NaN));
+
+T = table( ...
+    getStr('SpikeField'), ...
+    getStr('MoveType'), ...
+    getStr('Depth'), ...
+    getNum('nTrials'), ...
+    getNum('dblZetaP'), ...
+    getNum('ZetaZ'), ...
+    getNum('ZetaD'), ...
+    getNum('ZetaTime'), ...
+    getNum('IFR_PeakTime'), ...
+    getNum('IFR_OnsetTime'), ...
+    getNum('MeanStimDur_s'), ...
+    getNum('StdStimDur_s'), ...
+    getNum('MeanZ'), ...
+    getNum('MeanP'), ...
+    'VariableNames', {'SpikeField','MoveType','Depth','nTrials', ...
+    'dblZetaP','ZetaZ','ZetaD','ZetaTime', ...
+    'IFR_PeakTime','IFR_OnsetTime', ...
+    'MeanStimDur_s','StdStimDur_s','MeanZ','MeanP'});
+end
+
+function out = extractfield_ifexist(T, fieldname, defaultVal)
+% Return T.(fieldname) if it exists, else defaultVal of matching height.
+if ismember(fieldname, T.Properties.VariableNames)
+    out = T.(fieldname);
+else
+    out = repmat(defaultVal, height(T), 1);
+end
+end
+
+
+% function drawRestRect(ax,x,y,w,h,faceColor,edgeColor,edgeLW)
+% % Draw a thin horizontal rectangle in data units at (x,y).
+% % ax       : target axes handle
+% % x, y     : data coordinates (center of the rectangle)
+% % w, h     : width & height in data units (keep h small)
+% % faceColor: [r g b] fill color (depth-coded)
+% % edgeColor: [r g b] edge color (significance-coded)
+% % edgeLW   : edge line width
+% rectangle(ax,'Position',[x - w/2, y - h/2, w, h], ...
+%     'FaceColor',faceColor, 'EdgeColor',edgeColor, ...
+%     'LineWidth',edgeLW, 'Clipping','on');
+% end
+

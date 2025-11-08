@@ -15,12 +15,14 @@ switch curPCname
         addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\DLC_Processing';
         addpath 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\DLC_VideoIndexing_GUI';
         MovIndexGUI_dir = 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\DLC_VideoIndexing_GUI';
+        SpkQaulCheck_dir = 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\SpikeQualityReviewer';
         FRKin_dir = 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Documents 1\GitHub\NeuroKinematica\IO_FR_Analysis';
     case 'NSG-M-H8J3X34'    % PC_2
         IO_DataDir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative';
         addpath 'C:\GitHub\NeuroKinematica\DLC_Processing';
         addpath 'C:\GitHub\NeuroKinematica\DLC_VideoIndexing_GUI';
         MovIndexGUI_dir = 'C:\GitHub\NeuroKinematica\DLC_VideoIndexing_GUI';     
+        SpkQaulCheck_dir = 'C:\GitHub\NeuroKinematica\SpikeQualityReviewer';
         FRKin_dir = 'C:\GitHub\NeuroKinematica\IO_FR_Analysis';
 end
 
@@ -41,7 +43,7 @@ cd(IO_procDLC);
 %% 1) Define DLC processing function inputs
 
 % Define casedate and hemisphere:
-casedate_hem = 'IO_07_20_2023_LSTN';
+casedate_hem = 'IO_07_26_2023_RSTN';
 
 % 'IO_03_09_2023_RSTN';  
 % 'IO_03_23_2023_LSTN';
@@ -53,6 +55,8 @@ casedate_hem = 'IO_07_20_2023_LSTN';
 % 'IO_2023_07_06_LSTN';
 % 'IO_2023_07_13_LSTN';
 % 'IO_2023_07_13_RSTN';
+% 'IO_07_20_2023_LSTN';
+% 'IO_07_26_2023_RSTN';
 % 'IO_2023_08_23_RSTN';
 % 'IO_11_30_2023_LSTN';
 % 'IO_11_30_2023_RSTN';
@@ -102,3 +106,8 @@ cd(MovIndexGUI_dir)
 % [kinTbl, kinSummaryTbl] = run_MovementFeatureAnalysis_IO_v2(IO_DataDir, MoveDataDir, MoveDir_CaseID);
 
 
+%% Check Spike Quality
+
+cd(SpkQaulCheck_dir)
+
+% SpikeQualityRView.mlapp

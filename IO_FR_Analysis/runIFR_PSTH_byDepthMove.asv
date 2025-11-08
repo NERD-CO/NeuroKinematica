@@ -233,10 +233,9 @@ for SpkF = spikeFields
         end
 
         end % depth
-    end % move
-end % spike field
+    end 
+end 
 
-% ---- finalize table ----
 varNames = { ...
     'SpikeField','MoveType','Depth','nTrials','UseMaxDur_s', ...
     'BinSize_ms','MeanDur_s','StdDur_s', ...
