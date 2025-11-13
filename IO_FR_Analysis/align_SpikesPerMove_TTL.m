@@ -104,38 +104,79 @@ for spk_mat_name = 1:length(SPKmatnames)
     % loop through trials and pull out BeginF and EndF indices in MoveIndex csv per corresponding trial
     for move_i = 1:height(SpkMoveTbl)
 
-        % define frame indices based on task recording context (frame indices in TTL_Down)                    % get these from movement index csv
-        frame_startTime = SpkMoveTbl.BeginF(move_i); % frame index of recording initiation
-        frame_endTime1 = SpkMoveTbl.EndF(move_i); % frame index of recording termination
+        % define frame indices based on task recording context (frame indices in TTL_Down)
+        % ---------- get these from movement index csv ----------
+        frame_startTime = SpkMoveTbl.BeginF(move_i); % frame index of move initiation (open, pronated, extended)
+        frame_endTime1 = SpkMoveTbl.EndF(move_i); % frame index of move termination (closed, supinated, flexed)
+
+        % -----------------------------------------------------------
 
         % redefine frame_endTime dynamically based on next moveRep BeginF
         % ---------- choose frame_endTime by MoveType ----------
-        frameLead_buffer = 5;  % frames before next movement onset
-        % isLastRow = (move_i == height(SpkMoveTbl));
+
+        frameLead_buffer = 10;  % frames before next movement onset
+        isLastRow = (move_i == height(SpkMoveTbl));
+
+        % Clamp start into valid range, always enforce start+1
+        frame_startTime = min(max(1, frame_startTime), max(1, nFramesTTL-1));
+
+        mvAll = string(SpkMoveTbl.MoveType);
+        mv = mvAll(move_i);
+        activeSet = ["HAND OC","HAND PS","ARM EF"];
+
+        if any(mv == activeSet)
+            % Find the next row of the SAME MoveType
+            rowIdx = (1:height(SpkMoveTbl))';
+            nextIdx = find(mvAll == mv & rowIdx > move_i, 1, 'first');
+
+            if ~isempty(nextIdx) && isfinite(SpkMoveTbl.BeginF(nextIdx))
+                % Candidate 1: next BeginF - buffer (same MoveType)
+                frame_endTime = round(SpkMoveTbl.BeginF(nextIdx)) - frameLead_buffer;
+            else
+                % Last repetition of this MoveType -> Candidate 2: this row's EndF
+                frame_endTime = frame_endTime1;
+            end
+        else
+            % REST (or any other non-active type) -> Candidate 2: this row's EndF
+            frame_endTime = frame_endTime1;
+        end
+
+        % Fallback if EndF is missing
+        if ~isfinite(frame_endTime) || isnan(frame_endTime) || isLastRow
+            frame_endTime = nFramesTTL;
+        end
+
+        % Final clamps: at least one frame long, within TTL range, integer
+        frame_endTime = max(frame_endTime, frame_startTime + 1);
+        frame_endTime = min(frame_endTime, nFramesTTL);
+        frame_endTime = round(frame_endTime);
+
+        % -------------------------------------------------------------------------
+
         % mv = string(SpkMoveTbl.MoveType(move_i));
-        % 
-        % if isLastRow
-        %     % Candidate 3: last TTL frame for the last row
-        %     frame_endTime = nFramesTTL;
-        % 
-        % elseif any(mv == ["HAND OC","HAND PS","ARM EF"])
+        %
+        % if any(mv == ["HAND OC","HAND PS","ARM EF"])
         %     % Candidate 1: next BeginF - buffer (if there is a next row)
-        %     if ~isnan(SpkMoveTbl.BeginF(move_i+1))
-        %         frame_endTime = SpkMoveTbl.BeginF(move_i+1) - frameLead_buffer;
+        %     if ~isnan(SpkMoveTbl.BeginF(move_i + 1))
+        %         frame_endTime = SpkMoveTbl.BeginF(move_i + 1) - frameLead_buffer;
         %     else
         %         % If the next BeginF is missing, fall back to last TTL frame
         %         frame_endTime = nFramesTTL;
         %     end
-        % 
+        %
         % elseif mv == "REST"
         %     % Candidate 2: this row's EndF
-        %     frame_endTime = SpkMoveTbl.EndF(move_i);
-        % 
+        %     frame_endTime = frame_endTime1;
+        %
+        % elseif isLastRow
+        %     % Candidate 3: last TTL frame for the last row
+        %     frame_endTime = nFramesTTL;
+        %
         % else
         %     % Fallback for any other MoveType: behave like REST (use EndF)
-        %     frame_endTime = SpkMoveTbl.EndF(move_i);
+        %     frame_endTime = frame_endTime1;
         % end
-        % 
+        %
         % % Safety clamps: finite, within [start+1, nFramesTTL], and integer
         % if ~isfinite(frame_endTime) || isnan(frame_endTime)
         %     frame_endTime = nFramesTTL;
@@ -145,33 +186,15 @@ for spk_mat_name = 1:length(SPKmatnames)
         % % Don't exceed last TTL frame
         % frame_endTime = min(frame_endTime, nFramesTTL);
         % frame_endTime = round(frame_endTime);  % frames should be integer indices
+
         % -----------------------------------------------------------
 
-        % Candidate 1: next BeginF - buffer (if there is a next row)
-        if move_i < height(SpkMoveTbl) && ~isnan(SpkMoveTbl.BeginF(move_i+1))
-            candNext = SpkMoveTbl.BeginF(move_i + 1) - frameLead_buffer;
-        else
-            candNext = inf; % not usable if last row or missing next
-        end
+        % % Ensure ≥1 frame long
+        % if frame_endTime <= frame_startTime
+        %     frame_endTime = min(frame_startTime + 1, nFramesTTL);
+        % end
 
-        % Candidate 2: this row's EndF (if missing, treat as +inf so it won't win)
-        candEndF = SpkMoveTbl.EndF(move_i);
-        if isnan(candEndF), candEndF = inf; end
-
-        % Candidate 3: last TTL frame
-        candTTL = nFramesTTL;
-
-        % Choose the smallest *valid* end that is ≥ start+1
-        frame_endTime = min([candNext, candEndF, candTTL]);
-        if ~isfinite(frame_endTime)
-            frame_endTime = frame_startTime + 1; % last resort
-        end
-
-        % Ensure ≥1 frame long
-        if frame_endTime <= frame_startTime
-            frame_endTime = min(frame_startTime + 1, nFramesTTL);
-        end
-
+        % --------------------------------------------------------------
 
         % --- fetch TTL sample indices for those frames (cell- or numeric-safe) ---
         if iscell(TTL_Down)

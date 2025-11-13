@@ -103,17 +103,17 @@ for mat_f = 1:numel(uniqSpkFiles)
         peakIdx = locsPos(:);   % positive-deflection spikes
     end
 
-    
-    % % Set Thresholds
-    % thresh = (round(std(spikeDataRaw) * 4) + mean(spikeDataRaw)); % detection threshold
-    % noise = (round(std(spikeDataRaw) * 10) + mean(spikeDataRaw)); % noise bound
-    % minDist = round(spkFS/1000) * 0.6; % was 1.5 ms refreactory (samples)
-    % PNFLAG = 1;
-    % 
-    % % Detect MUA from raw spike data using waveform extractor helper function
-    % [ waveData ] = extractWaveforms_Clz_v07(spikeDataRaw, thresh, noise, minDist, spkFS, PNFLAG);
-    % waveForms = waveData; % MUA (unsorted spikes) that exeed thresholds
-    % peakIdx = waveData.allWavesInfo.alllocs; % MUA spike sample indices ("peak" indices)
+
+    % Set Thresholds
+    thresh = (round(std(spikeDataRaw) * 4) + mean(spikeDataRaw)); % detection threshold
+    noise = (round(std(spikeDataRaw) * 10) + mean(spikeDataRaw)); % noise bound
+    minDist = round(spkFS/1000) * 0.6; % was 1.5 ms refreactory (samples)
+    PNFLAG = 1;
+
+    % Detect MUA from raw spike data using waveform extractor helper function
+    [ waveData ] = extractWaveforms_Clz_v07(spikeDataRaw, thresh, noise, minDist, spkFS, PNFLAG);
+    waveForms = waveData; % MUA (unsorted spikes) that exeed thresholds
+    peakIdx = waveData.allWavesInfo.alllocs; % MUA spike sample indices ("peak" indices)
 
 
     % ---- Window & store MUA per row (trial/move) ----

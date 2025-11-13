@@ -314,86 +314,27 @@ MasterZETA = aggregate_ZETA_and_plot(FR_Kin_Dir, ...
     'YMax', 5); 
 
 
-%% PCA of ZETA z-scores per Subject Spike Field (C1, C2, ..., Cn) for each MoveType per STN Depth
+%% PCA of ZETA z-scores per Subject / Spike Field (C1, C2, ..., Cn) for each MoveType per STN Depth
 
 % replicate London et al., 2021 paper's Fig 2
 % PCA on spike response profiles (ZetaZ scores)
+% run through MasterZeta
 
-% Navigate to MasterZeta file location
-Aggr_ZETA_dir = [FR_Kin_Dir, filesep, 'Aggregate Zeta Plots'];
-cd(Aggr_ZETA_dir)
-
-% Extract ZetaZ values from MasterZeta file (for each MoveType × STN depth across subjects)
-
-% run distinct PCA per category
 % Category: each MoveType per STN depth (E.g., Hand OC x dorsal STN)
 
-% Plot PC1 per movement category in tiled layout form 
-% subplot row: STN depth, color code based on movement category 
-% (like in the '...AllCategories_ByDepth_Tiles') plot created by the aggregate_ZETA_and_plot function)
-
-% x-dim (rows) = time (in PSTH bins, 10ms), must be conserved across subjects
+% x-dim (rows) = time (in PSTH bins), must be conserved across subjects
 % y-dim (cols) = subject neuron/spike field/unit
 
-
-
-
-%% MUA - PCA of ZETA z-scores per Subject / Spike Field (C1, C2, ..., Cn) for each MoveType per STN Depth
+% distinct PCA per category
 
 
 %% zetatstest.m: Calculates the time-series version of ZETA, for data such as calcium imaging or EEG recordings.
 
 % run on all_IFR per MoveType x STN depth
 
-
-
+%% MUA
 
 %% Heat plot 
-
-
-
-
-
-%% Old pipeline below:
-
-%% plot_Raster_PSTH per move rep
-
-plot_Raster_PSTH(CaseDate, All_SpikesPerMove_Tbl, AO_spike_fs, Case_FRKin_Dir)
-
-
-%% Run compute_FRperMove_perSTNdepth_v3
-
-% Outputs FR per moveRep and a summary per moveType
-[FR_perTrialRep_All, FR_perMoveType_perDepth_Summary] = compute_FRperMove_perSTNdepth_v3(CaseDate, All_SpikesPerMove_Tbl, AO_spike_fs, Case_FRKin_Dir);
-
-
-%% Run run_IO_FR_Analysis_and_Plotting
-
-% Outputs FR summary per move trial per depth
-[FR_SummaryTbl] = run_IO_FR_Analysis_and_Plotting(CaseDate, CaseDate_hem, All_SpikesPerMove_Tbl, Case_FRKin_Dir, useOffset, FR_Kin_Dir);
-
-%%% update this %%%
-
-% Example:
-% IO_plotting_vCombined('03_23_2023', '', 1);                 % unilateral
-% IO_plotting_vCombined('05_18_2023_b_bilateral', 'LSTN', 1); % bilateral
-
-%% Run run_MovementFeatureAnalysis_IO_v2
-
-fprintf('[INFO] Loading movement data from: %s\n', MoveDataDir);
-
-% Outputs kinematics summary per move trial per depth
-[kinTbl, kinSummaryTbl] = run_MovementFeatureAnalysis_IO_v2(IO_DataDir, MoveDataDir, MoveDir_CaseID);
-
-
-%% Run merge_FRKin_SummaryTbls
-
-merge_FRKin_SummaryTbls(IO_DataDir, Case_FRKin_Dir, useOffset, MoveDir_CaseID, FR_SummaryTbl, kinSummaryTbl)
-
-
-%% Run aggregate_FRKinematic_Correlations
-
-aggregate_FRKinematic_Correlations(KinematicsDir, Ephys_Kin_Dir, Case_FRKin_Dir)
 
 
 %%
