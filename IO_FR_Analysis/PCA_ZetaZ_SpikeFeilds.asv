@@ -1,0 +1,150 @@
+%% PCA of ZETA z-scores per MoveType × STN Depth - Subject Spike Fields (Clusters: C1, C2, ..., Cn)
+% clear; clc;
+
+% replicate London et al., 2021 paper's Fig 2 
+% PCA on spike response profiles (ZetaZ scores)
+
+
+%% Dimensions
+
+% x-dim (rows) = time (in PSTH bins, 10ms), must be conserved across subjects
+% y-dim (cols) = subject neuron/spike field/unit
+
+
+% X: fixed time axis for PCA (10-ms bins) comes from runIFR_PSTH_byDepthMove 
+%    via the PSTH centers it computes (centers, saved both into 
+%    IFR_PSTH_Summary.PSTH_TimeCenters_s and each all_IFR{k}.centers). 
+%    Use those as the PCA x-axis.
+
+%% Navigate to MasterZeta file location
+
+FR_Kin_Dir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\Ephys_Kinematics\FR_Kinematic_Analyses';
+Aggr_ZETA_dir = fullfile(FR_Kin_Dir, 'Aggregate Zeta Plots');
+cd(Aggr_ZETA_dir);
+
+% Load master ZETA file (produced by aggregate_ZETA_and_plot)
+MasterZETA = readtable('MasterZeta_AllSubjects.csv');
+MasterZETA.Properties.VariableNames;
+
+
+%% Extract metadata
+% Extract ZetaZ values from MasterZeta file for each MoveType × STN depth 
+% across subject spike clusters
+
+ZetaZ     = MasterZETA.ZetaZ;       % [timeBins × units]
+MoveTypes = MasterZETA.MoveType;    % 1 × units cell array
+Depths    = MasterZETA.Depth;       % 1 × units cell array
+
+uniqMoves = unique(MoveTypes, 'stable');
+uniqDepths = unique(Depths, 'stable');
+
+
+% run distinct PCA per category
+% Category: each MoveType per STN depth (E.g., Hand OC x dorsal STN)
+
+% Plot PC1 per movement category in tiled layout form 
+% subplot row: STN depth, color code based on movement category 
+% (like in the '...AllCategories_ByDepth_Tiles') plot created by the aggregate_ZETA_and_plot function)
+
+
+%%
+
+%% ===== PCA of response profiles per MoveType × Depth using PSTH (10 ms grid) =====
+% Requires: all_IFR (cell of structs from runIFR_PSTH_byDepthMove), each with:
+%   .MoveType, .Depth, .SpikeField, .centers (1xT), .psth_Hz (1xT)
+
+if isempty(all_IFR)
+    warning('No IFR/PSTH entries found. Skipping PCA.');
+else
+    % Gather unique categories present in all_IFR
+    mvList = cellfun(@(s)s.MoveType, all_IFR, 'UniformOutput', false);
+    dzList = cellfun(@(s)s.Depth,    all_IFR, 'UniformOutput', false);
+    uniqMoves  = unique(mvList, 'stable');
+    uniqDepths = unique(dzList, 'stable');
+
+    PCA_outDir = fullfile(IFR_outDir, 'PCA_PSTH');
+    if ~exist(PCA_outDir,'dir'), mkdir(PCA_outDir); end
+
+    for im = 1:numel(uniqMoves)
+        for idz = 1:numel(uniqDepths)
+            mv = uniqMoves{im};
+            dz = uniqDepths{idz};
+
+            % select all entries for this category
+            keep = strcmp(mvList,mv) & strcmp(dzList,dz);
+            idx  = find(keep);
+
+            if numel(idx) < 3
+                % need >=3 observations for a meaningful PCA; still allow 2 but warn
+                fprintf('[PCA] %s × %s has only %d unit(s) — PCA may be unstable.\n', mv, dz, numel(idx));
+                if numel(idx) < 2, continue; end
+            end
+
+            % — Establish a common time grid using the first entry's PSTH centers —
+            tRef = all_IFR{idx(1)}.centers(:);      % column T x 1
+            % Sanity: ensure monotonic increase
+            if any(diff(tRef) <= 0)
+                [tRef, iu] = unique(tRef,'stable'); %#ok<ASGLU>  % deduplicate if needed
+            end
+
+            % Build data matrix: rows = units, cols = time bins (tRef)
+            curves = [];
+            unit_tags = strings(0);
+            for k = 1:numel(idx)
+                s = all_IFR{idx(k)};
+                t = s.centers(:);
+                y = s.psth_Hz(:);
+
+                % If time grids match length & values, take as-is; else interpolate to tRef
+                if numel(t)==numel(tRef) && max(abs(t - tRef)) < 1e-12
+                    yRef = y;
+                else
+                    % light interpolation; fill NaN with zeros (no spikes -> 0 Hz)
+                    yRef = interp1(t, y, tRef, 'linear', 0);
+                end
+                curves = [curves; yRef.']; %#ok<AGROW>  % 1 x T appended as new row
+                unit_tags(end+1,1) = sprintf('%s_%s_%s', s.MoveType, s.Depth, s.SpikeField);
+            end
+
+            % Z-score each unit across time (feature scaling per row)
+            curves_z = zscore(curves, 0, 2);  % subtract row mean, divide by row std
+
+            % Run PCA: observations = rows (units), variables = columns (time bins)
+            [coeff, score, latent, ~, explained] = pca(curves_z, 'Algorithm','svd');
+
+            % coeff: T x PCs (timecourse loadings)
+            % score: Nunits x PCs (unit coordinates)
+            % explained: % variance per PC
+
+            % --- Plot PC1 timecourse and variance explained ---
+            depthMap = containers.Map({'t','c','b'},{'dorsal STN','central STN','ventral STN'});
+            if isKey(depthMap,dz), depthLbl = depthMap(dz); else, depthLbl = dz; end
+
+            h = figure('Color','w','Position',[100 100 1000 420]);
+            tiledlayout(1,2,'TileSpacing','compact','Padding','compact');
+
+            % PC1 timecourse
+            nexttile;
+            plot(tRef, coeff(:,1), 'LineWidth', 2);
+            grid on; xlabel('Time from onset (s)'); ylabel('PC1 loading');
+            title(sprintf('PC1 timecourse | %s × %s (n=%d units)', mv, depthLbl, size(curves,1)));
+
+            % Variance explained
+            nexttile;
+            bar(explained(1:min(10,end)));
+            grid on; xlabel('PC #'); ylabel('% variance');
+            title(sprintf('Explained variance (PC1=%.1f%%)', explained(1)));
+
+            % Save
+            base = sprintf('PCA_PSTH_%s_%s', regexprep(mv,'\s+',''), dz);
+            print(h, fullfile(PCA_outDir, [base,'.png']), '-dpng','-r300');
+            save(fullfile(PCA_outDir, [base,'.mat']), ...
+                 'mv','dz','tRef','curves','curves_z','unit_tags', ...
+                 'coeff','score','latent','explained','-v7.3');
+            close(h);
+        end
+    end
+end
+
+
+

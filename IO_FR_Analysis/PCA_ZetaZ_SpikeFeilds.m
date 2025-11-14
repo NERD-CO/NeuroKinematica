@@ -1,76 +1,54 @@
-%% PCA of ZETA z-scores per MoveType × STN Depth
-clear; clc;
+%% PCA of ZETA z-scores per MoveType × STN Depth - Subject Spike Fields (Clusters: C1, C2, ..., Cn)
+% clear; clc;
+
+% replicate London et al., 2021 paper's Fig 2 
+% PCA on spike response profiles (ZetaZ scores)
+
+
+%% Dimensions
+
+% x-dim (rows) = time (in PSTH bins, 10ms), must be conserved across subjects
+% y-dim (cols) = subject neuron/spike field/unit
+
+
+% X: fixed time axis for PCA (10-ms bins) comes from runIFR_PSTH_byDepthMove 
+%    via the PSTH centers it computes (centers, saved both into 
+%    IFR_PSTH_Summary.PSTH_TimeCenters_s and each all_IFR{k}.centers). 
+%    Use those as the PCA x-axis.
+
+%% Navigate to MasterZeta file location
 
 FR_Kin_Dir = 'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\Ephys_Kinematics\FR_Kinematic_Analyses';
 Aggr_ZETA_dir = fullfile(FR_Kin_Dir, 'Aggregate Zeta Plots');
 cd(Aggr_ZETA_dir);
 
 % Load master ZETA file (produced by aggregate_ZETA_and_plot)
-load('MasterZeta_AllCases.mat', 'MasterZETA');  % adjust name as needed
-% Expect fields: MasterZETA.ZetaZ (time × units), MasterZETA.MoveType, MasterZETA.Depth, MasterZETA.UnitID, MasterZETA.Time_ms
+MasterZETA = readtable('MasterZeta_AllSubjects.csv');
+MasterZETA.Properties.VariableNames;
+
 
 %% Extract metadata
+% Extract ZetaZ values from MasterZeta file for each MoveType × STN depth 
+% across subject spike clusters
+
 ZetaZ     = MasterZETA.ZetaZ;       % [timeBins × units]
-MoveTypes = MasterZETA.MoveType;    % 1×units cell array
-Depths    = MasterZETA.Depth;       % 1×units cell array
-time_ms   = MasterZETA.Time_ms(:);  % ensure column
+MoveTypes = MasterZETA.MoveType;    % 1 × units cell array
+Depths    = MasterZETA.Depth;       % 1 × units cell array
 
 uniqMoves = unique(MoveTypes, 'stable');
 uniqDepths = unique(Depths, 'stable');
 
-%% Parameters
-nTime = numel(time_ms);
-fprintf('Data shape: %d time bins × %d units\n', size(ZetaZ));
 
-%% Initialize output
-PCA_results = struct();
+% run distinct PCA per category
+% Category: each MoveType per STN depth (E.g., Hand OC x dorsal STN)
 
-%% Loop by depth and movement
-for d = 1:numel(uniqDepths)
-    depth = uniqDepths{d};
-    figure('Name', ['PCA_', depth], 'Color', 'w');
-    t = tiledlayout(ceil(numel(uniqMoves)/3), 3, 'Padding', 'compact', 'TileSpacing', 'compact');
-    title(t, sprintf('ZETA PCA – %s STN', depth));
+% Plot PC1 per movement category in tiled layout form 
+% subplot row: STN depth, color code based on movement category 
+% (like in the '...AllCategories_ByDepth_Tiles') plot created by the aggregate_ZETA_and_plot function)
 
-    for m = 1:numel(uniqMoves)
-        mv = uniqMoves{m};
-        idx = strcmp(MoveTypes, mv) & strcmp(Depths, depth);
-        if ~any(idx)
-            continue
-        end
 
-        % Build data matrix: rows=time bins, cols=units
-        X = ZetaZ(:, idx);
+%%
 
-        % Check for valid variance
-        if size(X,2) < 3 || all(isnan(X(:)))
-            continue
-        end
 
-        % Mean-center across time (for each unit)
-        X = fillmissing(X, 'linear', 1, 'EndValues', 'nearest'); % handle NaNs
-        Xc = X - mean(X,1);    % column-wise centering
 
-        % PCA across units (columns)
-        [coeff, score, latent, ~, explained] = pca(Xc','Centered',false);
 
-        % Store
-        PCA_results.(depth).(mv).coeff = coeff;
-        PCA_results.(depth).(mv).score = score;
-        PCA_results.(depth).(mv).latent = latent;
-        PCA_results.(depth).(mv).explained = explained;
-        PCA_results.(depth).(mv).Xc = Xc;
-        PCA_results.(depth).(mv).time_ms = time_ms;
-
-        % Plot first PC time-series (unit projection on PC1)
-        nexttile;
-        plot(time_ms, coeff(:,1), 'LineWidth', 1.5);
-        xlabel('Time (ms)');
-        ylabel('PC1 loading');
-        title(sprintf('%s', mv), 'Interpreter','none');
-        grid on;
-    end
-end
-
-%% Save results
-save(fullfile(Aggr_ZETA_dir,'PCA_ZETA_byMoveDepth.mat'),'PCA_results');

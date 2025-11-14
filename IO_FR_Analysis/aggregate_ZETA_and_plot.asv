@@ -1,4 +1,4 @@
-function MasterZETA = aggregate_ZETA_and_plot(FR_Kin_Dir, varargin)
+function MasterZETA = aggregate_ZETA_and_plot(FR_Kin_Dir, Zeta_outDir, IFR_outDir, varargin)
 
 % aggregate_ZETA_and_plot:
 %
@@ -96,16 +96,16 @@ for k = 1:numel(fileList)
 
 
     % =====================================================================
-    % NEW: attach dynamic ZETA + IFR/PSTH info from per-case MAT files
+    % %%% NEW: attach dynamic ZETA + IFR/PSTH info from per-case MAT files
     % =====================================================================
 
     % Preallocate new cell columns for this case
-    ZETA_vecD        = cell(height(T),1);   % ZETA temporal deviation vector
-    ZETA_vecT        = cell(height(T),1);   % time axis for vecD
+    ZETA_vecD        = cell(height(T),1);   % temporal deviation vector
+    ZETA_vecT        = cell(height(T),1);   % time axis for vecD (optional but nice)
     PSTH_TimeCenters = cell(height(T),1);   % 10 ms PSTH centers
-    PSTH_Hz          = cell(height(T),1);   % PSTH rate
+    PSTH_Hz          = cell(height(T),1);   % PSTH profile
     IFR_Time_s       = cell(height(T),1);   % IFR time axis
-    IFR_Hz           = cell(height(T),1);   % IFR rates
+    IFR_Hz           = cell(height(T),1);   % IFR (Hz)
 
     % Locate ZETA_AllOutputs and IFR_PSTH_All for this case/hemisphere
     zetaFolder = fileparts(csvPath);  % ...\Case\Zeta Testing or ...\Case\LSTN\Zeta Testing
@@ -121,6 +121,7 @@ for k = 1:numel(fileList)
         Zsum = S.ZETA_Summary;
         all_sZETA = S.all_sZETA;
 
+        % build index map
         for ii = 1:height(Zsum)
             key = sprintf('%s|%s|%s', ...
                 string(Zsum.SpikeField(ii)), ...
@@ -135,14 +136,13 @@ for k = 1:numel(fileList)
     end
 
     % IFR/PSTH MAT (from runIFR_PSTH_byDepthMove)
-    ifrFolder = fullfile(zetaFolder, 'IFR_PSTH');
-    ifrAll_mat = fullfile(ifrFolder, sprintf('%s_IFR_PSTH_All.mat', caseID));
+    IFR_PSTH_All_mat = fullfile(IFR_outDir, sprintf('%s_IFR_PSTH_All.mat', caseID));
 
-    hasIFRMat = exist(ifrAll_mat,'file')==2;
+    hasIFRMat = exist(IFR_PSTH_All_mat,'file')==2;
     ifrMap = containers.Map;   % key: 'SpikeField|MoveType|Depth' -> index into IFR_PSTH_Summary
 
     if hasIFRMat
-        S2 = load(ifrAll_mat, 'IFR_PSTH_Summary','all_IFR');
+        S2 = load(IFR_PSTH_All_mat, 'IFR_PSTH_Summary','all_IFR');
         IFRsum = S2.IFR_PSTH_Summary;
         all_IFR = S2.all_IFR;
 
@@ -171,6 +171,7 @@ for k = 1:numel(fileList)
             if isfield(sZ,'vecD')
                 ZETA_vecD{r} = sZ.vecD(:)';          % row vector
             end
+            % vecSpikeT or similar time axis if present
             if isfield(sZ,'vecSpikeT')
                 ZETA_vecT{r} = sZ.vecSpikeT(:)';     % row vector
             elseif isfield(sZ,'vecT')
@@ -185,6 +186,7 @@ for k = 1:numel(fileList)
         if hasIFRMat && isKey(ifrMap, key)
             idxI = ifrMap(key);
 
+            % from summary table (cell columns)
             cCenters = IFRsum.PSTH_TimeCenters_s{idxI};
             cPSTH    = IFRsum.PSTH_Hz{idxI};
             cIFRt    = IFRsum.IFR_Time_s{idxI};
@@ -211,9 +213,13 @@ for k = 1:numel(fileList)
     T.IFR_Hz             = IFR_Hz;
 
     % =====================================================================
+    % Append to MasterZETA
+    % =====================================================================
+
 
     % Append
     MasterZETA = [MasterZETA; T];
+
 end
 
 if isempty(MasterZETA)
