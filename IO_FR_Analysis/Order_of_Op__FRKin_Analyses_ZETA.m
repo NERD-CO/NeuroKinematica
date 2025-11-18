@@ -90,7 +90,7 @@ useOffset = true;
 %% Inputs:
 
 % Ephys data folder:
-CaseDate = '11_30_2023_bilateral'; % Adjust as needed
+CaseDate = '07_13_2023_bilateral'; % Adjust as needed
 
 % 1: '03_23_2023';             % NER 2025
 % 1: '04_05_2023';             % NER 2025
@@ -112,7 +112,7 @@ CaseDate = '11_30_2023_bilateral'; % Adjust as needed
 
 
 % Kinematic data folder:
-MoveDir_CaseID = 'IO_11_30_2023_RSTN'; % Adjust as needed
+MoveDir_CaseID = 'IO_07_13_2023_LSTN'; % Adjust as needed
 
 % 'IO_03_23_2023_LSTN';   % NER 2025
 % 'IO_04_05_2023_RSTN';   % NER 2025
@@ -396,10 +396,12 @@ fprintf('ZETA test outputs saved:\n  %s\n  %s\n', ZetaSummary_csv, ZetaAll_mat);
 % for data such as calcium imaging or EEG ... + MUA & LFP ...  recordings.
 
 % run wrapper + helper function for zetatest.m
-[ZETA_TS_Summary_MUA, all_sZETA_ts_MUA] = runZETA_MUA_byDepthMove_actualDurations( ...
+[ZETA_TS_Summary_MUA, all_sZETA_ts_MUA] = run_ZETATS_MUA_byDepthMove_actualDurations( ...
     All_SpikesPerMove_Tbl_MUA, AO_spike_fs, ...
     'UseMaxDur_s',  1.60, ...
     'PadITI_s',     0.005, ...
+    'Resamples',   500, ...    % intResampNum: integer, number of resamplings (default: 100), 500 (exploratory) or 1000 (final analyses).
+    'SuperResFactor', 20, ...  % dblSuperResFactor: scalar, upsampling of data when calculating zeta (default: 100)
     'PreWindow_s',  0.050, ...
     'PostWindow_s', 0.000);
 
@@ -519,7 +521,7 @@ fprintf('MUA IFR/PSTH saved to %s\n', IFR_outDir_MUA);
 cd(IFR_outDir_MUA)
 
 
-%% Plot ZETA z-score scatter plots
+%% Aggregate & Plot ZETA z-score scatter plots - Single Unit
                     
 MasterZETA = aggregate_ZETA_and_plot(FR_Kin_Dir, ...
     'IO_DataDir', IO_DataDir, ...
@@ -528,13 +530,12 @@ MasterZETA = aggregate_ZETA_and_plot(FR_Kin_Dir, ...
     'YMax', 5); 
 
 
-%% PCA of ZETA across Subject Spike Field (C1, C2, ..., Cn) for each MoveType per STN Depth
+%% PCA of ZETA_vecD across Subject Spike Fields (C1, C2, ..., Cn) for each MoveType x STN Depth
 
 % replicate London et al., 2021 paper's Fig 2
 
-% Run PCA on spike response profiles, given by ZETA temporal deviation vectors (ZETA_vecD) 
-% for each MoveType × STN depth, after resampling onto a common time axis 
-% given by PSTH_TimeCenters_s.
+% Run PCA on spike response profiles, given by ZETA temporal deviation vectors (ZETA_vecD) for each MoveType × STN depth, 
+% after resampling onto a common time axis given by PSTH_TimeCenters_s.
 
 % x-dim (t, time): PSTH_TimeCenters_s (or Zeta_vecT), time vector (in 10 ms bins), uniform across subjects
 % y-dim (d(t), features): ZETA_vecD, temporal deviation signal d(t) that ZETA (Z-score) is computed from
@@ -546,16 +547,17 @@ MasterZETA = aggregate_ZETA_and_plot(FR_Kin_Dir, ...
 run_PCA_ZETA_byCategory(MasterZETA);
 
 
+%% Aggregate & Plot ZETA z-score scatter plots - MUA
 
-%% MUA - PCA of ZETA across Subject MUA for each MoveType per STN Depth
+MasterZETA_MUA = aggregate_ZETA_MUA_and_plot(FR_Kin_Dir, ...
+    'IO_DataDir', IO_DataDir, ...
+    'ZetaCsvNamePattern','*_ZETA_Summary_MUA.csv', ...
+    'SigZ', 2, 'SigP', 0.05, ...
+    'YMax', 5); 
 
+%% MUA - PCA of ZETA across Subject MUA for each MoveType x STN Depth
 
-%% zetatstest.m: Calculates the time-series version of ZETA, for data such as calcium imaging or EEG recordings.
-
-% run on all_IFR per MoveType x STN depth
-
-
-
+run_PCA_ZETA_MUA_byCategory(MasterZETA_MUA);
 
 %% Heat plot 
 

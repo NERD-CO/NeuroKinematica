@@ -16,12 +16,14 @@ function [ZETA_Summary_MUA, all_sZETA_MUA] = runZETA_MUA_byDepthMove_actualDurat
 p = inputParser;
 p.addParameter('UseMaxDur_s', 1.60, @(x) isempty(x) || isscalar(x));
 p.addParameter('PadITI_s',    0.005, @(x) isscalar(x));
-p.addParameter('Resamples',   5000,  @(x) isscalar(x));
+% Drop Resamples from 5000 → 1000 or 500 or 100
+p.addParameter('Resamples',   500,  @(x) isscalar(x)); % intResampNum: integer, number of resamplings (default: 100)
 p.addParameter('PlotFlag',      0);
 p.addParameter('RestrictRange',[-inf inf]);
 p.addParameter('DirectQuantile', false);
 p.addParameter('JitterSize',    2); % MUST be > 0
 p.addParameter('Stitch',        true);
+p.addParameter('SuperResFactor', 50, @(x) isscalar(x) && x>0); % dblSuperResFactor: scalar, upsampling of data when calculating zeta (default: 100)
 p.addParameter('DepthIDs',    {'t','c','b'});
 p.addParameter('MoveTypeOrder',{'HAND OC','HAND PS','ARM EF','REST'});
 % schema: keep backward-compat 'SpikeField' but prefer 'SpikeFields'
@@ -56,7 +58,7 @@ for m = 1:numel(move_types)
         % =========================================================
         % Run helper function: makeZetaInputs_fromAOStartStopTimes
         % =========================================================
-        % Builds stitched spike + event times from AO indices for C1_MUA
+        % Build stitched spike + event times fo all trials from AO indices for C1_MUA
         [spkT, evTimes, useMaxDur, trialDur, kept_tbl] = makeZetaInputs_fromAOStartStopTimes( ...
             move_tbl, AO_spike_fs, ...
             'UseMaxDur_s', U.UseMaxDur_s, ...
@@ -72,12 +74,18 @@ for m = 1:numel(move_types)
         nTrials = size(evTimes,1);
 
         % ================================================================
+        % Build a high-res timeseries of MUA      
+        % ================================================================
+        % Convert spike timestamps → binned MUA (e.g. 1 ms bins = 1000 Hz)
+        % zetats works best with continuous data sampled at modest rates (ca. 250–2000 Hz).
+        % MUA smoothed envelope (commonly 500–2000 Hz).
+        % if Fs at 1000 Hz over 1.60 sec analysis window --> 1600 samples per trial
+
         % % zetats Requirments:
         % 1) vecTime must start slightly before first event
         % 2) vecTime must end after last event
         % 3) dblUseMaxDur must not be larger than the shortest ITI
-        % ================================================================
-
+        
         % Use event onsets only (col 1 of evTimes)
         eventOn_times = evTimes(:,1);  % offset times not needed
 
@@ -97,13 +105,8 @@ for m = 1:numel(move_types)
             end
         end
 
-        % Convert spike timestamps → binned MUA (e.g. 1 ms bins = 1000 Hz)
-        % zetats works best with continuous data sampled at modest rates (ca. 250–2000 Hz).
-        % MUA smoothed envelope (commonly 500–2000 Hz).
-        % if Fs at 1000 Hz over 1.60 sec analysis window --> 1600 samples per trial
-
         % --- Build vecTime that covers jitter window + response window ---
-        Fs = 1000;  % 1 kHz MUA time-series sampling for ZETA-TS
+        Fs = 500;  % or 1000 1 kHz MUA time-series sampling for ZETA-TS
         dt = 1/Fs;
 
         % Choose time span so all events + useMaxDur are inside vecTime
@@ -114,7 +117,6 @@ for m = 1:numel(move_types)
         time_edges   = t0:dt:(t1+dt);
         time_centers = time_edges(1:end-1) + dt/2; % vecTime:
 
-
         % spikes → MUA rate (Hz) on time grid
         % Histogram spike times into time grid and convert to rate (Hz)
         MUA_counts  = histcounts(spkT, time_edges);
@@ -124,20 +126,6 @@ for m = 1:numel(move_types)
         % =========================================================
         % Run time-series ZETA test on the continuous MUA trace
         % =========================================================
-        % try
-        %     % Minimal, version-agnostic call:
-        %     % vecTime, vecData, vecEventTimes, dblUseMaxDur
-        %     [ZetaP_MUA, sZETA_MUA] = zetatstest( ...
-        %         time_centers(:), ...  % vecTime [N×1]: time (s) corresponding to entries in vecData
-        %         MUA_smooth(:), ...    % vecData [N×1]: data values
-        %         eventOn_times, ...    % event onset times
-        %         useMaxDur);           % analysis window length
-        %     warning('off','zetatstest:InsufficientDataLength');
-        % catch ME
-        %     warning('zetatstest failed for %s × %s: %s', mv, dz, ME.message);
-        %     continue;
-        % end
-
         % --- Run zetatstest with full signature ---
         try
             [ZetaP_MUA, sZETA_MUA] = zetatstest( ...
@@ -150,7 +138,7 @@ for m = 1:numel(move_types)
                 U.DirectQuantile, ...          % boolDirectQuantile
                 U.JitterSize, ...              % dblJitterSize (>0)
                 U.Stitch, ...                  % boolStitch
-                100);                          % dblSuperResFactor
+                U.SuperResFactor);             % dblSuperResFactor
         catch ME
             warning('zetatstest failed for %s × %s: %s', mv, dz, ME.message);
             continue;
@@ -159,7 +147,7 @@ for m = 1:numel(move_types)
         % ==================================================================
         % Extract fields of interest (with safe fallbacks) to Save
         % ==================================================================
-        ZetaZ_MUA     = getFieldOrTS(sZETA_MUA,'dblZ',      NaN); % dblZETA
+        ZetaZ_MUA     = getFieldOrTS(sZETA_MUA,'dblZETA',   NaN); 
         ZetaD_MUA     = getFieldOrTS(sZETA_MUA,'dblD',      NaN);
         peakT_MUA     = getFieldOrTS(sZETA_MUA,'dblPeakT',  NaN);
         peakIdx_MUA   = getFieldOrTS(sZETA_MUA,'intPeakIdx',NaN);

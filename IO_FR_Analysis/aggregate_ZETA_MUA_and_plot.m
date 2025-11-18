@@ -1,251 +1,201 @@
-function MasterZETA = aggregate_ZETA_and_plot(FR_Kin_Dir, varargin)
+function MasterZETA_MUA = aggregate_ZETA_MUA_and_plot(FR_Kin_Dir, varargin)
 
-% aggregate_ZETA_and_plot:
+% aggregate_ZETA_MUA_and_plot
 %
-% Scans subject case folders in FR_Kinematic_Analyses, loads ZETA_Summary CSVs,
-% aggregates rows (Subject/Hemisphere/SpikeField/MoveType/Depth), and
-% produces per-category scatter plots with significance marking.
-%
-% Usage:
-%   MasterZETA = aggregate_ZETA_and_plot( ...
-%       'Z:\RadcliffeE\Thesis_PD Neuro-correlated Kinematics\Data\Intraoperative\Ephys_Kinematics\FR_Kinematic_Analyses', ...
-%       'SaveDir', '', 'ZetaCsvNamePattern', '*_ZETA_Summary.csv', ...
-%       'SigZ', 2, 'SigP', 0.05);
-%
-% Outputs:
-%   MasterZETA : table with aggregated ZETA rows from all subjects found.
+% MUA analogue of aggregate_ZETA_and_plot.
+% Scans case folders for *_ZETA_Summary_MUA.csv in "Zeta Testing MUA",
+% attaches vecD_MUA / vecTime_MUA (and optional IFR/PSTH_MUA),
+% builds MasterZETA_MUA and basic scatter plots, then saves:
+%   MasterZETA_MUA_AllSubjects.csv
+%   MasterZETA_MUA_AllData.mat
 
 p = inputParser;
-p.addParameter('IO_DataDir','', @(s) ischar(s) || isstring(s));  % directory containing Subject_Hem_MetaSummary.xlsx
-p.addParameter('SaveDir','', @(s) ischar(s) || isstring(s));                 % where to save group plots (default: under base)
-p.addParameter('ZetaCsvNamePattern','*_ZETA_Summary*.csv', @(s)ischar(s)||isstring(s));
-p.addParameter('SigZ', 2, @(x) isscalar(x) && x>0);                           % z-score threshold line
-p.addParameter('SigP', 0.05, @(x) isscalar(x) && x>0 && x<1);                 % p-value threshold (two-tailed)
+p.addParameter('IO_DataDir','', @(s) ischar(s) || isstring(s));
+p.addParameter('SaveDir','', @(s) ischar(s) || isstring(s));
+p.addParameter('ZetaCsvNamePattern','*_ZETA_Summary_MUA*.csv', @(s)ischar(s)||isstring(s));
+p.addParameter('SigZ', 2, @(x) isscalar(x) && x>0);
+p.addParameter('SigP', 0.05, @(x) isscalar(x) && x>0 && x<1);
 p.addParameter('DepthMap', containers.Map({'t','c','b'},{'dorsal STN','central STN','ventral STN'}));
 p.addParameter('PrettyMoveMap', containers.Map( ...
     {'HAND OC','HAND PS','ARM EF','REST'}, {'Hand OC','Hand PS','Arm EF','Rest'}));
-p.addParameter('YMax', 5, @(x) isscalar(x) && x>0);     % fix y-axis upper limit
+p.addParameter('YMax', 5, @(x) isscalar(x) && x>0);
 p.parse(varargin{:});
 U = p.Results;
 
-
-% Output directory to save figures
+% Output directory
 if isempty(U.SaveDir)
-    groupOut = fullfile(FR_Kin_Dir, 'Aggregate Zeta Plots');
+    groupOut = fullfile(FR_Kin_Dir, 'Aggregate Zeta MUA Plots');
 else
     groupOut = char(U.SaveDir);
 end
 if ~exist(groupOut,'dir'), mkdir(groupOut); end
 
+%% 1) Find MUA ZETA summary CSVs
 
-%% 1) Scan case folders and collect ZETA CSVs
+fileList = find_ZetaSummary_MUA_files(FR_Kin_Dir, U.ZetaCsvNamePattern);
 
-fileList = find_ZetaSummary_files(FR_Kin_Dir, U.ZetaCsvNamePattern);
+%% 2) Load & unify ZETA MUA rows
 
-
-%% 2) Load & unify ZETA rows into a master table (standardize full canonical set)
-
-MasterZETA = table();
-canonOrder = {'CaseDate','Hemisphere','SpikeField','MoveType','Depth','nTrials', ...
-    'dblZetaP','ZetaZ','ZetaD','ZetaTime', ...
-    'IFR_PeakTime','IFR_OnsetTime', ...
+MasterZETA_MUA = table();
+canonOrder = {'CaseDate','Hemisphere','MUA_Field','MoveType','Depth', ...
+    'nTrials','UseMaxDur_s', ...
+    'ZetaP_MUA','ZetaZ_MUA','ZetaD_MUA', ...
+    'ZetaTime_MUA','Zeta_Idx', ...
     'MeanStimDur_s','StdStimDur_s', ...
-    'MeanZ','MeanP'};
+    'MeanZ_MUA','MeanP_MUA'};
 
 for k = 1:numel(fileList)
-    % ---- core CSV for this case/hemisphere ----
     csvPath = fileList(k).fullpath;
-    Traw = readtable(fileList(k).fullpath, 'TextType','string');
-    caseID = string(fileList(k).subject);  % e.g. '03_23_2023'
-    hemID  = string(fileList(k).hemi);     % '' or 'LSTN'/'RSTN'
+    Traw = readtable(csvPath, 'TextType','string');
+    caseID = string(fileList(k).subject);
+    hemID  = string(fileList(k).hemi);
 
-    % Map/standardize to your canonical ZETA columns
-    T = standardizeZetaCoreCols_full(Traw);
+    % Map the core MUA columns
+    T = table();
+    T.MUA_Field      = string(Traw.MUA_Field);
+    T.MoveType       = string(Traw.MoveType);
+    T.Depth          = string(Traw.Depth);
+    T.nTrials        = double(Traw.nTrials);
+    T.UseMaxDur_s    = double(Traw.UseMaxDur_s);
+    T.ZetaP_MUA      = double(Traw.ZetaP_MUA);
+    T.ZetaZ_MUA      = double(Traw.ZetaZ_MUA);
+    T.ZetaD_MUA      = double(Traw.ZetaD_MUA);
+    T.ZetaTime_MUA   = double(Traw.ZetaTime_MUA);
+    T.Zeta_Idx       = double(Traw.Zeta_Idx);
+    T.MeanStimDur_s  = double(Traw.MeanStimDur_s);
+    T.StdStimDur_s   = double(Traw.StdStimDur_s);
+    T.MeanZ_MUA      = double(Traw.MeanZ_MUA);
+    T.MeanP_MUA      = double(Traw.MeanP_MUA);
 
     % Add CaseDate & Hemisphere
     T.CaseDate   = repmat(caseID, height(T), 1);
     T.Hemisphere = repmat(hemID,  height(T), 1);
 
-    % Enforce types for key variables
-    numVars = {'nTrials','dblZetaP','ZetaZ','ZetaD','ZetaTime', ...
-        'IFR_PeakTime','IFR_OnsetTime', ...
-        'MeanStimDur_s','StdStimDur_s','MeanZ','MeanP'};
-    for v = numVars
-        if ismember(v{1}, T.Properties.VariableNames)
-            T.(v{1}) = double(T.(v{1}));
-        end
-    end
-    strVars = {'CaseDate','Hemisphere','SpikeField','MoveType','Depth'};
-    for v = strVars
-        if ismember(v{1}, T.Properties.VariableNames)
-            T.(v{1}) = string(T.(v{1}));
-        end
-    end
-
-    % Ensure all canonical columns exist and order them
-    for v = canonOrder
-        if ~ismember(v{1}, T.Properties.VariableNames)
-            if ismember(v{1}, strVars)
-                T.(v{1}) = repmat(string(missing), height(T), 1);
-            else
-                T.(v{1}) = nan(height(T),1);
-            end
-        end
-    end
+    % Reorder columns to canonical order
     T = T(:, canonOrder);
 
+    % -------------------------------------------------------------
+    % Attach vecD_MUA / vecTime_MUA from *_ZETA_AllOutputs_MUA.mat
+    % -------------------------------------------------------------
+    ZETA_vecD_MUA   = cell(height(T),1);
+    ZETA_vecT_MUA   = cell(height(T),1);
+    ZETA_nVecT_MUA  = cell(height(T),1);
 
-    % =====================================================================
-    % NEW: attach dynamic ZETA + IFR/PSTH info from per-case MAT files
-    % =====================================================================
+    zetaFolderMUA = fileparts(csvPath);  % ...\Case\Zeta Testing MUA or ...\Case\LSTN\Zeta Testing MUA
+    zetaAll_mat_MUA = fullfile(zetaFolderMUA, sprintf('%s_ZETA_AllOutputs_MUA.mat', caseID));
+    hasZetaMat = exist(zetaAll_mat_MUA,'file')==2;
 
-    % Preallocate new cell columns for this case
-    ZETA_vecD        = cell(height(T),1);   % ZETA temporal deviation vector
-    ZETA_vecT        = cell(height(T),1);   % time axis for vecD
-    PSTH_TimeCenters = cell(height(T),1);   % 10 ms PSTH centers
-    PSTH_Hz          = cell(height(T),1);   % PSTH rate
-    IFR_Time_s       = cell(height(T),1);   % IFR time axis
-    IFR_Hz           = cell(height(T),1);   % IFR rates
-
-    % Locate ZETA_AllOutputs and IFR_PSTH_All for this case/hemisphere
-    zetaFolder = fileparts(csvPath);  % ...\Case\Zeta Testing or ...\Case\LSTN\Zeta Testing
-
-    % ZETA AllOutputs MAT (from runZETA_byDepthMove_actualDurations)
-    zetaAll_mat = fullfile(zetaFolder, sprintf('%s_ZETA_AllOutputs.mat', caseID));
-
-    hasZetaMat = exist(zetaAll_mat,'file')==2;
-    zetaMap = containers.Map;   % key: 'SpikeField|MoveType|Depth' -> index into all_sZETA
-
+    zetaMap = containers.Map;
     if hasZetaMat
-        S = load(zetaAll_mat, 'ZETA_Summary','all_sZETA');
-        Zsum = S.ZETA_Summary;
-        all_sZETA = S.all_sZETA;
+        S = load(zetaAll_mat_MUA, 'ZETA_Summary_MUA','all_sZETA_MUA');
+        ZsumMUA = S.ZETA_Summary_MUA;
+        all_sZETA_MUA_case = S.all_sZETA_MUA;
 
-        for ii = 1:height(Zsum)
+        for ii = 1:height(ZsumMUA)
             key = sprintf('%s|%s|%s', ...
-                string(Zsum.SpikeField(ii)), ...
-                string(Zsum.MoveType(ii)),  ...
-                string(Zsum.Depth(ii)));
+                string(ZsumMUA.MUA_Field(ii)), ...
+                string(ZsumMUA.MoveType(ii)), ...
+                string(ZsumMUA.Depth(ii)));
             if ~isKey(zetaMap, key)
                 zetaMap(key) = ii;
             end
         end
     else
-        fprintf('[WARN] ZETA_AllOutputs.mat not found for %s (hem=%s)\n', caseID, hemID);
+        fprintf('[WARN] ZETA_AllOutputs_MUA.mat not found for %s (hem=%s)\n', caseID, hemID);
     end
 
+    % Optional: attach IFR/PSTH_MUA if you saved it
+    PSTH_TimeCenters_MUA = cell(height(T),1);
+    PSTH_Hz_MUA          = cell(height(T),1);
+    IFR_Time_s_MUA       = cell(height(T),1);
+    IFR_Hz_MUA           = cell(height(T),1);
 
-    % IFR/PSTH MAT (from runIFR_PSTH_byDepthMove)
-    ifrFolder = fullfile(zetaFolder, 'IFR_PSTH');
-    ifrAll_mat = fullfile(ifrFolder, sprintf('%s_IFR_PSTH_All.mat', caseID));
+    % Assumes you saved IFR_MUA as:
+    %   ...\Zeta Testing MUA\IFR_PSTH_MUA\<CaseID>_IFR_PSTH_MUA_All.mat
+    ifrFolderMUA = fullfile(zetaFolderMUA, 'IFR_PSTH_MUA');  % adjust if you used a different name
+    ifrAll_mat_MUA = fullfile(ifrFolderMUA, sprintf('%s_IFR_PSTH_MUA_All.mat', caseID));
+    hasIFRMat = exist(ifrAll_mat_MUA,'file')==2;
 
-    hasIFRMat = exist(ifrAll_mat,'file')==2;
-    ifrMap = containers.Map;   % key: 'SpikeField|MoveType|Depth' -> index into all_IFR
-
+    ifrMap = containers.Map;
     if hasIFRMat
-        S2 = load(ifrAll_mat, 'IFR_PSTH_Summary','all_IFR');
-        IFRsum = S2.IFR_PSTH_Summary; %#ok<NASGU>  % kept only for metadata if needed
-        all_IFR = S2.all_IFR;
+        S2 = load(ifrAll_mat_MUA, 'IFR_PSTH_MUA_Summary','all_IFR_MUA');
+        IFRsumMUA = S2.IFR_PSTH_MUA_Summary;
 
-        % Build map using the summary table for keys,
-        % but the indices refer to all_IFR entries.
-        for ii = 1:numel(all_IFR)
-            sI = all_IFR{ii};
+        for ii = 1:height(IFRsumMUA)
             key = sprintf('%s|%s|%s', ...
-                string(sI.SpikeField), ...
-                string(sI.MoveType),  ...
-                string(sI.Depth));
+                string(IFRsumMUA.MUA_Field(ii)), ...
+                string(IFRsumMUA.MoveType(ii)), ...
+                string(IFRsumMUA.Depth(ii)));
             if ~isKey(ifrMap, key)
                 ifrMap(key) = ii;
             end
         end
-    else
-        fprintf('[WARN] IFR_PSTH_All.mat not found for %s (hem=%s)\n', caseID, hemID);
     end
 
-    % --- Attach per-row vectors (ZETA + IFR/PSTH) ---
+    % Per-row attachment
     for r = 1:height(T)
         key = sprintf('%s|%s|%s', ...
-            string(T.SpikeField(r)), string(T.MoveType(r)), string(T.Depth(r)));
+            string(T.MUA_Field(r)), string(T.MoveType(r)), string(T.Depth(r)));
 
-        % ZETA vecD + its time axis (unchanged)
+        % ZETA vecD / vecTime
         if hasZetaMat && isKey(zetaMap, key)
             idxZ = zetaMap(key);
-            sZ   = all_sZETA{idxZ};
+            sZ   = all_sZETA_MUA_case{idxZ};
             if isfield(sZ,'vecD')
-                ZETA_vecD{r} = sZ.vecD(:)';          % row vector
+                ZETA_vecD_MUA{r} = sZ.vecD(:)';    % row
             end
-            if isfield(sZ,'vecSpikeT')
-                ZETA_vecT{r} = sZ.vecSpikeT(:)';     % row vector
-            elseif isfield(sZ,'vecT')
-                ZETA_vecT{r} = sZ.vecT(:)';          % fallback
+            % we constructed vecTime for MUA in runZETA_MUA[...] already
+            if isfield(sZ,'new_tVec_MUA')
+                ZETA_nVecT_MUA{r} = sZ.vecTime(:)'; % row, if you stored it there
+            else
+                ZETA_nVecT_MUA{r} = [];
             end
         else
-            ZETA_vecD{r} = [];
-            ZETA_vecT{r} = [];
+            ZETA_vecD_MUA{r} = [];
+            ZETA_nVecT_MUA{r} = [];
         end
 
-        % IFR/PSTH vectors (now from all_IFR)
+        % IFR/PSTH MUA (optional)
         if hasIFRMat && isKey(ifrMap, key)
             idxI = ifrMap(key);
-            sI   = all_IFR{idxI};
 
-            % Defensive checks in case fields differ
-            if isfield(sI,'centers')
-                cCenters = sI.centers(:)';
-            else
-                cCenters = [];
-            end
-            if isfield(sI,'psth_Hz')
-                cPSTH = sI.psth_Hz(:)';
-            else
-                cPSTH = [];
-            end
-            if isfield(sI,'vecTime')
-                cIFRt = sI.vecTime(:)';
-            else
-                cIFRt = [];
-            end
-            if isfield(sI,'vecRate')
-                cIFRr = sI.vecRate(:)';
-            else
-                cIFRr = [];
-            end
+            cCenters = IFRsumMUA.PSTH_TimeCenters_s{idxI};
+            cPSTH    = IFRsumMUA.PSTH_Hz{idxI};
+            cIFRt    = IFRsumMUA.IFR_Time_s{idxI};
+            cIFRr    = IFRsumMUA.IFR_Hz{idxI};
 
-            PSTH_TimeCenters{r} = cCenters;
-            PSTH_Hz{r}          = cPSTH;
-            IFR_Time_s{r}       = cIFRt;
-            IFR_Hz{r}           = cIFRr;
+            PSTH_TimeCenters_MUA{r} = cCenters(:)';  % row
+            PSTH_Hz_MUA{r}          = cPSTH(:)';
+            IFR_Time_s_MUA{r}       = cIFRt(:)';
+            IFR_Hz_MUA{r}           = cIFRr(:)';
         else
-            PSTH_TimeCenters{r} = [];
-            PSTH_Hz{r}          = [];
-            IFR_Time_s{r}       = [];
-            IFR_Hz{r}           = [];
+            PSTH_TimeCenters_MUA{r} = [];
+            PSTH_Hz_MUA{r}          = [];
+            IFR_Time_s_MUA{r}       = [];
+            IFR_Hz_MUA{r}           = [];
         end
     end
 
+    % Add dynamic columns
+    T.vecD_MUA          = ZETA_vecD_MUA;
+    T.vecTime_MUA       = ZETA_nVecT_MUA;
+    T.PSTH_TimeCenters_s_MUA = PSTH_TimeCenters_MUA;
+    T.PSTH_Hz_MUA       = PSTH_Hz_MUA;
+    T.IFR_Time_s_MUA    = IFR_Time_s_MUA;
+    T.IFR_Hz_MUA        = IFR_Hz_MUA;
 
-    % add new columns to this case table
-    T.ZETA_vecD          = ZETA_vecD;
-    T.ZETA_vecT          = ZETA_vecT;
-    T.PSTH_TimeCenters_s = PSTH_TimeCenters;
-    T.PSTH_Hz            = PSTH_Hz;
-    T.IFR_Time_s         = IFR_Time_s;
-    T.IFR_Hz             = IFR_Hz;
-
-    % =====================================================================
-
-    % Append
-    MasterZETA = [MasterZETA; T];
+    % Append this case
+    MasterZETA_MUA = [MasterZETA_MUA; T];
 end
 
-if isempty(MasterZETA)
-    warning('No ZETA summary rows found. Nothing to plot.');
+if isempty(MasterZETA_MUA)
+    warning('No ZETA MUA summary rows found. Nothing to plot.');
     return
 end
 
 
-%% Attach Subject + Hemisphere labels from spreadsheet (simple + robust)
+%% 3) Attach Subject + Hemisphere labels from spreadsheet (re-use existing meta logic)
+% just replace "MasterZETA" with "MasterZETA_MUA" inside it.
 
 LabelMapCH = [];   % containers.Map for "CaseFolder|HemTag" -> label
 NumMapCH   = [];   % containers.Map for "CaseFolder|HemTag" -> SubjectNum (string)
@@ -302,19 +252,19 @@ if ~isempty(U.IO_DataDir)
 end
 
 % ---- Build per-row labels for MasterZETA ----
-caseF = string(strtrim(MasterZETA.CaseDate));     % case folder in ZETA rows
-hemi  = upper(string(strtrim(MasterZETA.Hemisphere)));  % 'LSTN'/'RSTN' or ""
+caseF = string(strtrim(MasterZETA_MUA.CaseDate));     % case folder in ZETA rows
+hemi  = upper(string(strtrim(MasterZETA_MUA.Hemisphere)));  % 'LSTN'/'RSTN' or ""
 
 rowKeyCH = caseF + "|" + hemi;
 
-prettyLabel = strings(height(MasterZETA),1);
-subjNumStr  = strings(height(MasterZETA),1);
+prettyLabel = strings(height(MasterZETA_MUA),1);
+subjNumStr  = strings(height(MasterZETA_MUA),1);
 hemiFilled  = hemi;   % will fill from meta when missing
 
 % Fallback generator uses stable per-case index so bilateral days stay split
 [~,~,caseStableIdx] = unique(caseF,'stable');
 
-for i = 1:height(MasterZETA)
+for i = 1:height(MasterZETA_MUA)
     if haveMeta && hemi(i)~="" && isKey(LabelMapCH, rowKeyCH(i))
         % Exact case+hem match (bilateral days)
         prettyLabel(i) = LabelMapCH(rowKeyCH(i));
@@ -333,21 +283,37 @@ for i = 1:height(MasterZETA)
 end
 
 % Store for plotting/export
-MasterZETA.PrettyLabel     = prettyLabel;   % e.g., "Subject 1 - LSTN"
-MasterZETA.SubjectNum      = subjNumStr;    % "1","2",...
-MasterZETA.HemisphereFilled = hemiFilled;   % 'LSTN'/'RSTN' (filled for unilateral)
+MasterZETA_MUA.PrettyLabel     = prettyLabel;   % e.g., "Subject 1 - LSTN"
+MasterZETA_MUA.SubjectNum      = subjNumStr;    % "1","2",...
+MasterZETA_MUA.HemisphereFilled = hemiFilled;   % 'LSTN'/'RSTN' (filled for unilateral)
 
 % sanity summary
-unmatched = MasterZETA(~startsWith(MasterZETA.PrettyLabel,"Subject "),:);
+unmatched = MasterZETA_MUA(~startsWith(MasterZETA_MUA.PrettyLabel,"Subject "),:);
 fprintf('[Map check] unique x-labels: %d | unmatched rows: %d\n', ...
-    numel(unique(MasterZETA.PrettyLabel,'stable')), height(unmatched));
+    numel(unique(MasterZETA_MUA.PrettyLabel,'stable')), height(unmatched));
 
+
+%% RETURN HERE:
+% reuse 3a/3b/4 blocks from aggregate_ZETA_and_plot,
+% but replace:
+%   MasterZETA      -> MasterZETA_MUA
+%   ZetaZ           -> ZetaZ_MUA
+%   dblZetaP        -> ZetaP_MUA
+% and adjust y-label strings to "ZETA z-score (MUA)" if you like.
+
+% Example of the only necessary change in the all-categories plot:
+%   isSig_all = (MasterZETA_MUA.ZetaZ_MUA >= U.SigZ) & ...
+%               (MasterZETA_MUA.ZetaP_MUA <= U.SigP);
+%   y_all     = MasterZETA_MUA.ZetaZ_MUA;
+
+% Everything else (PrettyLabel, jittered x, DepthMap, PrettyMoveMap, etc.)
+% can remain identical.
 
 %% 3a) All-categories-in-one scatter (Subjects on x, all MoveType×Depth ZetaZ scores stacked on y with xjitter)
 
 % ---- build friendly labels (global, consistent across whole MasterZETA) ----
 % Subject index in encounter order (Subject 1, Subject 2, ...)
-[~, ~, subjIdxAll] = unique(MasterZETA.CaseDate,'stable');
+[~, ~, subjIdxAll] = unique(MasterZETA_MUA.CaseDate,'stable');
 subjNum = subjIdxAll;  % numeric 1..N
 
 % % ---- build labels from SubjectNum (+ hemisphere, if present) ----
@@ -358,7 +324,7 @@ subjNum = subjIdxAll;  % numeric 1..N
 % % hemiText(:) = "";
 
 % Build x-axis groups from meta-driven labels
-prettyPerRow = MasterZETA.PrettyLabel; % per-row label like "Subject 1 - LSTN"
+prettyPerRow = MasterZETA_MUA.PrettyLabel; % per-row label like "Subject 1 - LSTN"
 
 % x positions (with jitter)
 [uniqSubsAll, ~, subjIdxX] = unique(prettyPerRow,'stable'); % unique x-tick strings in encounter order
@@ -368,8 +334,8 @@ xj_all = x_all + jitter_all;
 
 
 % Sig vs n.s.
-isSig_all = (MasterZETA.ZetaZ >= U.SigZ) & (MasterZETA.dblZetaP <= U.SigP); % ZetaZ > 2 and ZetaP < 0.05
-y_all = MasterZETA.ZetaZ;
+isSig_all = (MasterZETA_MUA.ZetaZ_MUA >= U.SigZ) & (MasterZETA_MUA.ZetaP_MUA <= U.SigP); % ZetaZ > 2 and ZetaP < 0.05
+y_all = MasterZETA_MUA.ZetaZ_MUA;
 
 
 % Plot
@@ -411,7 +377,7 @@ close(hAll);
 
 
 % Build x-axis groups from meta-driven labels
-prettyPerRow = MasterZETA.PrettyLabel; % per-row label like "Subject 1 - LSTN"
+prettyPerRow = MasterZETA_MUA.PrettyLabel; % per-row label like "Subject 1 - LSTN"
 
 % x positions (with jitter)
 [uniqSubsAll, ~, subjIdxX] = unique(prettyPerRow,'stable'); % unique x-tick strings in encounter order
@@ -420,28 +386,11 @@ jitter_all = (rand(size(x_all)) - 0.5) * 0.30; % ±0.15 jitter
 xj_all = x_all + jitter_all;
 
 
-% % ----- mappings -----
-% % Depth: color
-% depthColor = containers.Map({'t','c','b'}, ...
-%     {[0.20 0.60 0.20],  ... % dorsal = green
-%     [0.50 0.20 0.70],  ... % central = purple
-%     [0.15 0.45 0.85]});    % ventral = blue
-% fallbackDepthColor = [0.3 0.3 0.3];
-%
-% % MoveType: marker + fill
-% moveMarker = containers.Map( ...
-%     {'HAND OC','HAND PS','ARM EF','REST'}, ...
-%     {'o','s','^','_'});   % OC circle, PS square, EF up-triangle, Rest dash
-% moveFilled = containers.Map( ...
-%     {'HAND OC','HAND PS','ARM EF','REST'}, ...
-%     { true,  true,  true,  false}); % REST is empty
-
-
 % ----- data -----
-y_all    = MasterZETA.ZetaZ;
-isSig    = (MasterZETA.ZetaZ >= U.SigZ) & (MasterZETA.dblZetaP <= U.SigP);
-mv_all   = string(MasterZETA.MoveType);
-dz_all   = string(MasterZETA.Depth);
+y_all    = MasterZETA_MUA.ZetaZ_MUA;
+isSig    = (MasterZETA_MUA.ZetaZ_MUA >= U.SigZ) & (MasterZETA_MUA.ZetaP_MUA <= U.SigP);
+mv_all   = string(MasterZETA_MUA.MoveType);
+dz_all   = string(MasterZETA_MUA.Depth);
 
 
 % ----- MoveType colors (fill) -----
@@ -545,12 +494,12 @@ close(hT);
 
 %% 4) Scatter per category (MoveType × Depth) on x, ZetaZ on y with jitter
 
-cats = unique(MasterZETA(:, {'MoveType','Depth'}), 'rows', 'stable');
+cats = unique(MasterZETA_MUA(:, {'MoveType','Depth'}), 'rows', 'stable');
 for i = 1:height(cats)
     mv = cats.MoveType(i);
     dz = cats.Depth(i);
 
-    sel = MasterZETA(MasterZETA.MoveType==mv & MasterZETA.Depth==dz, :);
+    sel = MasterZETA_MUA(MasterZETA_MUA.MoveType==mv & MasterZETA_MUA.Depth==dz, :);
     if isempty(sel), continue; end
 
     % ---- build friendly labels (safe string construction) ----
@@ -570,7 +519,7 @@ for i = 1:height(cats)
     x = xIdx;  % (no jitter for the per-category plots)
 
     % sig vs nonsig
-    isSig = (sel.ZetaZ >= U.SigZ) & (sel.dblZetaP <= U.SigP); % ZetaZ > 2, ZetaP < 0.05
+    isSig = (sel.ZetaZ_MUA >= U.SigZ) & (sel.ZetaP_MUA <= U.SigP); % ZetaZ > 2, ZetaP < 0.05
     y = sel.ZetaZ;
 
     % Pretty labels
@@ -610,30 +559,23 @@ for i = 1:height(cats)
 end
 
 
-%% Save the Master table for reference
 
-writetable(MasterZETA, fullfile(groupOut, 'MasterZETA_AllSubjects.csv'));
+%% 5) Save MasterZETA_MUA
 
-writetable(MasterZETA(:,[ ...
-    "SubjectNum", "CaseDate","Hemisphere","HemisphereFilled","PrettyLabel", ...
-    "MoveType","Depth", "nTrials", "dblZetaP", "ZetaZ", "ZetaD" , "ZetaTime", ...
-    ]), fullfile(groupOut,'MasterZETA_AllSubjects_Summary.csv'));
+writetable(MasterZETA_MUA, fullfile(groupOut, 'MasterZETA_MUA_AllSubjects.csv'));
 
+save(fullfile(groupOut, 'MasterZETA_MUA_AllData.mat'), 'MasterZETA_MUA', '-v7.3');
 
-% Full MAT with dynamic vectors for downstream PCA
-save(fullfile(groupOut, 'MasterZETA_AllData.mat'), 'MasterZETA', '-v7.3');
-
-
-fprintf('[OK] Aggregated %d rows across %d subjects. Plots saved to:\n  %s\n', ...
-    height(MasterZETA), numel(unique(MasterZETA.CaseDate)), groupOut);
+fprintf('[OK] Aggregated %d MUA ZETA rows across %d subjects. Outputs saved to:\n  %s\n', ...
+    height(MasterZETA_MUA), numel(unique(MasterZETA_MUA.CaseDate)), groupOut);
 
 end
 
 
-%% Helpers
+%% ------- Helper: find MUA ZETA CSVs -------
 
-function list = find_ZetaSummary_files(baseFRKinDir, zetaCsvPattern)
-% Returns struct array with fields: fullpath, subject, hemi ('' if unilateral)
+function list = find_ZetaSummary_MUA_files(baseFRKinDir, zetaCsvPattern)
+% Same logic as find_ZetaSummary_files, but looks in "Zeta Testing MUA"
 
 list = struct('fullpath',{},'subject',{},'hemi',{});
 
@@ -642,20 +584,20 @@ caseDirs = caseDirs([caseDirs.isdir]);
 caseDirs = caseDirs(~ismember({caseDirs.name},{'.','..'}));
 
 for i = 1:numel(caseDirs)
-    caseName = caseDirs(i).name;               % e.g., '03_23_2023' or '07_06_2023_bilateral'
+    caseName = caseDirs(i).name;
     casePath = fullfile(baseFRKinDir, caseName);
 
-    % First check unilateral: Case/Zeta Testing/*.csv
-    zetaDir = fullfile(casePath,'Zeta Testing');
+    % Unilateral: Case/Zeta Testing MUA/*.csv
+    zetaDir = fullfile(casePath,'Zeta Testing MUA');
     files = dir(fullfile(zetaDir, zetaCsvPattern));
 
-    % If none, look for hemisphere subfolders: Case/LSTN or Case/RSTN/Zeta Testing/*.csv
     if isempty(files)
+        % Bilateral: Case/LSTN/Zeta Testing MUA/*.csv etc.
         hemiDirs = dir(fullfile(casePath,'*STN'));
         hemiDirs = hemiDirs([hemiDirs.isdir]);
         for h = 1:numel(hemiDirs)
-            hemiName = hemiDirs(h).name; % 'LSTN' or 'RSTN'
-            zetaDirH = fullfile(casePath, hemiName, 'Zeta Testing');
+            hemiName = hemiDirs(h).name;
+            zetaDirH = fullfile(casePath, hemiName, 'Zeta Testing MUA');
             filesH = dir(fullfile(zetaDirH, zetaCsvPattern));
             for k = 1:numel(filesH)
                 list(end+1) = struct( ...
@@ -674,72 +616,3 @@ for i = 1:numel(caseDirs)
     end
 end
 end
-
-
-function s = sanitize_filename(s)
-s = regexprep(char(s), '[^\w\-\(\)\[\]\.]+', '_');
-end
-
-function v = mapOrDefault(mapObj, key, defaultVal)
-try
-    if isKey(mapObj, char(key)), v = mapObj(char(key)); else, v = defaultVal; end
-catch
-    v = defaultVal;
-end
-end
-
-
-function T = standardizeZetaCoreCols_full(T_in)
-% Standardize ZETA summary table to the canonical set of columns used for group aggregation.
-% Returns all columns listed in the canonOrder defined in aggregate_ZETA_and_plot.
-
-vars = T_in.Properties.VariableNames;
-
-% Safe getters (fills with NaN/missing if not found)
-getStr = @(name) string(extractfield_ifexist(T_in, name, missing));
-getNum = @(name) double(extractfield_ifexist(T_in, name, NaN));
-
-T = table( ...
-    getStr('SpikeField'), ...
-    getStr('MoveType'), ...
-    getStr('Depth'), ...
-    getNum('nTrials'), ...
-    getNum('dblZetaP'), ...
-    getNum('ZetaZ'), ...
-    getNum('ZetaD'), ...
-    getNum('ZetaTime'), ...
-    getNum('IFR_PeakTime'), ...
-    getNum('IFR_OnsetTime'), ...
-    getNum('MeanStimDur_s'), ...
-    getNum('StdStimDur_s'), ...
-    getNum('MeanZ'), ...
-    getNum('MeanP'), ...
-    'VariableNames', {'SpikeField','MoveType','Depth','nTrials', ...
-    'dblZetaP','ZetaZ','ZetaD','ZetaTime', ...
-    'IFR_PeakTime','IFR_OnsetTime', ...
-    'MeanStimDur_s','StdStimDur_s','MeanZ','MeanP'});
-end
-
-function out = extractfield_ifexist(T, fieldname, defaultVal)
-% Return T.(fieldname) if it exists, else defaultVal of matching height.
-if ismember(fieldname, T.Properties.VariableNames)
-    out = T.(fieldname);
-else
-    out = repmat(defaultVal, height(T), 1);
-end
-end
-
-
-% function drawRestRect(ax,x,y,w,h,faceColor,edgeColor,edgeLW)
-% % Draw a thin horizontal rectangle in data units at (x,y).
-% % ax       : target axes handle
-% % x, y     : data coordinates (center of the rectangle)
-% % w, h     : width & height in data units (keep h small)
-% % faceColor: [r g b] fill color (depth-coded)
-% % edgeColor: [r g b] edge color (significance-coded)
-% % edgeLW   : edge line width
-% rectangle(ax,'Position',[x - w/2, y - h/2, w, h], ...
-%     'FaceColor',faceColor, 'EdgeColor',edgeColor, ...
-%     'LineWidth',edgeLW, 'Clipping','on');
-% end
-
