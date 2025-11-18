@@ -134,23 +134,123 @@ for k = 1:numel(fileList)
         fprintf('[WARN] ZETA_AllOutputs.mat not found for %s (hem=%s)\n', caseID, hemID);
     end
 
+    % % IFR/PSTH MAT (from runIFR_PSTH_byDepthMove)
+    % ifrFolder = fullfile(zetaFolder, 'IFR_PSTH');
+    % ifrAll_mat = fullfile(ifrFolder, sprintf('%s_IFR_PSTH_All.mat', caseID));
+    %
+    % hasIFRMat = exist(ifrAll_mat,'file')==2;
+    % ifrMap = containers.Map;   % key: 'SpikeField|MoveType|Depth' -> index into IFR_PSTH_Summary
+    %
+    % if hasIFRMat
+    %     S2 = load(ifrAll_mat, 'IFR_PSTH_Summary','all_IFR');
+    %     IFRsum = S2.IFR_PSTH_Summary;
+    %     all_IFR = S2.all_IFR;
+    %
+    %     for ii = 1:height(IFRsum)
+    %         key = sprintf('%s|%s|%s', ...
+    %             string(IFRsum.SpikeField(ii)), ...
+    %             string(IFRsum.MoveType(ii)),  ...
+    %             string(IFRsum.Depth(ii)));
+    %         if ~isKey(ifrMap, key)
+    %             ifrMap(key) = ii;
+    %         end
+    %     end
+    % else
+    %     fprintf('[WARN] IFR_PSTH_All.mat not found for %s (hem=%s)\n', caseID, hemID);
+    % end
+    %
+    % % --- Attach per-row vectors ---
+    % for r = 1:height(T)
+    %     key = sprintf('%s|%s|%s', ...
+    %         string(T.SpikeField(r)), string(T.MoveType(r)), string(T.Depth(r)));
+    %
+    %     % ZETA vecD + its time axis
+    %     if hasZetaMat && isKey(zetaMap, key)
+    %         idxZ = zetaMap(key);
+    %         sZ   = all_sZETA{idxZ};
+    %         if isfield(sZ,'vecD')
+    %             ZETA_vecD{r} = sZ.vecD(:)';          % row vector
+    %         end
+    %         if isfield(sZ,'vecSpikeT')
+    %             ZETA_vecT{r} = sZ.vecSpikeT(:)';     % row vector
+    %         elseif isfield(sZ,'vecT')
+    %             ZETA_vecT{r} = sZ.vecT(:)';          % fallback
+    %         end
+    %     else
+    %         ZETA_vecD{r} = [];
+    %         ZETA_vecT{r} = [];
+    %     end
+    %
+    %     % IFR/PSTH vectors
+    %     if hasIFRMat && isKey(ifrMap, key)
+    %         idxI = ifrMap(key);
+    %
+    %         % --- Centers ---
+    %         valCenters = IFRsum.PSTH_TimeCenters_s(idxI);
+    %         if iscell(valCenters)
+    %             cCenters = valCenters{1};
+    %         else
+    %             cCenters = valCenters;
+    %         end
+    %
+    %         % --- PSTH ---
+    %         valPSTH = IFRsum.PSTH_Hz(idxI);
+    %         if iscell(valPSTH)
+    %             cPSTH = valPSTH{1};
+    %         else
+    %             cPSTH = valPSTH;
+    %         end
+    %
+    %         % --- IFR time ---
+    %         valIFRt = IFRsum.IFR_Time_s(idxI);
+    %         if iscell(valIFRt)
+    %             cIFRt = valIFRt{1};
+    %         else
+    %             cIFRt = valIFRt;
+    %         end
+    %
+    %         % --- IFR rate ---
+    %         valIFRr = IFRsum.IFR_Hz(idxI);
+    %         if iscell(valIFRr)
+    %             cIFRr = valIFRr{1};
+    %         else
+    %             cIFRr = valIFRr;
+    %         end
+    %
+    %         % Store as row vectors for consistency
+    %         PSTH_TimeCenters{r} = cCenters(:)';
+    %         PSTH_Hz{r}          = cPSTH(:)';
+    %         IFR_Time_s{r}       = cIFRt(:)';
+    %         IFR_Hz{r}           = cIFRr(:)';
+    %     else
+    %         PSTH_TimeCenters{r} = [];
+    %         PSTH_Hz{r}          = [];
+    %         IFR_Time_s{r}       = [];
+    %         IFR_Hz{r}           = [];
+    %     end
+    % end
+
+
     % IFR/PSTH MAT (from runIFR_PSTH_byDepthMove)
     ifrFolder = fullfile(zetaFolder, 'IFR_PSTH');
     ifrAll_mat = fullfile(ifrFolder, sprintf('%s_IFR_PSTH_All.mat', caseID));
 
     hasIFRMat = exist(ifrAll_mat,'file')==2;
-    ifrMap = containers.Map;   % key: 'SpikeField|MoveType|Depth' -> index into IFR_PSTH_Summary
+    ifrMap = containers.Map;   % key: 'SpikeField|MoveType|Depth' -> index into all_IFR
 
     if hasIFRMat
         S2 = load(ifrAll_mat, 'IFR_PSTH_Summary','all_IFR');
-        IFRsum = S2.IFR_PSTH_Summary;
+        IFRsum = S2.IFR_PSTH_Summary; %#ok<NASGU>  % kept only for metadata if needed
         all_IFR = S2.all_IFR;
 
-        for ii = 1:height(IFRsum)
+        % Build map using the summary table for keys,
+        % but the indices refer to all_IFR entries.
+        for ii = 1:numel(all_IFR)
+            sI = all_IFR{ii};
             key = sprintf('%s|%s|%s', ...
-                string(IFRsum.SpikeField(ii)), ...
-                string(IFRsum.MoveType(ii)),  ...
-                string(IFRsum.Depth(ii)));
+                string(sI.SpikeField), ...
+                string(sI.MoveType),  ...
+                string(sI.Depth));
             if ~isKey(ifrMap, key)
                 ifrMap(key) = ii;
             end
@@ -159,12 +259,12 @@ for k = 1:numel(fileList)
         fprintf('[WARN] IFR_PSTH_All.mat not found for %s (hem=%s)\n', caseID, hemID);
     end
 
-    % --- Attach per-row vectors ---
+    % --- Attach per-row vectors (ZETA + IFR/PSTH) ---
     for r = 1:height(T)
         key = sprintf('%s|%s|%s', ...
             string(T.SpikeField(r)), string(T.MoveType(r)), string(T.Depth(r)));
 
-        % ZETA vecD + its time axis
+        % ZETA vecD + its time axis (unchanged)
         if hasZetaMat && isKey(zetaMap, key)
             idxZ = zetaMap(key);
             sZ   = all_sZETA{idxZ};
@@ -181,19 +281,37 @@ for k = 1:numel(fileList)
             ZETA_vecT{r} = [];
         end
 
-        % IFR/PSTH vectors
+        % IFR/PSTH vectors (now from all_IFR)
         if hasIFRMat && isKey(ifrMap, key)
             idxI = ifrMap(key);
+            sI   = all_IFR{idxI};
 
-            cCenters = IFRsum.PSTH_TimeCenters_s{idxI};
-            cPSTH    = IFRsum.PSTH_Hz{idxI};
-            cIFRt    = IFRsum.IFR_Time_s{idxI};
-            cIFRr    = IFRsum.IFR_Hz{idxI};
+            % Defensive checks in case fields differ
+            if isfield(sI,'centers')
+                cCenters = sI.centers(:)';
+            else
+                cCenters = [];
+            end
+            if isfield(sI,'psth_Hz')
+                cPSTH = sI.psth_Hz(:)';
+            else
+                cPSTH = [];
+            end
+            if isfield(sI,'vecTime')
+                cIFRt = sI.vecTime(:)';
+            else
+                cIFRt = [];
+            end
+            if isfield(sI,'vecRate')
+                cIFRr = sI.vecRate(:)';
+            else
+                cIFRr = [];
+            end
 
-            PSTH_TimeCenters{r} = cCenters(:)';  % row vector
-            PSTH_Hz{r}          = cPSTH(:)';
-            IFR_Time_s{r}       = cIFRt(:)';
-            IFR_Hz{r}           = cIFRr(:)';
+            PSTH_TimeCenters{r} = cCenters;
+            PSTH_Hz{r}          = cPSTH;
+            IFR_Time_s{r}       = cIFRt;
+            IFR_Hz{r}           = cIFRr;
         else
             PSTH_TimeCenters{r} = [];
             PSTH_Hz{r}          = [];
@@ -201,6 +319,7 @@ for k = 1:numel(fileList)
             IFR_Hz{r}           = [];
         end
     end
+
 
     % add new columns to this case table
     T.ZETA_vecD          = ZETA_vecD;

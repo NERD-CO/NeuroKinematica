@@ -160,7 +160,10 @@ for SpkF = spikeFields
             xlabel('Time from onset (s)');
 
             % Title format: Raster | MoveType - Depth (n=## reps)
-            title(sprintf('Raster | %s - %s - %s (n=%d reps)', mv, depthLbl, curSF, nTrials));
+            % title(sprintf('Raster | %s - %s - %s (n=%d reps)', mv, depthLbl, curSF, nTrials));
+            sfLabel = strrep(curSF,'_','\_');  % escape '_' so it's not a subscript
+            title(sprintf('Raster | %s - %s - %s (n=%d reps)', mv, depthLbl, sfLabel, nTrials));
+
             
 
             % IFR + PSTH overlay (two y-axes)

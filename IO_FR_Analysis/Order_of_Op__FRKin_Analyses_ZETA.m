@@ -90,7 +90,7 @@ useOffset = true;
 %% Inputs:
 
 % Ephys data folder:
-CaseDate = '03_23_2023'; % Adjust as needed
+CaseDate = '11_30_2023_bilateral'; % Adjust as needed
 
 % 1: '03_23_2023';             % NER 2025
 % 1: '04_05_2023';             % NER 2025
@@ -112,7 +112,7 @@ CaseDate = '03_23_2023'; % Adjust as needed
 
 
 % Kinematic data folder:
-MoveDir_CaseID = 'IO_03_23_2023_LSTN'; % Adjust as needed
+MoveDir_CaseID = 'IO_11_30_2023_RSTN'; % Adjust as needed
 
 % 'IO_03_23_2023_LSTN';   % NER 2025
 % 'IO_04_05_2023_RSTN';   % NER 2025
@@ -157,13 +157,19 @@ end
 fprintf('[INFO] Loading spike data from: %s\n', Case_FRKin_Dir);
 
 
-%% Load All_SpikesPerMove_Tbl
+%% Load All_SpikesPerMove_Tbl and All_SpikesPerMove_Tbl_MUA
 
 cd(Case_FRKin_Dir)
 Tbl_list = dir('*Spikes*.mat');
 Tbl_names = {Tbl_list.name};
-spk_case = Tbl_names{contains(Tbl_names, 'offset')}; % offset version preferred
-load(spk_case, 'All_SpikesPerMove_Tbl');
+
+% Load All_SpikesPerMove_Tbl
+spk_mat = Tbl_names{contains(Tbl_names, 'offset')}; % offset version preferred
+load(spk_mat, 'All_SpikesPerMove_Tbl');
+
+% Load All_SpikesPerMove_Tbl_MUA
+MUA_mat = Tbl_names{contains(Tbl_names, 'MUA')}; 
+load(MUA_mat, 'All_SpikesPerMove_Tbl_MUA');
 
 
 %% OPTIONAL: Case-specific cleaning (remove duplicates if needed)
@@ -185,7 +191,7 @@ end
 [Max_SpikeDuration_samples, spikesMatrix] = MaxSpkDuration_Raster_PSTH(CaseDate, All_SpikesPerMove_Tbl, AO_spike_fs, Case_FRKin_Dir);
 
 Max_SpkDur_seconds = Max_SpikeDuration_samples/AO_spike_fs; % seconds
-Max_SpkDus_ms = Max_SpkDur_seconds * 1000; % milliseconds
+Max_SpkDus_ms = Max_SpkDur_seconds * 1000 % milliseconds
 
 
 %% Zeta Test Functions
@@ -197,45 +203,17 @@ zetaRepo = 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Document
 addpath(genpath(zetaRepo));   % genpath adds dependencies/
 rehash
 
-
-%% Run Zeta test for each MoveType × STN depth using true per-trial durations
+%% Notes re: zetatest.m 
 
 % https://elifesciences.org/articles/71969
 % https://github.com/JorritMontijn/zetatest/blob/main/zetatest.m
+%
 % zetatest.m: Calculates the Zenith of Event-based Time-locked Anomalies (ZETA) for spike times of a single neuron. Outputs a p-value.
 %   % binning-free method for determining whether a neuron shows any time-locked modulation of spiking activity
 %   % detects whether a single neuron is responsive to a stimulus/event in a statistically robust way and avoids binning and parameter selection
 
-% run wrapper + helper function for zetatest.m
-% loop through all possible electrodes
-[ZETA_Summary, all_sZETA, all_sRate, all_sLatencies] = runZETA_byDepthMove_actualDurations( ...
-    All_SpikesPerMove_Tbl, AO_spike_fs, ...
-    'UseMaxDur_s',  1.60, ...     % 0.4, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8
-    'Resamples',    5000, ...
-    'PlotFlag',     0, ...
-    'RestrictRange',[-inf inf], ...
-    'DirectQuantile', false, ...
-    'JitterSize',    2, ...
-    'Stitch',        true, ...
-    'PreWindow_s',   0.050, ...   % 50 ms lead-in
-    'PostWindow_s',  0.000);
-
-
-% Save Outputs to "Zeta Testing" folder
-Zeta_outDir = fullfile(Case_FRKin_Dir, 'Zeta Testing');
-if ~exist(Zeta_outDir,'dir'); mkdir(Zeta_outDir); end
-
-ZetaSummary_csv = fullfile(Zeta_outDir, sprintf('%s_ZETA_Summary.csv', CaseDate));
-ZetaAll_mat = fullfile(Zeta_outDir, sprintf('%s_ZETA_AllOutputs.mat', CaseDate));
-
-writetable(ZETA_Summary, ZetaSummary_csv);
-save(ZetaAll_mat, 'ZETA_Summary', 'all_sZETA', 'all_sRate', 'all_sLatencies', '-v7.3');
-
-fprintf('ZETA test outputs saved:\n  %s\n  %s\n', ZetaSummary_csv, ZetaAll_mat);
-
-
-%% Zeta test outputs of interest (p-vals and z-vals):
-
+% Zeta test outputs of interest (p-vals, z-vals, d-vals):
+%
 %	- dblZetaP; p-value based on Zenith of Event-based Time-locked Anomalies
 %       % Low ZETA-test p-values indicate that the neuron's firing pattern  
 %       % is statistically unlikely to be observed if the neuron is not
@@ -302,12 +280,149 @@ fprintf('ZETA test outputs saved:\n  %s\n  %s\n', ZetaSummary_csv, ZetaAll_mat);
     %       zeta-test. 
 
 
+%% Run ZETA test for Spikes per MoveType × STN depth 
+% using true per-trial durations
+
+% zetatest.m: Calculates the Zenith of Event-based Time-locked Anomalies (ZETA) 
+% for spike times of a single neuron. Outputs a p-value.
+
+% run wrapper + helper function for zetatest.m
+% loop through all possible electrodes
+[ZETA_Summary, all_sZETA, all_sRate, all_sLatencies] = runZETA_byDepthMove_actualDurations( ...
+    All_SpikesPerMove_Tbl, AO_spike_fs, ...
+    'UseMaxDur_s',  1.60, ...     % 0.4, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8
+    'Resamples',    5000, ...
+    'PlotFlag',     0, ...
+    'RestrictRange',[-inf inf], ...
+    'DirectQuantile', false, ...
+    'JitterSize',    2, ...
+    'Stitch',        true, ...
+    'PreWindow_s',   0.050, ...   % 50 ms lead-in
+    'PostWindow_s',  0.000);
+
+
+% Save Outputs to "Zeta Testing" folder
+Zeta_outDir = fullfile(Case_FRKin_Dir, 'Zeta Testing');
+if ~exist(Zeta_outDir,'dir'); mkdir(Zeta_outDir); end
+
+ZetaSummary_csv = fullfile(Zeta_outDir, sprintf('%s_ZETA_Summary.csv', CaseDate));
+ZetaAll_mat = fullfile(Zeta_outDir, sprintf('%s_ZETA_AllOutputs.mat', CaseDate));
+
+writetable(ZETA_Summary, ZetaSummary_csv);
+save(ZetaAll_mat, 'ZETA_Summary', 'all_sZETA', 'all_sRate', 'all_sLatencies', '-v7.3');
+
+fprintf('ZETA test outputs saved:\n  %s\n  %s\n', ZetaSummary_csv, ZetaAll_mat);
+
+
+%% Run ZETA test for MUA per MoveType × STN depth 
+% using true per-trial durations
+
+% zetatest.m: Calculates the Zenith of Event-based Time-locked Anomalies (ZETA) 
+% for MUA. Outputs a p-value.
+
+% % run wrapper + helper function for zetatest.m
+% % loop through all possible electrodes
+% [ZETA_Summary_MUA, all_sZETA_MUA, all_sRate_MUA, all_sLatencies_MUA] = runZETA_byDepthMove_actualDurations( ...
+%     All_SpikesPerMove_Tbl_MUA, AO_spike_fs, ...
+%     'UseMaxDur_s',  1.60, ...     % 0.4, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8
+%     'Resamples',    5000, ...
+%     'PlotFlag',     0, ...
+%     'RestrictRange',[-inf inf], ...
+%     'DirectQuantile', false, ...
+%     'JitterSize',    2, ...
+%     'Stitch',        true, ...
+%     'SpikeField', 'C1_MUA', ...
+%     'PreWindow_s',   0.050, ...   % 50 ms lead-in
+%     'PostWindow_s',  0.000);
+% 
+% 
+% % Save Outputs to "Zeta Testing MUA" folder
+% Zeta_outDir_MUA = fullfile(Case_FRKin_Dir, 'Zeta Testing MUA');
+% if ~exist(Zeta_outDir_MUA,'dir'); mkdir(Zeta_outDir_MUA); end
+% 
+% ZetaSummary_csv_MUA = fullfile(Zeta_outDir_MUA, sprintf('%s_ZETA_Summary_MUA.csv', CaseDate));
+% ZetaAll_mat_MUA     = fullfile(Zeta_outDir_MUA, sprintf('%s_ZETA_AllOutputs_MUA.mat', CaseDate));
+% 
+% writetable(ZETA_Summary_MUA, ZetaSummary_csv_MUA);
+% save(ZetaAll_mat_MUA, 'ZETA_Summary_MUA', 'all_sZETA_MUA', 'all_sRate_MUA', 'all_sLatencies_MUA', '-v7.3');
+% 
+% fprintf('MUA ZETA outputs saved:\n  %s\n  %s\n', ZetaSummary_csv_MUA, ZetaAll_mat_MUA);
+
+
+%% Notes re: zetatstest 
+
+% https://github.com/JorritMontijn/zetatest/blob/main/zetatstest.m
+% zetatstest.m: Calculates the time-series version of ZETA, for data such as calcium imaging or EEG recordings.
+
+% zetatstest Calculates responsiveness index zeta for timeseries data
+	% Syntax: [dblZetaP,sZETA] = zetatstest(vecTime,vecData,vecEventTimes,dblUseMaxDur,intResampNum,intPlot,boolDirectQuantile,dblJitterSize,boolStitch,dblSuperResFactor)
+	%	Input:
+	%	- vecTime [N x 1]: time (s) corresponding to entries in vecValue
+	%	- vecData [N x 1]: data values (e.g., calcium imaging dF/F0)
+	%	- vecEventTimes [T x 1]: event on times (s), or [T x 2] including event off times
+	%	- dblUseMaxDur: scalar (s), ignore all values beyond this duration after stimulus onset
+	%								[default: median of trial start to trial start]
+	%	- intResampNum: integer, number of resamplings (default: 100)
+	%	- intPlot: integer, plotting switch (0=none, 1=traces only, 2=activity heat map as well) (default: 0)
+	%	- boolDirectQuantile; boolean, switch to use the empirical
+	%							null-distribution rather than the Gumbel approximation (default: false)
+	%	- dblJitterSize: scalar, sets the temporal jitter window relative to dblUseMaxDur (default: 2)
+	%	- boolStitch; boolean, use data-stitching to ensure continuous time (default: true)
+	%	- dblSuperResFactor; scalar, upsampling of data when calculating zeta (default: 100)
+	%
+	%	Output:
+	%	- dblZetaP; Zenith of Event-based Time-locked Anomalies: responsiveness p-value
+	%	- sZETA; structure with fields:
+	%		- dblZetaP; p-value corresponding to ZETA
+	%		- dblZETA; ZETA responsiveness statistic
+	%		- dblD; temporal deviation value underlying ZETA
+	%		- vecTimeSR; timestamps for upscaled data
+	%		- matDataSR; upscaled data values
+	%		- dblPeakT; time corresponding to ZETA
+	%		- intPeakIdx; entry corresponding to ZETA
+	%		- dblMeanZ; z-score based on mean-rate stim/base difference
+	%		- dblMeanP; p-value based on mean-rate stim/base difference
+	%		- vecMu_Dur; within-stimulus values used in mean-rate difference calculation
+	%		- vecMu_Pre; outside-stimulus values used in mean-rate difference calculation
+	%		- vecTime: timestamps of entries (corresponding to vecD)
+	%		- vecD; temporal deviation vector of data
+	%		- cellRandT; reference time vectors for randomly jittered data
+	%		- cellRandDiff; deviation vectors for randomly jittered data
+
+
+%% Run ZETA-TS test for MUA per MoveType × STN depth
+
+% zetatstest.m: Calculates the time-series version of ZETA, 
+% for data such as calcium imaging or EEG ... + MUA & LFP ...  recordings.
+
+% run wrapper + helper function for zetatest.m
+[ZETA_TS_Summary_MUA, all_sZETA_ts_MUA] = runZETA_MUA_byDepthMove_actualDurations( ...
+    All_SpikesPerMove_Tbl_MUA, AO_spike_fs, ...
+    'UseMaxDur_s',  1.60, ...
+    'PadITI_s',     0.005, ...
+    'PreWindow_s',  0.050, ...
+    'PostWindow_s', 0.000);
+
+% Save Outputs to "Zeta Testing MUA" folder
+Zeta_outDir_MUA = fullfile(Case_FRKin_Dir, 'Zeta Testing MUA');
+if ~exist(Zeta_outDir_MUA,'dir'); mkdir(Zeta_outDir_MUA); end
+
+ZetaTS_Summary_csv_MUA = fullfile(Zeta_outDir_MUA, sprintf('%s_ZETA_TS_Summary_MUA.csv', CaseDate));
+ZetaTS_All_mat_MUA     = fullfile(Zeta_outDir_MUA, sprintf('%s_ZETA_TS_AllOutputs_MUA.mat', CaseDate));
+
+writetable(ZETA_TS_Summary_MUA, ZetaTS_Summary_csv_MUA);
+save(ZetaTS_All_mat_MUA, 'ZETA_TS_Summary_MUA', 'all_sZETA_ts_MUA', '-v7.3');
+
+fprintf('MUA ZETA-TS outputs saved:\n  %s\n  %s\n', ZetaTS_Summary_csv_MUA, ZetaTS_All_mat_MUA);
+
+
 %% Compute instantaneous firing rate (IFR) + PSTH per MoveType × STN depth using getIFR 
+
+% https://github.com/JorritMontijn/zetatest/blob/main/getIFR.m
+
 % uses the temporal deviations upon which ZETA is based 
 % d: temporal deviation vector 
 % δ: scaled to lie between –1 and +1, value depends on the difference between the fractional position of a spike (from 0 to 1) and the linear interval from x,y=[0,0] to [τ,1]. 
-
-% https://github.com/JorritMontijn/zetatest/blob/main/getIFR.m
 
 % getIFR.m: Calculates the instantaneous firing rate (IFR) without running the ZETA-test. Use this as you would a PSTH function.
 % Syntax:
@@ -332,9 +447,13 @@ fprintf('ZETA test outputs saved:\n  %s\n  %s\n', ZetaSummary_csv, ZetaAll_mat);
 	%		- vecDiff;
 	%		- vecScale; 
 
+
+%% Single-Unit (spike clusters) - runIFR_PSTH_byDepthMove
+
 IFR_outDir = fullfile(Zeta_outDir, 'IFR_PSTH');  
 
-[IFR_PSTH_Summary, all_IFR] = runIFR_PSTH_byDepthMove(All_SpikesPerMove_Tbl, AO_spike_fs, ...
+[IFR_PSTH_Summary, all_IFR] = run_IFR_PSTH_byDepthMove( ...
+    All_SpikesPerMove_Tbl, AO_spike_fs, ...
     'UseMaxDur_s', 1.60, ...
     'PadITI_s',    0.005, ...
     'SpikeField',  'C1', ...
@@ -354,10 +473,50 @@ IFR_outDir = fullfile(Zeta_outDir, 'IFR_PSTH');
 % Save summary table + all structs
 if ~exist(IFR_outDir,'dir'); mkdir(IFR_outDir); end
 writetable(IFR_PSTH_Summary, fullfile(IFR_outDir, sprintf('%s_IFR_PSTH_Summary.csv', CaseDate)));
-save(fullfile(IFR_outDir, sprintf('%s_IFR_PSTH_All.mat', CaseDate)), 'IFR_PSTH_Summary', 'all_IFR', '-v7.3');
+save(fullfile(IFR_outDir, sprintf('%s_IFR_PSTH_All.mat', CaseDate)), ... 
+    'IFR_PSTH_Summary', 'all_IFR', '-v7.3');
 fprintf('IFR/PSTH saved to %s\n', IFR_outDir);
 
 cd(IFR_outDir)
+
+
+%% Multi-unit (MUA) - runIFR_PSTH_byDepthMove
+
+% Load MUA table -----
+cd(Case_FRKin_Dir)
+load('All_Spikes_n_MUAperMove_tbl.mat','All_SpikesPerMove_Tbl_MUA');
+
+% IFR + PSTH for MUA (per MoveType × Depth)
+Zeta_outDir_MUA = fullfile(Case_FRKin_Dir, 'Zeta Testing MUA');
+if ~exist(Zeta_outDir_MUA,'dir'); mkdir(Zeta_outDir_MUA); end
+IFR_outDir_MUA = fullfile(Zeta_outDir_MUA, 'IFR_PSTH_MUA');
+
+[IFR_PSTH_Summary_MUA, all_IFR_MUA] = run_IFR_PSTH_byDepthMove( ...
+    All_SpikesPerMove_Tbl_MUA, AO_spike_fs, ...
+    'UseMaxDur_s', 1.60, ...
+    'PadITI_s',    0.005, ...
+    'SpikeField',  'C1_MUA', ...       
+    'StartField',  'TTL_spk_idx_Start', ...
+    'StopField',   'TTL_spk_idx_End', ...
+    'PreWindow_s', 0.050, ...
+    'PostWindow_s',0.000, ...
+    'BinSize_ms',  10, ...
+    'IFR_SmoothSd',2, ...
+    'IFR_MinScale',[], ...
+    'IFR_Base',    1.5, ...
+    'DoPlot',      true, ...
+    'SaveDir',     IFR_outDir_MUA, ...
+    'CaseDate',    CaseDate);
+
+% Save
+if ~exist(IFR_outDir_MUA,'dir'); mkdir(IFR_outDir_MUA); end
+writetable(IFR_PSTH_Summary_MUA, ...
+    fullfile(IFR_outDir_MUA, sprintf('%s_IFR_PSTH_MUA_Summary.csv', CaseDate)));
+save(fullfile(IFR_outDir_MUA, sprintf('%s_IFR_PSTH_MUA_All.mat', CaseDate)), ...
+     'IFR_PSTH_Summary_MUA', 'all_IFR_MUA', '-v7.3');
+fprintf('MUA IFR/PSTH saved to %s\n', IFR_outDir_MUA);
+
+cd(IFR_outDir_MUA)
 
 
 %% Plot ZETA z-score scatter plots
@@ -369,56 +528,26 @@ MasterZETA = aggregate_ZETA_and_plot(FR_Kin_Dir, ...
     'YMax', 5); 
 
 
-%% PCA of ZETA z-scores per Subject Spike Field (C1, C2, ..., Cn) for each MoveType per STN Depth
+%% PCA of ZETA across Subject Spike Field (C1, C2, ..., Cn) for each MoveType per STN Depth
 
 % replicate London et al., 2021 paper's Fig 2
-% PCA on spike response profiles (ZetaZ scores)
 
-% x-dim (rows) = time (in 10ms PSTH bins, conserved across subjects)
-% y-dim (cols) = subject neuron/spike field/unit
+% Run PCA on spike response profiles, given by ZETA temporal deviation vectors (ZETA_vecD) 
+% for each MoveType × STN depth, after resampling onto a common time axis 
+% given by PSTH_TimeCenters_s.
 
-%% 
+% x-dim (t, time): PSTH_TimeCenters_s (or Zeta_vecT), time vector (in 10 ms bins), uniform across subjects
+% y-dim (d(t), features): ZETA_vecD, temporal deviation signal d(t) that ZETA (Z-score) is computed from
+% One vector (signals per unit) per MoveType × STN Depth across subjects, defined over time vector (in 10 ms PSTH bins) 
 
-
-% Navigate to MasterZeta file location
-Aggr_ZETA_dir = [FR_Kin_Dir, filesep, 'Aggregate Zeta Plots'];
-cd(Aggr_ZETA_dir)
-
-% Load master ZETA file (produced by aggregate_ZETA_and_plot)
-% MasterZETA = readtable('MasterZeta_AllSubjects.csv');
-% MasterZETA.Properties.VariableNames;
-
-
-%% Extract metadata
-% Extract ZetaZ values from MasterZeta file for each MoveType × STN depth 
-% across subject spike clusters
-
-ZetaZ     = MasterZETA.ZetaZ;       % [timeBins × units]
-MoveTypes = MasterZETA.MoveType;    % 1 × units cell array
-Depths    = MasterZETA.Depth;       % 1 × units cell array
-ZetaTime  = MasterZETA.ZetaTime;    % (in seconds)
-
-uniqMoves = unique(MoveTypes, 'stable');
-uniqDepths = unique(Depths, 'stable');
-
-%%
-% run distinct PCA per category
-% Category: each MoveType per STN depth (E.g., Hand OC x dorsal STN)
-
-% Plot PC1 per movement category in tiled layout form 
-% subplot row: STN depth, color code based on movement category 
+% Plot PC1 per MoveType for each STN Depth in a tiled layout (3 rows: depths, color: MoveType)
 % (like in the '...AllCategories_ByDepth_Tiles') plot created by the aggregate_ZETA_and_plot function)
 
+run_PCA_ZETA_byCategory(MasterZETA);
 
 
 
-
-
-
-
-
-%%
-%% MUA - PCA of ZETA z-scores per Subject / Spike Field (C1, C2, ..., Cn) for each MoveType per STN Depth
+%% MUA - PCA of ZETA across Subject MUA for each MoveType per STN Depth
 
 
 %% zetatstest.m: Calculates the time-series version of ZETA, for data such as calcium imaging or EEG recordings.

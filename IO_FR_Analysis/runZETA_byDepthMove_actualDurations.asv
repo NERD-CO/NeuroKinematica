@@ -28,8 +28,6 @@ p.addParameter('MoveTypeOrder', {'HAND OC','HAND PS','ARM EF','REST'});
 % schema: keep backward-compat 'SpikeField' but prefer 'SpikeFields'
 p.addParameter('SpikeField', 'C1', @(s) ischar(s) || isstring(s));   % if single electrode {'C1'}
 p.addParameter('SpikeFields', [], @(x) iscellstr(x) || isempty(x));  % if multiple electrodes {'C1','C2',...}
-p.addParameter('MUA_Field', 'C1_MUA', @(s) ischar(s) || isstring(s));   % if single electrode
-p.addParameter('MUA_Fields', [], @(x) iscellstr(x) || isempty(x));      % if multiple electrodes
 % start/stop bounds for spike field segments:
 p.addParameter('StartField', 'TTL_spk_idx_Start', @(s) ischar(s) || isstring(s));
 p.addParameter('StopField',  'TTL_spk_idx_End',   @(s) ischar(s) || isstring(s));
@@ -105,6 +103,7 @@ for SpkF = spikeFields
                 dz, mv, height(kept_tbl), ...
                 min(trialDur,[],'omitnan'), max(trialDur,[],'omitnan'), useMaxDur);
 
+
             % ---- Sanity & auto-fix the ZETA window / durations ----
             % 1) If StopField is causing error (durations <= 0), try a common fallback name
             if all(~isfinite(trialDur) | trialDur <= 0)
@@ -120,7 +119,6 @@ for SpkF = spikeFields
                     'PreWindow_s', ParsedInputs.PreWindow_s, ...
                     'PostWindow_s',ParsedInputs.PostWindow_s);
             end
-
 
             % 2) Enforce a sensible analysis window so ZETA has >= 3 samples to work with
             %    Pick the longest valid trial; if still tiny, inflate to a floor.
@@ -172,17 +170,37 @@ for SpkF = spikeFields
                 end
             end
 
+            % % ---- If not enough trials (< 3), write a NaN row and continue ----
+            % if height(kept_tbl) < 3
+            %     warning('Skipping %s × %s × %s: only %d trial(s). Need >= 3 for stable peaks.', ...
+            %         curSF, mv, dz, height(kept_tbl));
+            % 
+            %     rows(end+1,:) = { ...
+            %         curSF, mv, dz, height(kept_tbl), NaN, ...                 % SpikeField, MoveType, Depth, nTrials, UseMaxDur_s
+            %         NaN, NaN, NaN, NaN, ...                                   
+            %         NaN, NaN, NaN, ...                                        
+            %         NaN, NaN, ...                                             
+            %         mean(trialDur,'omitnan'), std(trialDur,'omitnan'), ...    % MeanStimDur_s, StdStimDur_s
+            %         NaN, NaN, NaN, ...                                        
+            %         [], NaN, []};                                             % VecSpikeT, ZetaUseMaxDur, VecLatencies
+            % 
+            %     all_sZETA{end+1,1}     = struct();
+            %     all_sRate{end+1,1}     = struct();
+            %     all_sLatencies{end+1,1}= struct();
+            %     continue;
+            % end
+
             % If still errored after retry: write a NaN row and continue safely
             if hadError
                 warning('ZETA failed for %s × %s × %s even after retry. Writing NaNs.', curSF, mv, dz);
                 rows(end+1,:) = { ...
-                    curSF, mv, dz, height(kept_tbl), useMaxDur, ...         % SpikeField, MoveType, Depth, nTrials, UseMaxDur_s
+                    curSF, mv, dz, height(kept_tbl), useMaxDur, ...
                     NaN, NaN, NaN, NaN, ...                                 % dblZetaP, ZetaZ, ZetaD, ZetaP
                     NaN, NaN, NaN, ...                                      % ZetaTime, ZetaD_Inv, ZetaTime_Inv
                     NaN, NaN, ...                                           % IFR_PeakTime, IFR_OnsetTime
-                    mean(trialDur,'omitnan'), std(trialDur,'omitnan'), ...  % MeanStimDur_s, StdStimDur_s
-                    NaN, NaN, NaN, ...                                      % MeanD, MeanZ, MeanP
-                    [], useMaxDur, []};                                     % VecSpikeT, ZetaUseMaxDur, VecLatencies
+                    mean(trialDur,'omitnan'), std(trialDur,'omitnan'), ...  % MeanD, MeanZ, MeanP
+                    NaN, NaN, NaN, ...
+                    [], useMaxDur, []};
 
                 all_sZETA{end+1,1}     = struct();
                 all_sRate{end+1,1}     = struct();
@@ -222,7 +240,7 @@ for SpkF = spikeFields
     end
 end
 
-% Turn rows into table with canonical column names
+
 varNames = { ...
     'SpikeField','MoveType','Depth','nTrials','UseMaxDur_s', ...
     'dblZetaP','ZetaZ','ZetaD','ZetaP', ...
