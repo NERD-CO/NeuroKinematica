@@ -90,7 +90,7 @@ useOffset = true;
 %% Inputs:
 
 % Ephys data folder:
-CaseDate = '07_13_2023_bilateral'; % Adjust as needed
+CaseDate = '11_30_2023_bilateral'; % Adjust as needed
 
 % 1: '03_23_2023';             % NER 2025
 % 1: '04_05_2023';             % NER 2025
@@ -107,12 +107,12 @@ CaseDate = '07_13_2023_bilateral'; % Adjust as needed
 
 % 6: '07_06_2023_bilateral';   % INS 2026
 % 7: '07_13_2023_bilateral';   % INS 2026
-% 10: '08_23_2023';             % INS 2026
-% 12: '11_30_2023_bilateral';   % GRC 2026
+% 10: '08_23_2023';            % INS 2026
+% 12: '11_30_2023_bilateral';  % GRC 2026
 
 
 % Kinematic data folder:
-MoveDir_CaseID = 'IO_07_13_2023_LSTN'; % Adjust as needed
+MoveDir_CaseID = 'IO_11_30_2023_RSTN'; % Adjust as needed
 
 % 'IO_03_23_2023_LSTN';   % NER 2025
 % 'IO_04_05_2023_RSTN';   % NER 2025
@@ -551,7 +551,7 @@ run_PCA_ZETA_byCategory(MasterZETA);
 
 MasterZETA_MUA = aggregate_ZETA_MUA_and_plot(FR_Kin_Dir, ...
     'IO_DataDir', IO_DataDir, ...
-    'ZetaCsvNamePattern','*_ZETA_Summary_MUA.csv', ...
+    'ZetaCsvNamePattern','*_ZETA_TS_Summary_MUA.csv', ...
     'SigZ', 2, 'SigP', 0.05, ...
     'YMax', 5); 
 

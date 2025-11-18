@@ -75,7 +75,7 @@ for m = 1:numel(move_types)
         nTrials = size(evTimes,1);
 
         % ================================================================
-        % Build a high-res timeseries of MUA      
+        % Build a high-res timeseries of MUA
         % ================================================================
         % Convert spike timestamps → binned MUA (e.g. 1 ms bins = 1000 Hz)
         % zetats works best with continuous data sampled at modest rates (ca. 250–2000 Hz).
@@ -87,7 +87,7 @@ for m = 1:numel(move_types)
         % 1) vecTime must start slightly before first event
         % 2) vecTime must end after last event
         % 3) dblUseMaxDur must not be larger than the shortest ITI
-        
+
         % Use event onsets only (col 1 of evTimes)
         eventOn_times = evTimes(:,1);  % offset times not needed
 
@@ -108,7 +108,7 @@ for m = 1:numel(move_types)
         end
 
         % --- Build vecTime that covers jitter window + response window ---
-        Fs = 250;  % or 1000, 1 kHz, MUA time-series sampling for ZETA-TS
+        Fs = 250;  % 250 Hz MUA sampling for ZETA-TS (4 ms bins)
         dt = 1/Fs;
 
         % Choose time span so all events + useMaxDur are inside vecTime
@@ -149,7 +149,7 @@ for m = 1:numel(move_types)
         % ==================================================================
         % Extract fields of interest (with safe fallbacks) to Save
         % ==================================================================
-        ZetaZ_MUA     = getFieldOrTS(sZETA_MUA,'dblZETA',   NaN); 
+        ZetaZ_MUA     = getFieldOrTS(sZETA_MUA,'dblZETA',   NaN);
         ZetaD_MUA     = getFieldOrTS(sZETA_MUA,'dblD',      NaN);
         peakT_MUA     = getFieldOrTS(sZETA_MUA,'dblPeakT',  NaN);
         peakIdx_MUA   = getFieldOrTS(sZETA_MUA,'intPeakIdx',NaN);
@@ -159,6 +159,14 @@ for m = 1:numel(move_types)
         dVec_MUA  = getFieldOrTS(sZETA_MUA,'vecD',     []);
         tVec_MUA  = getFieldOrTS(sZETA_MUA,'vecTime',  []);
 
+        % Construct a simple 0→UseMaxDur time axis for vecD
+        if isempty(dVec_MUA) || isempty(useMaxDur_ts) || isnan(useMaxDur_ts)
+            new_tVec_MUA = [];
+        else
+            nD = numel(dVec_MUA);
+            new_tVec_MUA = linspace(0, useMaxDur_ts, nD);   % [0, UseMaxDur_s] in nD steps
+        end
+
         % summary row (match varNames below)
         rows(end+1,:) = { ...
             'C1_MUA', mv, dz, nTrials, useMaxDur_ts, ...
@@ -166,7 +174,8 @@ for m = 1:numel(move_types)
             peakT_MUA, peakIdx_MUA, ...
             mean(trialDur,'omitnan'), std(trialDur,'omitnan'), ...
             MeanZ_MUA, MeanP_MUA, ...
-            dVec_MUA(:)', tVec_MUA(:)'};
+            dVec_MUA(:)', tVec_MUA(:)',...
+            new_tVec_MUA(:)'};
 
         % store full sZETA struct
         all_sZETA_MUA{end+1,1} = sZETA_MUA;
@@ -179,7 +188,8 @@ varNames = {'MUA_Field','MoveType','Depth','nTrials', 'UseMaxDur_s', ...
     'ZetaTime_MUA','Zeta_Idx', ...
     'MeanStimDur_s','StdStimDur_s', ...
     'MeanZ_MUA','MeanP_MUA', ...
-    'vecD_MUA','vecTime_MUA'};
+    'vecD_MUA','vecTime_MUA',...
+    'new_vecTime_MUA'};
 
 if isempty(rows)
     ZETA_Summary_MUA = cell2table(cell(0,numel(varNames)), 'VariableNames', varNames);

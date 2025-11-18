@@ -3,7 +3,7 @@ function run_PCA_ZETA_MUA_byCategory(MasterZETA_MUA)
 % run_PCA_ZETA_MUA_byCategory
 %
 % PCA on MUA ZETA temporal deviation vectors (vecD_MUA) for each
-% MoveType × STN depth, using new_vecTime_MUA as the time axis.
+% MoveType × STN depth, using vecTime_MUA as the time axis.
 %
 % Each row (subject/hemisphere, MoveType, Depth) = one "unit".
 % Plots PC1 per MoveType for each Depth (3 rows: t/c/b).
@@ -11,7 +11,7 @@ function run_PCA_ZETA_MUA_byCategory(MasterZETA_MUA)
 fprintf('[OK] MasterZETA_MUA: %d total entries\n', height(MasterZETA_MUA));
 
 % Required columns
-reqVars = {'MoveType','Depth','vecD_MUA','new_vecTime_MUA','PrettyLabel'};
+reqVars = {'MoveType','Depth','vecD_MUA','vecTime_MUA','PrettyLabel'};
 missing = setdiff(reqVars, MasterZETA_MUA.Properties.VariableNames);
 if ~isempty(missing)
     error('MasterZETA_MUA is missing required variables: %s', strjoin(missing,', '));
@@ -19,14 +19,14 @@ end
 
 % Restrict to rows that actually have ZETA MUA vectors
 hasD = ~cellfun(@isempty, MasterZETA_MUA.vecD_MUA);
-hasT = ~cellfun(@isempty, MasterZETA_MUA.new_vecTime_MUA);
+hasT = ~cellfun(@isempty, MasterZETA_MUA.vecTime_MUA);
 M = MasterZETA_MUA(hasD & hasT, :);
 if isempty(M)
-    error('No rows with non-empty vecD_MUA and new_vecTime_MUA.');
+    error('No rows with non-empty vecD_MUA and vecTime_MUA.');
 end
 
 % Required columns
-reqVars = {'MoveType','Depth','vecD_MUA','new_vecTime_MUA','PrettyLabel'};
+reqVars = {'MoveType','Depth','vecD_MUA','vecTime_MUA','PrettyLabel'};
 missing = setdiff(reqVars, MasterZETA_MUA.Properties.VariableNames);
 if ~isempty(missing)
     error('MasterZETA_MUA is missing required variables: %s', strjoin(missing,', '));
@@ -34,10 +34,10 @@ end
 
 % Keep only rows with actual ZETA TS vectors
 hasD = ~cellfun(@isempty, MasterZETA_MUA.vecD_MUA);
-hasT = ~cellfun(@isempty, MasterZETA_MUA.new_vecTime_MUA);
+hasT = ~cellfun(@isempty, MasterZETA_MUA.vecTime_MUA);
 M = MasterZETA_MUA(hasD & hasT, :);
 if isempty(M)
-    error('No rows with non-empty vecD_MUA and new_vecTime_MUA.');
+    error('No rows with non-empty vecD_MUA and vecTime_MUA.');
 end
 
 moveTypes  = unique(M.MoveType,'stable');
@@ -79,9 +79,9 @@ for d = 1:numel(depths)
         end
 
         % Reference time axis from first row (should be 0→UseMaxDur_s)
-        t_ref = catRows.new_vecTime_MUA{1};
+        t_ref = catRows.vecTime_MUA{1};
         if isempty(t_ref) || ~isnumeric(t_ref)
-            warning('Empty/non-numeric new_vecTime_MUA for %s × %s; skipping.', mv, dz);
+            warning('Empty/non-numeric vecTime_MUA for %s × %s; skipping.', mv, dz);
             continue;
         end
         t_ref = t_ref(:);
@@ -92,7 +92,7 @@ for d = 1:numel(depths)
 
         for u = 1:nUnits
             dVec = catRows.vecD_MUA{u};
-            tVec = catRows.new_vecTime_MUA{u};
+            tVec = catRows.vecTime_MUA{u};
 
             if isempty(dVec) || isempty(tVec), continue; end
             dVec = double(dVec(:));

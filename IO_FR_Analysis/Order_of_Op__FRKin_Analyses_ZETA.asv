@@ -90,7 +90,7 @@ useOffset = true;
 %% Inputs:
 
 % Ephys data folder:
-CaseDate = '06_08_2023_bilateral'; % Adjust as needed
+CaseDate = '08_23_2023'; % Adjust as needed
 
 % 1: '03_23_2023';             % NER 2025
 % 1: '04_05_2023';             % NER 2025
@@ -107,12 +107,12 @@ CaseDate = '06_08_2023_bilateral'; % Adjust as needed
 
 % 6: '07_06_2023_bilateral';   % INS 2026
 % 7: '07_13_2023_bilateral';   % INS 2026
-% 10: '08_23_2023';             % INS 2026
-% 12: '11_30_2023_bilateral';   % GRC 2026
+% 10: '08_23_2023';            % INS 2026
+% 12: '11_30_2023_bilateral';  % GRC 2026
 
 
 % Kinematic data folder:
-MoveDir_CaseID = 'IO_06_08_2023_LSTN'; % Adjust as needed
+MoveDir_CaseID = 'IO_08_23_2023_RSTN'; % Adjust as needed
 
 % 'IO_03_23_2023_LSTN';   % NER 2025
 % 'IO_04_05_2023_RSTN';   % NER 2025
