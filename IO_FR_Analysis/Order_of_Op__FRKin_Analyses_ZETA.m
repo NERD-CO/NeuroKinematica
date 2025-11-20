@@ -314,41 +314,6 @@ save(ZetaAll_mat, 'ZETA_Summary', 'all_sZETA', 'all_sRate', 'all_sLatencies', '-
 fprintf('ZETA test outputs saved:\n  %s\n  %s\n', ZetaSummary_csv, ZetaAll_mat);
 
 
-%% Run ZETA test for MUA per MoveType × STN depth 
-% using true per-trial durations
-
-% zetatest.m: Calculates the Zenith of Event-based Time-locked Anomalies (ZETA) 
-% for MUA. Outputs a p-value.
-
-% % run wrapper + helper function for zetatest.m
-% % loop through all possible electrodes
-% [ZETA_Summary_MUA, all_sZETA_MUA, all_sRate_MUA, all_sLatencies_MUA] = runZETA_byDepthMove_actualDurations( ...
-%     All_SpikesPerMove_Tbl_MUA, AO_spike_fs, ...
-%     'UseMaxDur_s',  1.60, ...     % 0.4, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8
-%     'Resamples',    5000, ...
-%     'PlotFlag',     0, ...
-%     'RestrictRange',[-inf inf], ...
-%     'DirectQuantile', false, ...
-%     'JitterSize',    2, ...
-%     'Stitch',        true, ...
-%     'SpikeField', 'C1_MUA', ...
-%     'PreWindow_s',   0.050, ...   % 50 ms lead-in
-%     'PostWindow_s',  0.000);
-% 
-% 
-% % Save Outputs to "Zeta Testing MUA" folder
-% Zeta_outDir_MUA = fullfile(Case_FRKin_Dir, 'Zeta Testing MUA');
-% if ~exist(Zeta_outDir_MUA,'dir'); mkdir(Zeta_outDir_MUA); end
-% 
-% ZetaSummary_csv_MUA = fullfile(Zeta_outDir_MUA, sprintf('%s_ZETA_Summary_MUA.csv', CaseDate));
-% ZetaAll_mat_MUA     = fullfile(Zeta_outDir_MUA, sprintf('%s_ZETA_AllOutputs_MUA.mat', CaseDate));
-% 
-% writetable(ZETA_Summary_MUA, ZetaSummary_csv_MUA);
-% save(ZetaAll_mat_MUA, 'ZETA_Summary_MUA', 'all_sZETA_MUA', 'all_sRate_MUA', 'all_sLatencies_MUA', '-v7.3');
-% 
-% fprintf('MUA ZETA outputs saved:\n  %s\n  %s\n', ZetaSummary_csv_MUA, ZetaAll_mat_MUA);
-
-
 %% Notes re: zetatstest 
 
 % https://github.com/JorritMontijn/zetatest/blob/main/zetatstest.m
@@ -493,7 +458,7 @@ Zeta_outDir_MUA = fullfile(Case_FRKin_Dir, 'Zeta Testing MUA');
 if ~exist(Zeta_outDir_MUA,'dir'); mkdir(Zeta_outDir_MUA); end
 IFR_outDir_MUA = fullfile(Zeta_outDir_MUA, 'IFR_PSTH_MUA');
 
-[IFR_PSTH_Summary_MUA, all_IFR_MUA] = run_IFR_PSTH_byDepthMove( ...
+[IFR_PSTH_MUA_Summary, all_IFR_MUA] = run_IFR_PSTH_byDepthMove( ...
     All_SpikesPerMove_Tbl_MUA, AO_spike_fs, ...
     'UseMaxDur_s', 1.60, ...
     'PadITI_s',    0.005, ...
@@ -512,10 +477,10 @@ IFR_outDir_MUA = fullfile(Zeta_outDir_MUA, 'IFR_PSTH_MUA');
 
 % Save
 if ~exist(IFR_outDir_MUA,'dir'); mkdir(IFR_outDir_MUA); end
-writetable(IFR_PSTH_Summary_MUA, ...
+writetable(IFR_PSTH_MUA_Summary, ...
     fullfile(IFR_outDir_MUA, sprintf('%s_IFR_PSTH_MUA_Summary.csv', CaseDate)));
 save(fullfile(IFR_outDir_MUA, sprintf('%s_IFR_PSTH_MUA_All.mat', CaseDate)), ...
-     'IFR_PSTH_Summary_MUA', 'all_IFR_MUA', '-v7.3');
+     'IFR_PSTH_MUA_Summary', 'all_IFR_MUA', '-v7.3');
 fprintf('MUA IFR/PSTH saved to %s\n', IFR_outDir_MUA);
 
 cd(IFR_outDir_MUA)
@@ -554,6 +519,7 @@ MasterZETA_MUA = aggregate_ZETA_MUA_and_plot(FR_Kin_Dir, ...
     'ZetaCsvNamePattern','*_ZETA_TS_Summary_MUA.csv', ...
     'SigZ', 2, 'SigP', 0.05, ...
     'YMax', 5); 
+
 
 %% MUA - PCA of ZETA across Subject MUA for each MoveType x STN Depth
 

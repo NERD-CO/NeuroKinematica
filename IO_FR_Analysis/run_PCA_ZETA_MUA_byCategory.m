@@ -43,21 +43,23 @@ end
 moveTypes  = unique(M.MoveType,'stable');
 depths     = {'t','c','b'};
 depthNames = containers.Map({'t','c','b'}, ...
-                            {'dorsal STN','central STN','ventral STN'});
+    {'dorsal STN','central STN','ventral STN'});
 
 % Colors by MoveType (same as SU)
 mtColor = containers.Map( ...
     {'HAND OC','HAND PS','ARM EF','REST'}, ...
     {[0.95 0.60 0.10], ... % Hand OC = orange
-     [0.20 0.65 0.30], ... % Hand PS = green
-     [0.15 0.45 0.85], ... % Arm EF  = blue
-     [0.60 0.60 0.60]});   % Rest    = gray
+    [0.20 0.65 0.30], ... % Hand PS = green
+    [0.15 0.45 0.85], ... % Arm EF  = blue
+    [0.60 0.60 0.60]});   % Rest    = gray
 
 % Storage for PC1 per category
 PC1_MUA = struct();
 for d = 1:numel(depths)
     for m = 1:numel(moveTypes)
-        key = sprintf('%s|%s', depths{d}, moveTypes{m});
+        rawKey = sprintf('%s_%s', depths{d}, moveTypes{m});
+        key = matlab.lang.makeValidName(rawKey);
+        
         PC1_MUA.(key).t      = [];
         PC1_MUA.(key).pc1    = [];
         PC1_MUA.(key).nUnits = 0;
@@ -107,7 +109,7 @@ for d = 1:numel(depths)
                 keepUnit(u) = true;
             catch ME
                 warning('interp1 failed for MUA unit %d in %s × %s: %s', ...
-                        u, mv, dz, ME.message);
+                    u, mv, dz, ME.message);
             end
         end
 
@@ -144,7 +146,9 @@ for d = 1:numel(depths)
             end
         end
 
-        key = sprintf('%s|%s', dz, mv);
+        rawKey = sprintf('%s_%s', dz, mv);
+        key = matlab.lang.makeValidName(rawKey);
+
         PC1_MUA.(key).t      = t_use;
         PC1_MUA.(key).pc1    = pc1;
         PC1_MUA.(key).nUnits = size(X,2);

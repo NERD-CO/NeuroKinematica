@@ -90,7 +90,7 @@ useOffset = true;
 %% Inputs:
 
 % Ephys data folder:
-CaseDate = '08_23_2023'; % Adjust as needed
+CaseDate = '11_30_2023_bilateral'; % Adjust as needed
 
 % 1: '03_23_2023';             % NER 2025
 % 1: '04_05_2023';             % NER 2025
@@ -112,7 +112,7 @@ CaseDate = '08_23_2023'; % Adjust as needed
 
 
 % Kinematic data folder:
-MoveDir_CaseID = 'IO_08_23_2023_RSTN'; % Adjust as needed
+MoveDir_CaseID = 'IO_11_30_2023_RSTN'; % Adjust as needed
 
 % 'IO_03_23_2023_LSTN';   % NER 2025
 % 'IO_04_05_2023_RSTN';   % NER 2025
@@ -493,7 +493,7 @@ Zeta_outDir_MUA = fullfile(Case_FRKin_Dir, 'Zeta Testing MUA');
 if ~exist(Zeta_outDir_MUA,'dir'); mkdir(Zeta_outDir_MUA); end
 IFR_outDir_MUA = fullfile(Zeta_outDir_MUA, 'IFR_PSTH_MUA');
 
-[IFR_PSTH_Summary_MUA, all_IFR_MUA] = run_IFR_PSTH_byDepthMove( ...
+[IFR_PSTH_MUA_Summary, all_IFR_MUA] = run_IFR_PSTH_byDepthMove( ...
     All_SpikesPerMove_Tbl_MUA, AO_spike_fs, ...
     'UseMaxDur_s', 1.60, ...
     'PadITI_s',    0.005, ...
@@ -512,15 +512,16 @@ IFR_outDir_MUA = fullfile(Zeta_outDir_MUA, 'IFR_PSTH_MUA');
 
 % Save
 if ~exist(IFR_outDir_MUA,'dir'); mkdir(IFR_outDir_MUA); end
-writetable(IFR_PSTH_Summary_MUA, ...
+writetable(IFR_PSTH_MUA_Summary, ...
     fullfile(IFR_outDir_MUA, sprintf('%s_IFR_PSTH_MUA_Summary.csv', CaseDate)));
 save(fullfile(IFR_outDir_MUA, sprintf('%s_IFR_PSTH_MUA_All.mat', CaseDate)), ...
-     'IFR_PSTH_Summary_MUA', 'all_IFR_MUA', '-v7.3');
+     'IFR_PSTH_MUA_Summary', 'all_IFR_MUA', '-v7.3');
 fprintf('MUA IFR/PSTH saved to %s\n', IFR_outDir_MUA);
 
 cd(IFR_outDir_MUA)
 
 
+RSTN
 %% Aggregate & Plot ZETA z-score scatter plots - Single Unit
                     
 MasterZETA = aggregate_ZETA_and_plot(FR_Kin_Dir, ...
@@ -551,7 +552,7 @@ run_PCA_ZETA_byCategory(MasterZETA);
 
 MasterZETA_MUA = aggregate_ZETA_MUA_and_plot(FR_Kin_Dir, ...
     'IO_DataDir', IO_DataDir, ...
-    'ZetaCsvNamePattern','*_ZETA_Summary_MUA.csv', ...
+    'ZetaCsvNamePattern','*_ZETA_TS_Summary_MUA.csv', ...
     'SigZ', 2, 'SigP', 0.05, ...
     'YMax', 5); 
 

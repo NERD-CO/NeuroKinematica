@@ -12,7 +12,7 @@ function MasterZETA_MUA = aggregate_ZETA_MUA_and_plot(FR_Kin_Dir, varargin)
 p = inputParser;
 p.addParameter('IO_DataDir','', @(s) ischar(s) || isstring(s));
 p.addParameter('SaveDir','', @(s) ischar(s) || isstring(s));
-p.addParameter('ZetaCsvNamePattern','*_ZETA_Summary_MUA*.csv', @(s)ischar(s)||isstring(s));
+p.addParameter('ZetaCsvNamePattern','*_ZETA_TS_Summary_MUA*.csv', @(s)ischar(s)||isstring(s));
 p.addParameter('SigZ', 2, @(x) isscalar(x) && x>0);
 p.addParameter('SigP', 0.05, @(x) isscalar(x) && x>0 && x<1);
 p.addParameter('DepthMap', containers.Map({'t','c','b'},{'dorsal STN','central STN','ventral STN'}));
@@ -79,58 +79,72 @@ for k = 1:numel(fileList)
     % -------------------------------------------------------------
     ZETA_vecD_MUA   = cell(height(T),1);
     ZETA_vecT_MUA   = cell(height(T),1);
-    ZETA_nVecT_MUA  = cell(height(T),1);
+    ZETA_new_vecT_MUA  = cell(height(T),1);
 
     zetaFolderMUA = fileparts(csvPath);  % ...\Case\Zeta Testing MUA or ...\Case\LSTN\Zeta Testing MUA
-    zetaAll_mat_MUA = fullfile(zetaFolderMUA, sprintf('%s_ZETA_AllOutputs_MUA.mat', caseID));
+    zetaAll_mat_MUA = fullfile(zetaFolderMUA, sprintf('%s_ZETA_TS_AllOutputs_MUA.mat', caseID));
     hasZetaMat = exist(zetaAll_mat_MUA,'file')==2;
 
     zetaMap = containers.Map;
     if hasZetaMat
-        S = load(zetaAll_mat_MUA, 'ZETA_Summary_MUA','all_sZETA_MUA');
-        ZsumMUA = S.ZETA_Summary_MUA;
-        all_sZETA_MUA_case = S.all_sZETA_MUA;
+        S = load(zetaAll_mat_MUA, 'ZETA_TS_Summary_MUA','all_sZETA_ts_MUA');
+        ZetaTS_sumMUA = S.ZETA_TS_Summary_MUA;
+        all_sZETA_MUA_case = S.all_sZETA_ts_MUA;
 
-        for ii = 1:height(ZsumMUA)
+        for ii = 1:height(ZetaTS_sumMUA)
             key = sprintf('%s|%s|%s', ...
-                string(ZsumMUA.MUA_Field(ii)), ...
-                string(ZsumMUA.MoveType(ii)), ...
-                string(ZsumMUA.Depth(ii)));
+                string(ZetaTS_sumMUA.MUA_Field(ii)), ...
+                string(ZetaTS_sumMUA.MoveType(ii)), ...
+                string(ZetaTS_sumMUA.Depth(ii)));
             if ~isKey(zetaMap, key)
                 zetaMap(key) = ii;
             end
         end
     else
-        fprintf('[WARN] ZETA_AllOutputs_MUA.mat not found for %s (hem=%s)\n', caseID, hemID);
+        fprintf('[WARN] ZETA_TS_AllOutputs_MUA.mat not found for %s (hem=%s)\n', caseID, hemID);
     end
 
+
+    % -------------------------------------------------------------
     % Optional: attach IFR/PSTH_MUA if you saved it
     PSTH_TimeCenters_MUA = cell(height(T),1);
     PSTH_Hz_MUA          = cell(height(T),1);
     IFR_Time_s_MUA       = cell(height(T),1);
     IFR_Hz_MUA           = cell(height(T),1);
 
-    % Assumes you saved IFR_MUA as:
+    % Assumes (optionally) a file:
     %   ...\Zeta Testing MUA\IFR_PSTH_MUA\<CaseID>_IFR_PSTH_MUA_All.mat
-    ifrFolderMUA = fullfile(zetaFolderMUA, 'IFR_PSTH_MUA');  % adjust if you used a different name
+    ifrFolderMUA   = fullfile(zetaFolderMUA, 'IFR_PSTH_MUA');  % adjust if you used a different name
     ifrAll_mat_MUA = fullfile(ifrFolderMUA, sprintf('%s_IFR_PSTH_MUA_All.mat', caseID));
-    hasIFRMat = exist(ifrAll_mat_MUA,'file')==2;
+    hasIFRMat      = exist(ifrAll_mat_MUA,'file')==2;
 
     ifrMap = containers.Map;
-    if hasIFRMat
-        S2 = load(ifrAll_mat_MUA, 'IFR_PSTH_MUA_Summary','all_IFR_MUA');
-        IFRsumMUA = S2.IFR_PSTH_MUA_Summary;
+    IFRsumMUA   = [];
+    all_IFR_MUA = [];
 
-        for ii = 1:height(IFRsumMUA)
-            key = sprintf('%s|%s|%s', ...
-                string(IFRsumMUA.MUA_Field(ii)), ...
-                string(IFRsumMUA.MoveType(ii)), ...
-                string(IFRsumMUA.Depth(ii)));
-            if ~isKey(ifrMap, key)
-                ifrMap(key) = ii;
+    if hasIFRMat
+        S2 = load(ifrAll_mat_MUA);
+        if isfield(S2,'IFR_PSTH_MUA_Summary') && isfield(S2,'all_IFR_MUA')
+            IFRsumMUA   = S2.IFR_PSTH_MUA_Summary;
+            all_IFR_MUA = S2.all_IFR_MUA;
+
+            for ii = 1:height(IFRsumMUA)
+                key = sprintf('%s|%s|%s', ...
+                    string(IFRsumMUA.SpikeField(ii)), ...
+                    string(IFRsumMUA.MoveType(ii)), ...
+                    string(IFRsumMUA.Depth(ii)));
+                if ~isKey(ifrMap, key)
+                    ifrMap(key) = ii;
+                end
             end
+        else
+            % File exists but doesn't have the expected IFR MUA variables
+            warning('IFR_PSTH_MUA_Summary not found in %s; skipping IFR/PSTH_MUA attachment.', ifrAll_mat_MUA);
+            hasIFRMat = false;
         end
     end
+    % -------------------------------------------------------------
+
 
     % Per-row attachment
     for r = 1:height(T)
@@ -141,28 +155,47 @@ for k = 1:numel(fileList)
         if hasZetaMat && isKey(zetaMap, key)
             idxZ = zetaMap(key);
             sZ   = all_sZETA_MUA_case{idxZ};
-            if isfield(sZ,'vecD')
-                ZETA_vecD_MUA{r} = sZ.vecD(:)';    % row
-            end
-            % we constructed vecTime for MUA in runZETA_MUA[...] already
-            if isfield(sZ,'new_tVec_MUA')
-                ZETA_nVecT_MUA{r} = sZ.vecTime(:)'; % row, if you stored it there
+
+            if isfield(sZ,'vecD') && ~isempty(sZ.vecD)
+                ZETA_vecD_MUA{r} = sZ.vecD(:)';    % row vector
             else
-                ZETA_nVecT_MUA{r} = [];
+                ZETA_vecD_MUA{r} = [];
             end
+
+            if isfield(sZ,'vecTime') && ~isempty(sZ.vecTime)
+                ZETA_vecT_MUA{r} = sZ.vecTime(:)'; % row vector
+            else
+                ZETA_vecT_MUA{r} = [];
+            end
+
+            if isfield(sZ,'new_vecTime_MUA') && ~isempty(sZ.new_vecTime_MUA)
+                ZETA_new_vecT_MUA{r} = sZ.new_vecTime_MUA(:)'; % row vector
+            else
+                ZETA_new_vecT_MUA{r} = [];
+            end
+
         else
-            ZETA_vecD_MUA{r} = [];
-            ZETA_nVecT_MUA{r} = [];
+            ZETA_vecD_MUA{r}  = [];
+            ZETA_vecT_MUA{r} = [];
+            ZETA_new_vecT_MUA{r} = [];
         end
 
         % IFR/PSTH MUA (optional)
         if hasIFRMat && isKey(ifrMap, key)
             idxI = ifrMap(key);
 
-            cCenters = IFRsumMUA.PSTH_TimeCenters_s{idxI};
-            cPSTH    = IFRsumMUA.PSTH_Hz{idxI};
-            cIFRt    = IFRsumMUA.IFR_Time_s{idxI};
-            cIFRr    = IFRsumMUA.IFR_Hz{idxI};
+            % deal with cell vs non-cell gracefully
+            cCenters = IFRsumMUA.PSTH_TimeCenters_s(idxI);
+            if iscell(cCenters), cCenters = cCenters{1}; end
+
+            cPSTH = IFRsumMUA.PSTH_Hz(idxI);
+            if iscell(cPSTH), cPSTH = cPSTH{1}; end
+
+            cIFRt = IFRsumMUA.IFR_Time_s(idxI);
+            if iscell(cIFRt), cIFRt = cIFRt{1}; end
+
+            cIFRr = IFRsumMUA.IFR_Hz(idxI);
+            if iscell(cIFRr), cIFRr = cIFRr{1}; end
 
             PSTH_TimeCenters_MUA{r} = cCenters(:)';  % row
             PSTH_Hz_MUA{r}          = cPSTH(:)';
@@ -178,7 +211,8 @@ for k = 1:numel(fileList)
 
     % Add dynamic columns
     T.vecD_MUA          = ZETA_vecD_MUA;
-    T.vecTime_MUA       = ZETA_nVecT_MUA;
+    T.vecTime_MUA       = ZETA_vecT_MUA;
+    T.new_vecTime_MUA   = ZETA_new_vecT_MUA;
     T.PSTH_TimeCenters_s_MUA = PSTH_TimeCenters_MUA;
     T.PSTH_Hz_MUA       = PSTH_Hz_MUA;
     T.IFR_Time_s_MUA    = IFR_Time_s_MUA;
@@ -293,33 +327,17 @@ fprintf('[Map check] unique x-labels: %d | unmatched rows: %d\n', ...
     numel(unique(MasterZETA_MUA.PrettyLabel,'stable')), height(unmatched));
 
 
-%% RETURN HERE:
-% reuse 3a/3b/4 blocks from aggregate_ZETA_and_plot,
-% but replace:
-%   MasterZETA      -> MasterZETA_MUA
-%   ZetaZ           -> ZetaZ_MUA
-%   dblZetaP        -> ZetaP_MUA
-% and adjust y-label strings to "ZETA z-score (MUA)" if you like.
-
-% Example of the only necessary change in the all-categories plot:
-%   isSig_all = (MasterZETA_MUA.ZetaZ_MUA >= U.SigZ) & ...
-%               (MasterZETA_MUA.ZetaP_MUA <= U.SigP);
-%   y_all     = MasterZETA_MUA.ZetaZ_MUA;
-
-% Everything else (PrettyLabel, jittered x, DepthMap, PrettyMoveMap, etc.)
-% can remain identical.
-
 %% 3a) All-categories-in-one scatter (Subjects on x, all MoveType×Depth ZetaZ scores stacked on y with xjitter)
 
-% ---- build friendly labels (global, consistent across whole MasterZETA) ----
+% ---- build friendly labels (global, consistent across whole MasterZETA_MUA) ----
 % Subject index in encounter order (Subject 1, Subject 2, ...)
 [~, ~, subjIdxAll] = unique(MasterZETA_MUA.CaseDate,'stable');
 subjNum = subjIdxAll;  % numeric 1..N
 
 % % ---- build labels from SubjectNum (+ hemisphere, if present) ----
-% hasHemi  = ~(MasterZETA.Hemisphere=="" | ismissing(MasterZETA.Hemisphere));
-% hemiText = strings(height(MasterZETA),1);
-% hemiText(hasHemi) = "–" + string(MasterZETA.Hemisphere(hasHemi));   % '–LSTN'/'–RSTN'
+% hasHemi  = ~(MasterZETA_MUA.Hemisphere=="" | ismissing(MasterZETA_MUA.Hemisphere));
+% hemiText = strings(height(MasterZETA_MUA),1);
+% hemiText(hasHemi) = "–" + string(MasterZETA_MUA.Hemisphere(hasHemi));   % '–LSTN'/'–RSTN'
 % % % don't display hemisphere for now
 % % hemiText(:) = "";
 
@@ -520,7 +538,7 @@ for i = 1:height(cats)
 
     % sig vs nonsig
     isSig = (sel.ZetaZ_MUA >= U.SigZ) & (sel.ZetaP_MUA <= U.SigP); % ZetaZ > 2, ZetaP < 0.05
-    y = sel.ZetaZ;
+    y = sel.ZetaZ_MUA;
 
     % Pretty labels
     depthLbl = mapOrDefault(U.DepthMap, dz, dz);
@@ -615,4 +633,64 @@ for i = 1:numel(caseDirs)
         end
     end
 end
+end
+
+
+function val = mapOrDefault(mp, key, defaultVal)
+% mapOrDefault: safe lookup for containers.Map with a fallback
+%
+% mp         : containers.Map
+% key        : string/char key to look up
+% defaultVal : value to return if key not found or mp not a Map
+
+val = defaultVal;
+
+if ~isa(mp,'containers.Map')
+    return;
+end
+
+% Normalize key to char (your maps use char keys like 't','HAND OC', etc.)
+if isstring(key)
+    k = char(key);
+else
+    k = key;
+end
+
+try
+    if isKey(mp, k)
+        val = mp(k);
+    end
+catch
+    % In case of weird key types, just fall back to defaultVal
+    val = defaultVal;
+end
+end
+
+function s = sanitize_filename(s)
+% sanitize_filename: safe filename generator
+% Converts MoveType/Depth strings into valid filesystem names.
+%
+% Examples:
+%   "HAND OC" -> "HAND_OC"
+%   "ARM EF"  -> "ARM_EF"
+%   "b"       -> "b"
+%
+% Removes characters not allowed in filenames and replaces spaces.
+
+if isstring(s)
+    s = char(s);
+end
+
+% replace spaces with underscores
+s = strrep(s, ' ', '_');
+
+% remove problematic characters
+badChars = ['\/:*?"<>|']; % Windows illegal characters
+for c = badChars
+    s = strrep(s, c, '');
+end
+
+% Optionally trim leading/trailing underscores
+s = regexprep(s, '^_+', '');
+s = regexprep(s, '_+$', '');
 end

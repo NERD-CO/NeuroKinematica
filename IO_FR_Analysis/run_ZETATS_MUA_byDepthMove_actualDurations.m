@@ -1,4 +1,4 @@
-function [ZETA_Summary_MUA, all_sZETA_MUA] = run_ZETATS_MUA_byDepthMove_actualDurations( ...
+function [ZETA_TS_Summary_MUA, all_sZETA_ts_MUA] = run_ZETATS_MUA_byDepthMove_actualDurations( ...
     All_SpikesPerMove_Tbl_MUA, AO_spike_fs, varargin)
 
 % runZETATS_MUA_byDepthMove_actualDurations
@@ -41,7 +41,7 @@ U = p.Results;
 move_types = intersect(U.MoveTypeOrder, unique(All_SpikesPerMove_Tbl_MUA.MoveType),'stable');
 
 rows = {};
-all_sZETA_MUA     = {};
+all_sZETA_ts_MUA     = {};
 
 % Loop over MoveType × STN depth
 for m = 1:numel(move_types)
@@ -167,6 +167,14 @@ for m = 1:numel(move_types)
             new_tVec_MUA = linspace(0, useMaxDur_ts, nD);   % [0, UseMaxDur_s] in nD steps
         end
 
+        % Attach new time base into sZETA struct
+        sZETA_MUA.new_vecTime_MUA = new_tVec_MUA(:);
+        % sZETA_MUA.raw_vecTime_MUA = tVec_MUA(:);   % optional for debugging
+        % sZETA_MUA.vecD_MUA        = dVec_MUA(:);   % redundant but keeps all together
+
+        % store full sZETA struct
+        all_sZETA_ts_MUA{end+1,1} = sZETA_MUA;
+
         % summary row (match varNames below)
         rows(end+1,:) = { ...
             'C1_MUA', mv, dz, nTrials, useMaxDur_ts, ...
@@ -176,9 +184,6 @@ for m = 1:numel(move_types)
             MeanZ_MUA, MeanP_MUA, ...
             dVec_MUA(:)', tVec_MUA(:)',...
             new_tVec_MUA(:)'};
-
-        % store full sZETA struct
-        all_sZETA_MUA{end+1,1} = sZETA_MUA;
     end
 end
 
@@ -192,9 +197,9 @@ varNames = {'MUA_Field','MoveType','Depth','nTrials', 'UseMaxDur_s', ...
     'new_vecTime_MUA'};
 
 if isempty(rows)
-    ZETA_Summary_MUA = cell2table(cell(0,numel(varNames)), 'VariableNames', varNames);
+    ZETA_TS_Summary_MUA = cell2table(cell(0,numel(varNames)), 'VariableNames', varNames);
 else
-    ZETA_Summary_MUA = cell2table(rows, 'VariableNames', varNames);
+    ZETA_TS_Summary_MUA = cell2table(rows, 'VariableNames', varNames);
 end
 
 end
