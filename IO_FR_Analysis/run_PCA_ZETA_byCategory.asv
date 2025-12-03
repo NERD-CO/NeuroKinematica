@@ -2,59 +2,56 @@ function run_PCA_ZETA_byCategory(MasterZETA)
 
 % run_PCA_ZETA_byCategory
 %
-% Do PCA on ZETA temporal deviation vectors (Zeta_vecD) for each
+% Do PCA on ZETA temporal deviation vectors (ZETA_vecD) for each
 % MoveType × STN depth, after resampling onto a common time axis given by
 % PSTH_TimeCenters_s.
+
+% 1) Navigate to MasterZeta file location
+% Aggr_ZETA_dir = [FR_Kin_Dir, filesep, 'Aggregate Zeta Plots'];
+% cd(Aggr_ZETA_dir)
+
+% 2) Load master ZETA file (produced by aggregate_ZETA_and_plot): MasterZETA_AllData.mat
+% MasterZETA = readtable('MasterZeta_AllSubjects.csv');
+% MasterZETA.Properties.VariableNames;
+
+% 3) Extract ZETA values from MasterZeta file for each MoveType × STN depth 
+% across subject spike clusters
+% Build a matrix: X=[timeBins × units]
+
+% 4) Run PCA on ZETA temporal deviation vectors (Zeta_vecD) per category
+% % Category: each MoveType per STN depth (E.g., Hand OC x dorsal STN)
+% x-axis (t, time): PSTH_TimeCenters_s (or Zeta_vecT), time vector (10 ms bins), uniform across subjects
+% y-axis (d(t), features): ZETA_vecD, temporal deviation signal d(t) that ZETA is computed from
+% % One vector (signals per unit) per MoveType × depth, defined over time support ZETA_vecT 
 %
 % Then plot PC1 per MoveType for each Depth (3 rows: t/c/b).
 
-
-%% Load MasterZETA_AllData (produced by aggregate_ZETA_and_plot)
-
-% if nargin < 1
-%     masterZETA_mat = 'MasterZETA_AllData.mat';
-% end
-% S = load(masterZETA_mat, 'MasterZETA');
-% MasterZETA = S.MasterZETA;
-
 fprintf('[OK] Loaded MasterZETA_AllData: %d total entries\n', height(MasterZETA));
 
-% --- Sanity check required columns ---
-reqVars = {'MoveType','Depth','ZETA_vecD','ZETA_vecT','PSTH_TimeCenters_s','SpikeField','PrettyLabel'};
+%% --- Sanity check required columns ---
+
+% Adjust these names if your table uses Zeta_vecD/Zeta_vecT instead:
+reqVars = {'MoveType','Depth','ZETA_vecD','ZETA_vecT', ...
+           'PSTH_TimeCenters_s','SpikeField','PrettyLabel'};
 missing = setdiff(reqVars, MasterZETA.Properties.VariableNames);
 if ~isempty(missing)
     error('MasterZETA is missing required variables: %s', strjoin(missing,', '));
 end
 
+%% Restrict to rows that have both ZETA vecD and PSTH time centers
 
-%% Extract needed fields
-
-MoveTypes = MasterZETA.MoveType;
-Depths    = MasterZETA.Depth;
-
-ZetaZ = MasterZETA.ZetaZ;
-ZetaD = MasterZETA.ZETA_vecD;      % cell array (temporal deviation)
-ZetaT = MasterZETA.ZETA_vecT;      % cell array (time support for vecD)
-
-% PSTH time (uniform across subjects; already verified)
-PSTH_time = MasterZETA.PSTH_TimeCenters_s;
-
-
-%%
-
-% Restrict to rows that have both ZETA vecD and PSTH time centers
 hasZ = ~cellfun(@isempty, MasterZETA.ZETA_vecD);
 hasT = ~cellfun(@isempty, MasterZETA.PSTH_TimeCenters_s);
-M = MasterZETA(hasZ & hasT, :);
+M    = MasterZETA(hasZ & hasT, :);
 
 if isempty(M)
-    error('No rows with both Zeta_vecD and PSTH_TimeCenters_s found.');
+    error('No rows with both ZETA_vecD and PSTH_TimeCenters_s found.');
 end
 
 fprintf('[OK] Unique MoveTypes: %s\n', strjoin(unique(M.MoveType,'stable'), ', '));
 
 moveTypes  = unique(M.MoveType,'stable');
-depths     = {'t','c','b'};  % keep STN order dorsal->central->ventral
+depths     = {'t','c','b'};  % dorsal, central, ventral
 depthNames = containers.Map({'t','c','b'}, ...
                             {'dorsal STN','central STN','ventral STN'});
 
@@ -66,58 +63,63 @@ mtColor = containers.Map( ...
      [0.15 0.45 0.85], ... % Arm EF  = blue
      [0.60 0.60 0.60]});   % Rest    = gray
 
-% Storage for PC1 waveforms per MoveType × Depth
+%% Storage for PC1 waveforms per MoveType × Depth
+
 PC1 = struct();
 for d = 1:numel(depths)
     for m = 1:numel(moveTypes)
-        key = sprintf('%s|%s', depths{d}, moveTypes{m});
-        PC1.(key).t   = [];
-        PC1.(key).pc1 = [];
-        PC1.(key).nUnits = 0;
+        key = makeKey(depths{d}, moveTypes{m});
+        PC1.(key).t       = [];
+        PC1.(key).pc1     = [];
+        PC1.(key).nUnits  = 0;
+        PC1.(key).latent  = [];
+        PC1.(key).scores  = [];
+        PC1.(key).labels  = [];
     end
 end
 
-% ----- MAIN LOOP: per MoveType × Depth -----
+%% ----- MAIN LOOP: per MoveType × Depth -----
+
 for d = 1:numel(depths)
     dz = depths{d};
 
     for m = 1:numel(moveTypes)
         mv = moveTypes{m};
 
+        % Subset rows in this category
         catRows = M(M.MoveType==mv & M.Depth==dz, :);
         if height(catRows) < 2
-            % Not enough units in this category to do PCA
+            % Not enough units to do PCA
             continue;
         end
 
-        % --- Reference time axis from PSTH_TimeCenters_s (first valid row) ---
-        t_ref = catRows.PSTH_TimeCenters_s{1};
-        if isempty(t_ref) || ~isnumeric(t_ref)
+        % Reference time axis from PSTH_TimeCenters_s (first valid row)
+        time_ref = catRows.PSTH_TimeCenters_s{1};
+        if isempty(time_ref) || ~isnumeric(time_ref)
             warning('Empty or non-numeric PSTH_TimeCenters_s for %s × %s; skipping.', mv, dz);
             continue;
         end
-        t_ref = t_ref(:);  % column vector
+        time_ref = time_ref(:);  % column vector
 
         nUnits = height(catRows);
-        X = nan(numel(t_ref), nUnits);  % time × units
-
-        keepUnit = false(1, nUnits);   % which units we actually use
+        X       = nan(numel(time_ref), nUnits);  % time × units
+        keepUnit = false(1, nUnits);
 
         for u = 1:nUnits
-            dVec = catRows.Zeta_vecD{u};
-            tZ   = catRows.Zeta_vecT{u};
+            dVec = catRows.ZETA_vecD{u};
+            tVec   = catRows.ZETA_vecT{u};
 
-            if isempty(dVec) || isempty(tZ), continue; end
+            if isempty(dVec) || isempty(tVec), continue; end
             dVec = double(dVec(:));
-            tZ   = double(tZ(:));
+            tVec   = double(tVec(:));
 
-            if numel(dVec) < 3 || numel(tZ) ~= numel(dVec)
+            if numel(dVec) < 3 || numel(tVec) ~= numel(dVec)
                 continue;
             end
 
-            % Interpolate ZETA deviation (dVec) onto common PSTH time base
+            % Interpolate ZETA deviation onto common PSTH time base
             try
-                X(:,u) = interp1(tZ, dVec, t_ref, 'linear', 'extrap');
+                X(:,u) = interp1(tVec, dVec, time_ref, 'linear', 'extrap');
                 keepUnit(u) = true;
             catch ME
                 warning('interp1 failed for unit %d in %s × %s: %s', ...
@@ -134,8 +136,8 @@ for d = 1:numel(depths)
 
         % Remove timepoints that are NaN across all units
         goodTime = any(isfinite(X), 2);
-        X = X(goodTime, :);
-        t_use = t_ref(goodTime);
+        X    = X(goodTime, :);
+        t_use = time_ref(goodTime);
 
         % Replace remaining NaNs (per unit) with unit-wise mean over non-NaN times
         for j = 1:size(X,2)
@@ -147,9 +149,7 @@ for d = 1:numel(depths)
         end
 
         % ----- PCA -----
-        % PCA expects observations = rows, variables = columns.
-        % We want temporal patterns as variables, units as observations:
-        %   rows = units, columns = timepoints -> X' (units × time)
+        % Observations = units, variables = timepoints → X'
         [coeff, score, latent] = pca(X', 'Centered', true);
 
         % coeff: [nTime × nPC], columns are PCs across time
@@ -164,23 +164,49 @@ for d = 1:numel(depths)
             end
         end
 
-        key = sprintf('%s|%s', dz, mv);
-        PC1.(key).t      = t_use;
-        PC1.(key).pc1    = pc1;
-        PC1.(key).nUnits = size(X,2);
-        PC1.(key).latent = latent;
-        PC1.(key).scores = score;
-        PC1.(key).labels = catRows.PrettyLabel(keepUnit);
+        key = makeKey(dz, mv);
+        PC1.(key).t       = t_use;
+        PC1.(key).pc1     = pc1;
+        PC1.(key).nUnits  = size(X,2);
+        PC1.(key).latent  = latent;
+        PC1.(key).scores  = score;
+        PC1.(key).labels  = catRows.PrettyLabel(keepUnit);
 
-        fprintf('[PCA] %s × %s: %d units, %d time points\n', mv, dz, size(X,2), numel(t_use));
+        fprintf('[PCA] %s × %s: %d units, %d time points\n', ... 
+            mv, dz, size(X,2), numel(t_use));
     end
 end
 
-% ----- PLOT: PC1 per depth (rows) and MoveType (colors) -----
+%% ----- PLOT: PC1 per depth (rows) and MoveType (colors) -----
 
-% pick consistent MoveType plotting order
+% Consistent MoveType plotting order
 mtOrder = {'HAND OC','HAND PS','ARM EF','REST'};
 mtOrder = intersect(mtOrder, moveTypes, 'stable');
+
+% Consistent MoveType plotting order
+mtOrder = {'HAND OC','HAND PS','ARM EF','REST'};
+mtOrder = intersect(mtOrder, moveTypes, 'stable');
+
+% ---- Compute global y-limits for PC1 across all depths × MoveTypes ----
+allPC1 = [];
+for d = 1:numel(depths)
+    dz = depths{d};
+    for m = 1:numel(mtOrder)
+        mv  = mtOrder{m};
+        key = makeKey(dz, mv);
+        if isfield(PC1, key) && ~isempty(PC1.(key).pc1)
+            allPC1 = [allPC1; PC1.(key).pc1(:)];
+        end
+    end
+end
+
+if ~isempty(allPC1)
+    yPad  = 0.015;              % your offset
+    yLims = [min(allPC1)-yPad, max(allPC1)+yPad];
+else
+    yLims = [];
+end
+% -----------------------------------------------------------------------
 
 hFig = figure('Color','w','Position',[100 100 950 800]);
 tlo = tiledlayout(3,1,'TileSpacing','compact','Padding','compact');
@@ -190,8 +216,9 @@ for d = 1:numel(depths)
     ax = nexttile; hold(ax,'on'); grid(ax,'on');
 
     for m = 1:numel(mtOrder)
-        mv = mtOrder{m};
-        key = sprintf('%s|%s', dz, mv);
+        mv  = mtOrder{m};
+        key = makeKey(dz, mv);
+
         if ~isfield(PC1, key), continue; end
         if isempty(PC1.(key).t), continue; end
 
@@ -217,21 +244,31 @@ for d = 1:numel(depths)
     end
 
     xline(ax, 0, 'k--', 'LineWidth', 1);
+    % xlim(ax, [-0.2 1.6]);  % match SU/MUA PC1 plots
+
+    % --- apply uniform y-limits if available ---
+    if ~isempty(yLims)
+        ylim(ax, yLims);
+    end
+    
+
 end
 
-% Global legend (once)
-lgd = legend(tlo.Children(end), mtOrder, 'Location','eastoutside');
+% Global legend
+legend(tlo.Children(end), mtOrder, 'Location','eastoutside');
 title(tlo, 'PC1 of ZETA temporal deviation per MoveType × STN depth');
 
 end
 
 
-%% -------------------------------------------------------------
-function lbl = depthLabel(dz)
-switch dz
-    case 't'; lbl = 'dorsal';
-    case 'c'; lbl = 'central';
-    case 'b'; lbl = 'ventral';
-    otherwise; lbl = dz;
+%% --------- Helper: build a valid struct field name ---------
+
+function key = makeKey(dz, mv)
+% dz: depth string, e.g. 't'
+% mv: MoveType string, e.g. 'HAND OC'
+mv = char(mv);
+mv_clean = regexprep(mv, '\W', '');  % remove non-alphanumeric chars
+key = sprintf('%s_%s', dz, mv_clean); % e.g. 't_HANDOC'
 end
-end
+
+

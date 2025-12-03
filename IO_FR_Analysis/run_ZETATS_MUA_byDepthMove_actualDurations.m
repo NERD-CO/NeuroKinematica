@@ -56,6 +56,10 @@ for m = 1:numel(move_types)
 
         if isempty(move_tbl), continue; end
 
+        % Nudge lead-in/out if zero
+        if U.PreWindow_s == 0,  U.PreWindow_s  = 0.050; end  % 50 ms
+        if U.PostWindow_s == 0, U.PostWindow_s = 0.050; end  % 50 ms
+
         % =========================================================
         % Run helper function: makeZetaInputs_fromAOStartStopTimes
         % =========================================================
@@ -159,18 +163,18 @@ for m = 1:numel(move_types)
         dVec_MUA  = getFieldOrTS(sZETA_MUA,'vecD',     []);
         tVec_MUA  = getFieldOrTS(sZETA_MUA,'vecTime',  []);
 
-        % Construct a simple 0→UseMaxDur time axis for vecD
+        % Construct a time axis for vecD: [-PreWindow_s, UseMaxDur_s]
+        preWin_s = U.PreWindow_s;   % pre-onset window for plotting 
+
         if isempty(dVec_MUA) || isempty(useMaxDur_ts) || isnan(useMaxDur_ts)
             new_tVec_MUA = [];
         else
             nD = numel(dVec_MUA);
-            new_tVec_MUA = linspace(0, useMaxDur_ts, nD);   % [0, UseMaxDur_s] in nD steps
+            new_tVec_MUA = linspace(-preWin_s, useMaxDur_ts, nD);   % [-PreWindow_s, UseMaxDur_s] in nD steps
         end
 
         % Attach new time base into sZETA struct
         sZETA_MUA.new_vecTime_MUA = new_tVec_MUA(:);
-        % sZETA_MUA.raw_vecTime_MUA = tVec_MUA(:);   % optional for debugging
-        % sZETA_MUA.vecD_MUA        = dVec_MUA(:);   % redundant but keeps all together
 
         % store full sZETA struct
         all_sZETA_ts_MUA{end+1,1} = sZETA_MUA;

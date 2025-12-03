@@ -18,7 +18,7 @@ p.addParameter('SigP', 0.05, @(x) isscalar(x) && x>0 && x<1);
 p.addParameter('DepthMap', containers.Map({'t','c','b'},{'dorsal STN','central STN','ventral STN'}));
 p.addParameter('PrettyMoveMap', containers.Map( ...
     {'HAND OC','HAND PS','ARM EF','REST'}, {'Hand OC','Hand PS','Arm EF','Rest'}));
-p.addParameter('YMax', 5, @(x) isscalar(x) && x>0);
+p.addParameter('YMax', 7, @(x) isscalar(x) && x>0); % was 5, adjust as needed
 p.parse(varargin{:});
 U = p.Results;
 
@@ -379,12 +379,12 @@ xlim([0.5, numel(uniqSubsAll)+0.5]);
 
 % y-axis fixed [0, U.YMax]
 ylim([0, U.YMax]);
-ylabel('ZETA z-score (ZetaZ)');
-title(sprintf('ZETA z-scores | All categories (MoveType × Depth)  (N=%d subjects)', numel(uniqSubsAll)));
+ylabel('ZETA z-score (ZetaZ_MUA)');
+title(sprintf('ZETA z-scores (MUA) | All categories (MoveType × Depth)  (N=%d subjects)', numel(uniqSubsAll)));
 legend('Location','northeastoutside');
 
 % Save
-fnameAll = 'ZETA_Scatter_AllCategories_AllSubjects.png';
+fnameAll = 'ZETA_Scatter_MUA_AllCategories_AllSubjects.png';
 print(hAll, fullfile(groupOut, fnameAll), '-dpng', '-r300');
 close(hAll);
 
@@ -470,7 +470,7 @@ for dd = 1:numel(depthKeys)
     xtickangle(ax, 60);
     xlim(ax, [0.5, numel(uniqSubsAll)+0.5]);
     ylim(ax, [0, U.YMax]);
-    ylabel(ax, 'ZETA z-score (ZetaZ)');
+    ylabel(ax, 'ZETA z-score (ZetaZ_MUA)');
     title(ax, sprintf('All MoveTypes | %s', depthNames{dd}));
 end
 
@@ -503,9 +503,9 @@ catch
 end
 
 % Figure title for the whole tiledlayout
-title(tlo, sprintf('ZETA z-scores | All categories by depth '));
+title(tlo, sprintf('ZETA z-scores (MUA) | All categories by depth '));
 
-fnameAll2 = 'ZETA_Scatter_AllCategories_ByDepth_Tiles.png';
+fnameAll2 = 'ZETA_Scatter_MUA_AllCategories_ByDepth_Tiles.png';
 print(hT, fullfile(groupOut, fnameAll2), '-dpng', '-r300');
 close(hT);
 
@@ -565,13 +565,13 @@ for i = 1:height(cats)
     % y-axis limits (start at 0 for clarity)
     ylim([0, U.YMax]);              % fixed y-axis
 
-    ylabel('ZETA z-score (ZetaZ)');
-    title(sprintf('ZETA z-scores | %s × %s  (N=%d subjects)', mvPretty, depthLbl, numel(uniqSubs)));
+    ylabel('ZETA z-score (ZetaZ_MUA)');
+    title(sprintf('ZETA z-scores (MUA) | %s × %s  (N=%d subjects)', mvPretty, depthLbl, numel(uniqSubs)));
 
     legend('Location','northeastoutside');
 
     % Save
-    fname = sprintf('ZETA_Scatter_%s_%s.png', sanitize_filename(mv), sanitize_filename(dz));
+    fname = sprintf('ZETA_Scatter_MUA_%s_%s.png', sanitize_filename(mv), sanitize_filename(dz));
     print(h, fullfile(groupOut, fname), '-dpng', '-r300');
     close(h);
 end

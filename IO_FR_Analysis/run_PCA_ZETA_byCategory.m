@@ -94,32 +94,32 @@ for d = 1:numel(depths)
         end
 
         % Reference time axis from PSTH_TimeCenters_s (first valid row)
-        t_ref = catRows.PSTH_TimeCenters_s{1};
-        if isempty(t_ref) || ~isnumeric(t_ref)
+        time_ref = catRows.PSTH_TimeCenters_s{1};
+        if isempty(time_ref) || ~isnumeric(time_ref)
             warning('Empty or non-numeric PSTH_TimeCenters_s for %s × %s; skipping.', mv, dz);
             continue;
         end
-        t_ref = t_ref(:);  % column vector
+        time_ref = time_ref(:);  % column vector
 
         nUnits = height(catRows);
-        X       = nan(numel(t_ref), nUnits);  % time × units
+        X       = nan(numel(time_ref), nUnits);  % time × units
         keepUnit = false(1, nUnits);
 
         for u = 1:nUnits
             dVec = catRows.ZETA_vecD{u};
-            tZ   = catRows.ZETA_vecT{u};
+            tVec   = catRows.ZETA_vecT{u};
 
-            if isempty(dVec) || isempty(tZ), continue; end
+            if isempty(dVec) || isempty(tVec), continue; end
             dVec = double(dVec(:));
-            tZ   = double(tZ(:));
+            tVec   = double(tVec(:));
 
-            if numel(dVec) < 3 || numel(tZ) ~= numel(dVec)
+            if numel(dVec) < 3 || numel(tVec) ~= numel(dVec)
                 continue;
             end
 
             % Interpolate ZETA deviation onto common PSTH time base
             try
-                X(:,u) = interp1(tZ, dVec, t_ref, 'linear', 'extrap');
+                X(:,u) = interp1(tVec, dVec, time_ref, 'linear', 'extrap');
                 keepUnit(u) = true;
             catch ME
                 warning('interp1 failed for unit %d in %s × %s: %s', ...
@@ -137,7 +137,7 @@ for d = 1:numel(depths)
         % Remove timepoints that are NaN across all units
         goodTime = any(isfinite(X), 2);
         X    = X(goodTime, :);
-        t_use = t_ref(goodTime);
+        t_use = time_ref(goodTime);
 
         % Replace remaining NaNs (per unit) with unit-wise mean over non-NaN times
         for j = 1:size(X,2)
@@ -172,7 +172,8 @@ for d = 1:numel(depths)
         PC1.(key).scores  = score;
         PC1.(key).labels  = catRows.PrettyLabel(keepUnit);
 
-        fprintf('[PCA] %s × %s: %d units, %d time points\n', mv, dz, size(X,2), numel(t_use));
+        fprintf('[PCA] %s × %s: %d units, %d time points\n', ... 
+            mv, dz, size(X,2), numel(t_use));
     end
 end
 
@@ -181,6 +182,31 @@ end
 % Consistent MoveType plotting order
 mtOrder = {'HAND OC','HAND PS','ARM EF','REST'};
 mtOrder = intersect(mtOrder, moveTypes, 'stable');
+
+% Consistent MoveType plotting order
+mtOrder = {'HAND OC','HAND PS','ARM EF','REST'};
+mtOrder = intersect(mtOrder, moveTypes, 'stable');
+
+% ---- Compute global y-limits for PC1 across all depths × MoveTypes ----
+allPC1 = [];
+for d = 1:numel(depths)
+    dz = depths{d};
+    for m = 1:numel(mtOrder)
+        mv  = mtOrder{m};
+        key = makeKey(dz, mv);
+        if isfield(PC1, key) && ~isempty(PC1.(key).pc1)
+            allPC1 = [allPC1; PC1.(key).pc1(:)];
+        end
+    end
+end
+
+if ~isempty(allPC1)
+    yPad  = 0.015;              % your offset
+    yLims = [min(allPC1)-yPad, max(allPC1)+yPad];
+else
+    yLims = [];
+end
+% -----------------------------------------------------------------------
 
 hFig = figure('Color','w','Position',[100 100 950 800]);
 tlo = tiledlayout(3,1,'TileSpacing','compact','Padding','compact');
@@ -218,6 +244,14 @@ for d = 1:numel(depths)
     end
 
     xline(ax, 0, 'k--', 'LineWidth', 1);
+    % xlim(ax, [-0.2 1.6]);  % match SU/MUA PC1 plots
+
+    % ----- apply uniform y-limits across tiles -----
+    if ~isempty(yLims)
+        ylim(ax, yLims);
+    end
+    % -----------------------------------------------
+
 end
 
 % Global legend

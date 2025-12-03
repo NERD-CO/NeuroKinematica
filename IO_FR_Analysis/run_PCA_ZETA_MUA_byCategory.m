@@ -59,7 +59,7 @@ for d = 1:numel(depths)
     for m = 1:numel(moveTypes)
         rawKey = sprintf('%s_%s', depths{d}, moveTypes{m});
         key = matlab.lang.makeValidName(rawKey);
-        
+
         PC1_MUA.(key).t      = [];
         PC1_MUA.(key).pc1    = [];
         PC1_MUA.(key).nUnits = 0;
@@ -69,7 +69,7 @@ for d = 1:numel(depths)
     end
 end
 
-% -------- MAIN LOOP: per MoveType × Depth --------
+%% -------- MAIN LOOP: per MoveType × Depth --------
 for d = 1:numel(depths)
     dz = depths{d};
     for m = 1:numel(moveTypes)
@@ -81,31 +81,31 @@ for d = 1:numel(depths)
         end
 
         % Reference time axis from first row (should be 0→UseMaxDur_s)
-        t_ref = catRows.new_vecTime_MUA{1};
-        if isempty(t_ref) || ~isnumeric(t_ref)
+        time_ref = catRows.new_vecTime_MUA{1};
+        if isempty(time_ref) || ~isnumeric(time_ref)
             warning('Empty/non-numeric new_vecTime_MUA for %s × %s; skipping.', mv, dz);
             continue;
         end
-        t_ref = t_ref(:);
+        time_ref = time_ref(:);
 
         nUnits = height(catRows);
-        X = nan(numel(t_ref), nUnits);
+        X = nan(numel(time_ref), nUnits);
         keepUnit = false(1, nUnits);
 
         for u = 1:nUnits
             dVec = catRows.vecD_MUA{u};
-            tVec = catRows.new_vecTime_MUA{u};
+            n_tVec = catRows.new_vecTime_MUA{u};
 
-            if isempty(dVec) || isempty(tVec), continue; end
+            if isempty(dVec) || isempty(n_tVec), continue; end
             dVec = double(dVec(:));
-            tVec = double(tVec(:));
+            n_tVec = double(n_tVec(:));
 
-            if numel(dVec) < 3 || numel(tVec) ~= numel(dVec)
+            if numel(dVec) < 3 || numel(n_tVec) ~= numel(dVec)
                 continue;
             end
 
             try
-                X(:,u) = interp1(tVec, dVec, t_ref, 'linear', 'extrap');
+                X(:,u) = interp1(n_tVec, dVec, time_ref, 'linear', 'extrap');
                 keepUnit(u) = true;
             catch ME
                 warning('interp1 failed for MUA unit %d in %s × %s: %s', ...
@@ -121,7 +121,7 @@ for d = 1:numel(depths)
         % Remove timepoints with all NaNs
         goodTime = any(isfinite(X), 2);
         X = X(goodTime, :);
-        t_use = t_ref(goodTime);
+        t_use = time_ref(goodTime);
 
         % Fill remaining NaNs with column means
         for j = 1:size(X,2)
@@ -138,7 +138,8 @@ for d = 1:numel(depths)
         pc1 = coeff(:,1);
 
         % Flip sign so that post-onset mean is positive
-        postMask = t_use >= 0 & t_use <= min(0.5*max(t_use), 0.8*max(t_use));
+        % postMask = t_use >= 0 & t_use <= min(0.5*max(t_use), 0.8*max(t_use));
+        postMask = t_use >= 0 & t_use <= (max(t_use) * 0.5);
         if any(postMask)
             if mean(pc1(postMask)) < 0
                 pc1 = -pc1;
@@ -161,10 +162,33 @@ for d = 1:numel(depths)
     end
 end
 
-% -------- PLOT: PC1 per depth (rows) & MoveType (colors) --------
+%% -------- PLOT: PC1 per depth (rows) & MoveType (colors) --------
 
 mtOrder = {'HAND OC','HAND PS','ARM EF','REST'};
 mtOrder = intersect(mtOrder, moveTypes, 'stable');
+
+% --- Compute global y-limits for MUA PC1 across all depths × MoveTypes ---
+allPC1_MUA = [];
+for d = 1:numel(depths)
+    dz = depths{d};
+    for m = 1:numel(mtOrder)
+        mv = mtOrder{m};
+        rawKey = sprintf('%s_%s', dz, mv);
+        key    = matlab.lang.makeValidName(rawKey);
+
+        if isfield(PC1_MUA, key) && ~isempty(PC1_MUA.(key).pc1)
+            allPC1_MUA = [allPC1_MUA; PC1_MUA.(key).pc1(:)];
+        end
+    end
+end
+
+if ~isempty(allPC1_MUA)
+    yPad   = 0.015;
+    yLimsM = [min(allPC1_MUA)-yPad, max(allPC1_MUA)+yPad];
+else
+    yLimsM = [];
+end
+% -------------------------------------------------------------------------
 
 hFig = figure('Color','w','Position',[100 100 950 800]);
 tlo = tiledlayout(3,1,'TileSpacing','compact','Padding','compact');
@@ -175,7 +199,10 @@ for d = 1:numel(depths)
 
     for m = 1:numel(mtOrder)
         mv = mtOrder{m};
-        key = sprintf('%s|%s', dz, mv);
+
+        rawKey = sprintf('%s_%s', dz, mv);
+        key    = matlab.lang.makeValidName(rawKey);
+
         if ~isfield(PC1_MUA, key), continue; end
         if isempty(PC1_MUA.(key).t), continue; end
 
@@ -200,6 +227,14 @@ for d = 1:numel(depths)
     end
 
     xline(ax, 0, 'k--', 'LineWidth', 1);
+    xlim(ax, [-0.2 1.6]);  % match SU/MUA PC1 plots
+
+    % ----- apply uniform y-limits across all MUA tiles -----
+    if ~isempty(yLimsM)
+        ylim(ax, yLimsM);
+    end
+    % -----------------------------------------------
+
 end
 
 % One legend for all

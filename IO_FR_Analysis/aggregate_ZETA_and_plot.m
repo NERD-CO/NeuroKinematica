@@ -24,7 +24,7 @@ p.addParameter('SigP', 0.05, @(x) isscalar(x) && x>0 && x<1);                 % 
 p.addParameter('DepthMap', containers.Map({'t','c','b'},{'dorsal STN','central STN','ventral STN'}));
 p.addParameter('PrettyMoveMap', containers.Map( ...
     {'HAND OC','HAND PS','ARM EF','REST'}, {'Hand OC','Hand PS','Arm EF','Rest'}));
-p.addParameter('YMax', 5, @(x) isscalar(x) && x>0);     % fix y-axis upper limit
+p.addParameter('YMax', 6, @(x) isscalar(x) && x>0);     % fix y-axis upper limit
 p.parse(varargin{:});
 U = p.Results;
 

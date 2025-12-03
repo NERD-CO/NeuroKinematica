@@ -43,7 +43,7 @@ cd(IO_procDLC);
 %% 1) Define DLC processing function inputs
 
 % Define casedate and hemisphere:
-casedate_hem = 'IO_05_18_2023_a_RSTN';
+casedate_hem = 'IO_06_08_2023_LSTN';
 
 % 'IO_03_09_2023_RSTN';  
 % 'IO_03_23_2023_LSTN';

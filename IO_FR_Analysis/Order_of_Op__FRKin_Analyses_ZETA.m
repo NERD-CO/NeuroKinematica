@@ -90,29 +90,27 @@ useOffset = true;
 %% Inputs:
 
 % Ephys data folder:
-CaseDate = '11_30_2023_bilateral'; % Adjust as needed
+CaseDate = '07_26_2023'; % Adjust as needed
 
 % 1: '03_23_2023';             % NER 2025
 % 1: '04_05_2023';             % NER 2025
-
 % 2: '04_13_2023_bilateral';   % GRC 2026      %% errors - Unrecognized field name "dblZetaT".
-
 % 3: '05_18_2023_b_bilateral'; % NER 2025      %% errors using new pipeline --> check MIs; 
 %   %   % Other error: Unrecognized field name "dblZetaT".
-
 % 4: '05_31_2023';             % INS 2026
-
 % 5: '06_08_2023_bilateral';   % NER 2025      %% errors using new pipeline --> check MIs; 
 %   %   % Other error: Error using findpeaks>parse_inputs (line 225): Data set must contain at least 3 samples.
-
 % 6: '07_06_2023_bilateral';   % INS 2026
 % 7: '07_13_2023_bilateral';   % INS 2026
+% 8: '07_20_2023'              % GRC 2026
+% 8: '07_26_2023'              % GRC 2026
 % 10: '08_23_2023';            % INS 2026
 % 12: '11_30_2023_bilateral';  % GRC 2026
+% 13: '12_06_2023_bilateral';  % GRC 2026
 
 
 % Kinematic data folder:
-MoveDir_CaseID = 'IO_11_30_2023_RSTN'; % Adjust as needed
+MoveDir_CaseID = 'IO_07_26_2023_RSTN'; % Adjust as needed
 
 % 'IO_03_23_2023_LSTN';   % NER 2025
 % 'IO_04_05_2023_RSTN';   % NER 2025
@@ -123,10 +121,12 @@ MoveDir_CaseID = 'IO_11_30_2023_RSTN'; % Adjust as needed
 % 'IO_07_06_2023_LSTN';   % INS 2026
 % 'IO_07_13_2023_LSTN';   % INS 2026
 % 'IO_07_13_2023_RSTN';   % GRC 2026
+% 'IO_07_20_2023_LSTN';   % GRC 2026
 % 'IO_08_23_2023_RSTN';   % INS 2026
 % 'IO_11_30_2023_LSTN';   % GRC 2026
 % 'IO_11_30_2023_RSTN';   % GRC 2026
-
+% 'IO_12_06_2023_LSTN';   % GRC 2026
+% 'IO_12_06_2023_RSTN';   % GRC 2026
 
 %% Data folder paths
 
@@ -492,10 +492,20 @@ MasterZETA = aggregate_ZETA_and_plot(FR_Kin_Dir, ...
     'IO_DataDir', IO_DataDir, ...
     'ZetaCsvNamePattern','*_ZETA_Summary.csv', ...
     'SigZ', 2, 'SigP', 0.05, ...
-    'YMax', 5); 
+    'YMax', 6); 
 
 
-%% PCA of ZETA_vecD across Subject Spike Fields (C1, C2, ..., Cn) for each MoveType x STN Depth
+%% Aggregate & Plot ZETA z-score scatter plots - MUA
+
+MasterZETA_MUA = aggregate_ZETA_MUA_and_plot(FR_Kin_Dir, ...
+    'IO_DataDir', IO_DataDir, ...
+    'ZetaCsvNamePattern','*_ZETA_TS_Summary_MUA.csv', ...
+    'SigZ', 2, 'SigP', 0.05, ...
+    'YMax', 7); 
+
+
+%% Spikes - PCA of ZETA_vecD across Subjects - Spikes for each MoveType x STN Depth
+% Clustered Spike Fields (C1, C2, ..., Cn)
 
 % replicate London et al., 2021 paper's Fig 2
 
@@ -512,18 +522,40 @@ MasterZETA = aggregate_ZETA_and_plot(FR_Kin_Dir, ...
 run_PCA_ZETA_byCategory(MasterZETA);
 
 
-%% Aggregate & Plot ZETA z-score scatter plots - MUA
-
-MasterZETA_MUA = aggregate_ZETA_MUA_and_plot(FR_Kin_Dir, ...
-    'IO_DataDir', IO_DataDir, ...
-    'ZetaCsvNamePattern','*_ZETA_TS_Summary_MUA.csv', ...
-    'SigZ', 2, 'SigP', 0.05, ...
-    'YMax', 5); 
-
-
-%% MUA - PCA of ZETA across Subject MUA for each MoveType x STN Depth
+%% MUA - PCA of ZETA_vecD across Subjects - MUA for each MoveType x STN Depth
+% MUA on electrode 1 / C1_MUA
 
 run_PCA_ZETA_MUA_byCategory(MasterZETA_MUA);
+
+
+%% Spikes - 3D PCA Plots
+
+SavePath = fullfile(FR_Kin_Dir, 'Aggregate Zeta Plots', '3D PCA Plots');
+
+% 1) Individual depth figures only (no tiled figure)
+plot_ZETA_PCA_3D_byDepth(MasterZETA, 't', 'SavePath', SavePath, 'DoLines', true, 'DoTiled', false);   % dorsal STN
+plot_ZETA_PCA_3D_byDepth(MasterZETA, 'c', 'SavePath', SavePath, 'DoLines', true, 'DoTiled', false);   % central STN
+plot_ZETA_PCA_3D_byDepth(MasterZETA, 'b', 'SavePath', SavePath, 'DoLines', true, 'DoTiled', false);   % ventral STN
+
+% 2) One call that makes ONLY the 3-depth tiled figure
+plot_ZETA_PCA_3D_byDepth(MasterZETA, 'all depths', ...
+    'SavePath', SavePath, ...
+    'DoLines', true, ...
+    'DoTiled', true);
+
+%% MUA - 3D PCA Plots
+
+SavePath = fullfile(FR_Kin_Dir, 'Aggregate Zeta Plots', '3D PCA Plots');
+
+% single depths
+plot_ZETA_PCA_3D_byDepth_MUA(MasterZETA_MUA, 't', 'SavePath', SavePath, 'DoLines', true);
+plot_ZETA_PCA_3D_byDepth_MUA(MasterZETA_MUA, 'c', 'SavePath', SavePath, 'DoLines', true);
+plot_ZETA_PCA_3D_byDepth_MUA(MasterZETA_MUA, 'b', 'SavePath', SavePath, 'DoLines', true);
+
+% 3-depth tiled only
+plot_ZETA_PCA_3D_byDepth_MUA(MasterZETA_MUA, 'all depths', ...
+    'SavePath', SavePath, 'DoLines', true);
+
 
 %% Heat plot 
 
