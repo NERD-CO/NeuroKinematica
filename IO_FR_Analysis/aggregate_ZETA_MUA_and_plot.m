@@ -30,6 +30,30 @@ else
 end
 if ~exist(groupOut,'dir'), mkdir(groupOut); end
 
+% -----------------------
+% JNE color scheme (canonical)
+% -----------------------
+
+% Depth colors (purple shades)
+JNE_depth = ([ ...
+    118,42,131;      % dorsal STN (t, dark purple)
+    175,141,195;     % central STN (c, lavender)
+    231-15, 212-15, 232-15] ... % ventral STN (b, light purple)
+    ./ 255); % /255 = standard
+
+% Movement-context colors (greens)
+JNE_move = ([ ...
+    128,128,128;     % REST  (grey)
+    217,240,211;     % HAND OC  (light green)
+    127,191,123;     % HAND PS  (green)
+    27,120,55] ...   % ARM EF   (dark green)
+    ./ 255);  % /255 = standard
+
+depthColorMap = containers.Map({'t','c','b'}, {JNE_depth(1,:), JNE_depth(2,:), JNE_depth(3,:)});
+moveColorMap  = containers.Map({'REST','HAND OC','HAND PS','ARM EF'}, {JNE_move(1,:), JNE_move(2,:), JNE_move(3,:), JNE_move(4,:)});
+
+fallbackCol = [0.5 0.5 0.5];
+
 %% 1) Find MUA ZETA summary CSVs
 
 fileList = find_ZetaSummary_MUA_files(FR_Kin_Dir, U.ZetaCsvNamePattern);
@@ -112,6 +136,12 @@ for k = 1:numel(fileList)
     IFR_Time_s_MUA       = cell(height(T),1);
     IFR_Hz_MUA           = cell(height(T),1);
 
+    % New: scalar IFR metrics per row (mirroring SU MasterZETA)
+    IFR_mean_MUA          = nan(height(T),1);
+    IFR_norm_MUA          = nan(height(T),1);
+    IFR_baseline_MUA      = nan(height(T),1);
+    IFR_baselineNorm_MUA  = nan(height(T),1);
+
     % Assumes (optionally) a file:
     %   ...\Zeta Testing MUA\IFR_PSTH_MUA\<CaseID>_IFR_PSTH_MUA_All.mat
     ifrFolderMUA   = fullfile(zetaFolderMUA, 'IFR_PSTH_MUA');  % adjust if you used a different name
@@ -180,7 +210,7 @@ for k = 1:numel(fileList)
             ZETA_new_vecT_MUA{r} = [];
         end
 
-        % IFR/PSTH MUA (optional)
+        % IFR/PSTH MUA 
         if hasIFRMat && isKey(ifrMap, key)
             idxI = ifrMap(key);
 
@@ -201,6 +231,21 @@ for k = 1:numel(fileList)
             PSTH_Hz_MUA{r}          = cPSTH(:)';
             IFR_Time_s_MUA{r}       = cIFRt(:)';
             IFR_Hz_MUA{r}           = cIFRr(:)';
+
+            % scalar IFR metrics (assumed numeric columns in IFRsumMUA)
+            if ismember('IFR_mean_Hz', IFRsumMUA.Properties.VariableNames)
+                IFR_mean_MUA(r) = double(IFRsumMUA.IFR_mean_Hz(idxI));
+            end
+            if ismember('IFR_norm', IFRsumMUA.Properties.VariableNames)
+                IFR_norm_MUA(r) = double(IFRsumMUA.IFR_norm(idxI));
+            end
+            if ismember('IFR_baseline_Hz', IFRsumMUA.Properties.VariableNames)
+                IFR_baseline_MUA(r) = double(IFRsumMUA.IFR_baseline_Hz(idxI));
+            end
+            if ismember('IFR_baselineNorm', IFRsumMUA.Properties.VariableNames)
+                IFR_baselineNorm_MUA(r) = double(IFRsumMUA.IFR_baselineNorm(idxI));
+            end
+
         else
             PSTH_TimeCenters_MUA{r} = [];
             PSTH_Hz_MUA{r}          = [];
@@ -217,6 +262,12 @@ for k = 1:numel(fileList)
     T.PSTH_Hz_MUA       = PSTH_Hz_MUA;
     T.IFR_Time_s_MUA    = IFR_Time_s_MUA;
     T.IFR_Hz_MUA        = IFR_Hz_MUA;
+
+    % New scalar IFR metrics (same names as SU MasterZETA)
+    T.IFR_mean_Hz        = IFR_mean_MUA;
+    T.IFR_norm           = IFR_norm_MUA;
+    T.IFR_baseline_Hz    = IFR_baseline_MUA;
+    T.IFR_baselineNorm   = IFR_baselineNorm_MUA;
 
     % Append this case
     MasterZETA_MUA = [MasterZETA_MUA; T];
@@ -411,17 +462,17 @@ mv_all   = string(MasterZETA_MUA.MoveType);
 dz_all   = string(MasterZETA_MUA.Depth);
 
 
-% ----- MoveType colors (fill) -----
-mtColor = containers.Map( ...
-    {'HAND OC','HAND PS','ARM EF','REST'}, ...
-    {[0.95 0.60 0.10],  ... % Hand OC = orange
-    [0.20 0.65 0.30],  ... % Hand PS = green
-    [0.15 0.45 0.85],  ... % Arm EF  = blue
-    [0.75 0.75 0.75]});    % REST    = light gray
+% % ----- MoveType colors (fill) -----
+% mtColor = containers.Map( ...
+%     {'HAND OC','HAND PS','ARM EF','REST'}, ...
+%     {[0.95 0.60 0.10],  ... % Hand OC = orange
+%     [0.20 0.65 0.30],  ... % Hand PS = green
+%     [0.15 0.45 0.85],  ... % Arm EF  = blue
+%     [0.75 0.75 0.75]});    % REST    = light gray
 
 % Edge colors by significance
-edgeGray = [0.6 0.6 0.6];
-edgeRed  = [0.85 0.10 0.10];
+% edgeGray = [0.6 0.6 0.6];
+% edgeRed  = [0.85 0.10 0.10];
 
 % Depth order & pretty names (row = depth)
 depthKeys  = {'t','c','b'};
@@ -441,8 +492,8 @@ for dd = 1:numel(depthKeys)
     for im = 1:numel(movesHere)
         mv = movesHere(im);
         % pick fill color
-        if isKey(mtColor, char(mv)), fc = mtColor(char(mv));
-        else, fc = [0.5 0.5 0.5]; end
+        if isKey(moveColorMap, char(mv)), fc = moveColorMap(char(mv));
+        else, fc = fallbackCol; end
 
         idx = (dz_all==dzKey) & (mv_all==mv) & ~isnan(y_all);
         if ~any(idx), continue; end
@@ -451,15 +502,16 @@ for dd = 1:numel(depthKeys)
         idx_ns = idx & ~isSig;
         if any(idx_ns)
             scatter(ax, xj_all(idx_ns), y_all(idx_ns), 36, fc, ...
-                'filled', 'MarkerEdgeColor', edgeGray, 'MarkerFaceAlpha', 0.95, 'MarkerEdgeAlpha', 0.95);
+    'filled', 'MarkerEdgeColor','none', 'MarkerFaceAlpha', 0.95);
+
         end
 
         % sig
         idx_sig = idx & isSig;
         if any(idx_sig)
             scatter(ax, xj_all(idx_sig), y_all(idx_sig), 60, fc, ...
-                'filled', 'MarkerEdgeColor', edgeRed, 'LineWidth', 1.2, ...
-                'MarkerFaceAlpha', 0.95, 'MarkerEdgeAlpha', 0.95);
+    'filled', 'MarkerEdgeColor','none', 'MarkerFaceAlpha', 0.95);
+
         end
     end
 
@@ -476,34 +528,38 @@ end
 
 % --- Legend (robust across MATLAB versions) ---
 % Dummy handles for MoveType colors + edge significance
-hOC = scatter(nan,nan,50,mtColor('HAND OC'),'filled','MarkerEdgeColor',edgeGray,'DisplayName','Hand OC');
-hPS = scatter(nan,nan,50,mtColor('HAND PS'),'filled','MarkerEdgeColor',edgeGray,'DisplayName','Hand PS');
-hEF = scatter(nan,nan,50,mtColor('ARM EF'), 'filled','MarkerEdgeColor',edgeGray,'DisplayName','Arm EF');
-hRE = scatter(nan,nan,50,mtColor('REST'),   'filled','MarkerEdgeColor',edgeGray,'DisplayName','Rest');
-hNS = scatter(nan,nan,36,[1 1 1],'filled','MarkerEdgeColor',edgeGray,'DisplayName','n.s. edge');
-hSG = scatter(nan,nan,36,[1 1 1],'filled','MarkerEdgeColor',edgeRed, 'DisplayName','sig edge');
+% hOC = scatter(nan,nan,50,mtColor('HAND OC'),'filled','MarkerEdgeColor',edgeGray,'DisplayName','Hand OC');
+% hPS = scatter(nan,nan,50,mtColor('HAND PS'),'filled','MarkerEdgeColor',edgeGray,'DisplayName','Hand PS');
+% hEF = scatter(nan,nan,50,mtColor('ARM EF'), 'filled','MarkerEdgeColor',edgeGray,'DisplayName','Arm EF');
+% hRE = scatter(nan,nan,50,mtColor('REST'),   'filled','MarkerEdgeColor',edgeGray,'DisplayName','Rest');
+% hNS = scatter(nan,nan,36,[1 1 1],'filled','MarkerEdgeColor',edgeGray,'DisplayName','n.s. edge');
+% hSG = scatter(nan,nan,36,[1 1 1],'filled','MarkerEdgeColor',edgeRed, 'DisplayName','sig edge');
+hOC = scatter(nan,nan,50,moveColorMap('HAND OC'),'filled', 'DisplayName','Hand OC');
+hPS = scatter(nan,nan,50,moveColorMap('HAND PS'),'filled', 'DisplayName','Hand PS');
+hEF = scatter(nan,nan,50,moveColorMap('ARM EF'), 'filled', 'DisplayName','Arm EF');
+hRE = scatter(nan,nan,50,moveColorMap('REST'),   'filled', 'DisplayName','Rest');
 
 % Try to dock in the tiledlayout header (newer MATLAB), otherwise overlay legend on an invisible axes
 try
-    lgd = legend([hOC hPS hEF hRE hNS hSG], 'Orientation','horizontal');
+    lgd = legend([hOC hPS hEF hRE], 'Orientation','horizontal');
     if isprop(lgd,'Layout') && isprop(lgd.Layout,'Tile')
         lgd.Layout.Tile = 'north';     % docks legend above the tiles
     else
         % Fallback: overlay legend in figure using an invisible, full-figure axes
         delete(lgd); % remove the axes-attached legend first
         axLeg = axes('Parent',hT,'Units','normalized','Position',[0 0 1 1], 'Visible','off');
-        lgd = legend(axLeg,[hOC hPS hEF hRE hNS hSG], 'Orientation','horizontal','Box','off');
+        lgd = legend(axLeg,[hOC hPS hEF hRE], 'Orientation','horizontal','Box','off');
         % Tweak position near the top center (x y w h in normalized fig coords)
         lgd.Units = 'normalized';
         lgd.Position = [0.32 0.965 0.36 0.03];   % adjust if needed
     end
 catch
     % Absolute fallback: put a standard legend below the bottom tile
-    lgd = legend([hOC hPS hEF hRE hNS hSG], 'Orientation','horizontal', 'Location','southoutside');
+    lgd = legend([hOC hPS hEF hRE], 'Orientation','horizontal', 'Location','southoutside');
 end
 
 % Figure title for the whole tiledlayout
-title(tlo, sprintf('ZETA z-scores (MUA) | All categories by depth '));
+title(tlo, sprintf('ZETA z-scores (MUA) | All Movement Types by STN depth '));
 
 fnameAll2 = 'ZETA_Scatter_MUA_AllCategories_ByDepth_Tiles.png';
 print(hT, fullfile(groupOut, fnameAll2), '-dpng', '-r300');

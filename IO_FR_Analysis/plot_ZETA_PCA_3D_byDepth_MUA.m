@@ -1,4 +1,5 @@
 function plot_ZETA_PCA_3D_byDepth_MUA(MasterZETA_MUA, depthCode, varargin)
+
 % plot_ZETA_PCA_3D_byDepth_MUA
 %
 % 3-D PCA scatterplots (PC1, PC2, PC3) of MUA ZETA temporal deviation
@@ -45,18 +46,41 @@ if ~isempty(missing)
 end
 
 %% --- MoveType + color mapping ---
+
 moveTypes = {'HAND OC','HAND PS','ARM EF','REST'};  % consistent order
 
-mtColors = containers.Map( ...
-    {'HAND OC','HAND PS','ARM EF','REST'}, ...
-    {[0.95 0.60 0.10], ... % Hand OC = orange
-     [0.20 0.65 0.30], ... % Hand PS = green
-     [0.15 0.45 0.85], ... % Arm EF  = blue
-     [0.60 0.60 0.60]});   % Rest    = gray
+% mtColors = containers.Map( ...
+%     {'HAND OC','HAND PS','ARM EF','REST'}, ...
+%     {[0.95 0.60 0.10], ... % Hand OC = orange
+%      [0.20 0.65 0.30], ... % Hand PS = green
+%      [0.15 0.45 0.85], ... % Arm EF  = blue
+%      [0.60 0.60 0.60]});   % Rest    = gray
+
+% -----------------------
+% JNE color scheme (canonical)
+% -----------------------
+purpleShades = ([ ...
+    118,42,131;      % dorsal STN (t)
+    175,141,195;     % central STN (c)
+    231-15, 212-15, 232-15] ... % ventral STN (b)
+    ./ 255);
+
+greenShades = ([ ...
+    128,128,128;     % REST
+    217,240,211;     % HAND OC
+    127,191,123;     % HAND PS
+    27,120,55] ...   % ARM EF
+    ./ 255);
+
+depthColorMap = containers.Map({'t','c','b'}, {purpleShades(1,:), purpleShades(2,:), purpleShades(3,:)});
+moveColorMap  = containers.Map({'REST','HAND OC','HAND PS','ARM EF'}, {greenShades(1,:), greenShades(2,:), greenShades(3,:), greenShades(4,:)});
+fallbackCol   = [0.5 0.5 0.5];
+
 
 % Depth labels
 depthNames = containers.Map({'t','c','b'}, ...
     {'dorsal STN','central STN','ventral STN'});
+
 
 %% --- Interpret depthCode / mode ---
 depthCodeStr = string(depthCode);
@@ -135,7 +159,9 @@ if ~isAllDepths
         idx = (mtPerUnit == mv);
         if ~any(idx), continue; end
 
-        if isKey(mtColors,mv), c = mtColors(mv); else, c = [0.5 0.5 0.5]; end
+        % if isKey(mtColors,mv), c = mtColors(mv); else, c = [0.5 0.5 0.5]; end
+        if isKey(moveColorMap, mv), c = moveColorMap(mv); else, c = fallbackCol; end
+
 
         hLegend(mIdx) = scatter3(ax, PC1(idx), PC2(idx), PC3(idx), ...
             50, c, 'filled', 'MarkerFaceAlpha',0.9);
@@ -248,7 +274,8 @@ if U.DoTiled || isAllDepths
             mask = (mtPerUnit_d == mv);
             if ~any(mask), continue; end
 
-            c = mtColors(mv);
+            % c = mtColors(mv);
+            if isKey(moveColorMap, mv), c = moveColorMap(mv); else, c = fallbackCol; end
             scatter3(ax, PC1d(mask), PC2d(mask), PC3d(mask), ...
                 30, c, 'filled', 'MarkerFaceAlpha', 0.85);
 
@@ -295,7 +322,8 @@ if U.DoTiled || isAllDepths
     hLeg = gobjects(numel(mtOrder),1);
     for mIdx = 1:numel(mtOrder)
         mv = mtOrder{mIdx};
-        c  = mtColors(mv);
+        % c  = mtColors(mv);
+        if isKey(moveColorMap, mv), c = moveColorMap(mv); else, c = fallbackCol; end
         hLeg(mIdx) = scatter3(firstAx, NaN,NaN,NaN, 40, c, ...
             'filled', 'MarkerEdgeColor','none');
     end
@@ -311,6 +339,7 @@ if U.DoTiled || isAllDepths
         'FontSize',16, ...
         'FontWeight','bold');
 
+    % Save Figure
     if ~isempty(U.SavePath)
         outTile = fullfile(U.SavePath, 'ZETA_PCA_3D_MUA_allDepths.png');
         exportgraphics(hTile, outTile, 'Resolution',300);

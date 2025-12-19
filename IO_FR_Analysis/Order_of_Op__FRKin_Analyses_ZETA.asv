@@ -7,23 +7,11 @@ clear; close all; clc;
 
 % MaxSpkDuration_Raster_PSTH
 
-% Zeta Testing functions
+% Zeta Testing functions 
 % 1) zetatest.m
 % % > Helper:
-% % > Wrapper: 
+% % > Wrapper:
 % 2) getIFR.m
-
-% plot_Raster_PSTH
-
-% compute_FRperMove_perSTNdepth_v3
-
-% run_IO_FR_Analysis_and_Plotting
-
-% run_MovementFeatureAnalysis_IO_v2
-
-% merge_FRKin_SummaryTbls
-
-% aggregate_FRKinematic_Correlations
 
 
 %% Directory Setup
@@ -82,39 +70,35 @@ useOffset = true;
 %% Next step (replace CaseDate and MoveCaseFolder input blocks below):
 
 % Loop through rows of 'Subject_Hem_CaseMap' file
-% CaseFolder column corresponds to CaseDate 
+% CaseFolder column corresponds to CaseDate
 % MoveCaseFolder column corresponds to MoveDir_CaseID
-% and perform subsequent analyses using those inputs per case 
+% and perform subsequent analyses using those inputs per case
 
 
 %% Inputs:
 
 % Ephys data folder:
-CaseDate = '07_20_2023'; % Adjust as needed
+CaseDate = '07_13_2023_bilateral'; % Adjust as needed
 
 % 1: '03_23_2023';             % NER 2025
 % 1: '04_05_2023';             % NER 2025
-
 % 2: '04_13_2023_bilateral';   % GRC 2026      %% errors - Unrecognized field name "dblZetaT".
-
-% 3: '05_18_2023_b_bilateral'; % NER 2025      %% errors using new pipeline --> check MIs; 
+% 3: '05_18_2023_b_bilateral'; % NER 2025      %% errors using new pipeline --> check MIs;
 %   %   % Other error: Unrecognized field name "dblZetaT".
-
 % 4: '05_31_2023';             % INS 2026
-
-% 5: '06_08_2023_bilateral';   % NER 2025      %% errors using new pipeline --> check MIs; 
+% 5: '06_08_2023_bilateral';   % NER 2025      %% errors using new pipeline --> check MIs;
 %   %   % Other error: Error using findpeaks>parse_inputs (line 225): Data set must contain at least 3 samples.
-
 % 6: '07_06_2023_bilateral';   % INS 2026
 % 7: '07_13_2023_bilateral';   % INS 2026
-% 8: '07_20_2023'               
+% 8: '07_20_2023'              % GRC 2026
+% 8: '07_26_2023'              % GRC 2026
 % 10: '08_23_2023';            % INS 2026
 % 12: '11_30_2023_bilateral';  % GRC 2026
 % 13: '12_06_2023_bilateral';  % GRC 2026
 
 
 % Kinematic data folder:
-MoveDir_CaseID = 'IO_07_20_2023_LSTN'; % Adjust as needed
+MoveDir_CaseID = 'IO_07_13_2023_LSTN'; % Adjust as needed
 
 % 'IO_03_23_2023_LSTN';   % NER 2025
 % 'IO_04_05_2023_RSTN';   % NER 2025
@@ -126,10 +110,13 @@ MoveDir_CaseID = 'IO_07_20_2023_LSTN'; % Adjust as needed
 % 'IO_07_13_2023_LSTN';   % INS 2026
 % 'IO_07_13_2023_RSTN';   % GRC 2026
 % 'IO_07_20_2023_LSTN';   % GRC 2026
+% 'IO_07_26_2023_RSTN';   % GRC 2026
 % 'IO_08_23_2023_RSTN';   % INS 2026
 % 'IO_11_30_2023_LSTN';   % GRC 2026
 % 'IO_11_30_2023_RSTN';   % GRC 2026
-% 'IO_12_06_2023_LSTN';
+% 'IO_12_06_2023_LSTN';   % GRC 2026
+% 'IO_12_06_2023_RSTN';   % GRC 2026
+
 
 %% Data folder paths
 
@@ -171,7 +158,7 @@ spk_mat = Tbl_names{contains(Tbl_names, 'offset')}; % offset version preferred
 load(spk_mat, 'All_SpikesPerMove_Tbl');
 
 % Load All_SpikesPerMove_Tbl_MUA
-MUA_mat = Tbl_names{contains(Tbl_names, 'MUA')}; 
+MUA_mat = Tbl_names{contains(Tbl_names, 'MUA')};
 load(MUA_mat, 'All_SpikesPerMove_Tbl_MUA');
 
 
@@ -186,7 +173,7 @@ elseif strcmp(char(CaseDate), '04_05_2023')
 end
 
 
-%% ===== Functions =====
+%% ------- Functions -------
 
 %% Run MaxSpkDuration_Raster_PSTH
 
@@ -194,10 +181,9 @@ end
 [Max_SpikeDuration_samples, spikesMatrix] = MaxSpkDuration_Raster_PSTH(CaseDate, All_SpikesPerMove_Tbl, AO_spike_fs, Case_FRKin_Dir);
 
 Max_SpkDur_seconds = Max_SpikeDuration_samples/AO_spike_fs; % seconds
-Max_SpkDus_ms = Max_SpkDur_seconds * 1000 % milliseconds
+Max_SpkDur_ms = Max_SpkDur_seconds * 1000 % milliseconds
 
-
-%% Zeta Test Functions
+%% ------- Zeta Test Functions -------
 
 % https://github.com/JorritMontijn/zetatest?tab=readme-ov-file
 
@@ -206,7 +192,7 @@ zetaRepo = 'C:\Users\erinr\OneDrive - The University of Colorado Denver\Document
 addpath(genpath(zetaRepo));   % genpath adds dependencies/
 rehash
 
-%% Notes re: zetatest.m 
+%% Notes re: zetatest.m
 
 % https://elifesciences.org/articles/71969
 % https://github.com/JorritMontijn/zetatest/blob/main/zetatest.m
@@ -218,75 +204,75 @@ rehash
 % Zeta test outputs of interest (p-vals, z-vals, d-vals):
 %
 %	- dblZetaP; p-value based on Zenith of Event-based Time-locked Anomalies
-%       % Low ZETA-test p-values indicate that the neuron's firing pattern  
+%       % Low ZETA-test p-values indicate that the neuron's firing pattern
 %       % is statistically unlikely to be observed if the neuron is not
 %       %  modulated by the event of interest.
 
 %	- sZETA; structure with fields:
-	%	- dblZETA; responsiveness z-score (i.e., >2 is significant), ZETA (ζ) 
-    %       % use p with the standard normal's quantile function Φ−1 to obtain a corrected ZETA, ζ, that is interpretable as a z-score
-    %       % z-score: ζ = Φ−1(1−p2) 
-	%	- dblD; temporal deviation value underlying ZETA
-    %       % d, a time-invariant mean-normalized version of δ, a neuron's deviation from a temporally non-modulated spiking rate at a time point
-    %       % Zenith of Event-based Time-locked Anomalies (ZETA) = most extreme value, that is the maximum of the absolute values: max(|d|)
-    %       % Statistical significance of ZETA ... extreme value theory ... distribution of maximum values is known as a Gumbel distribution (Gumbel, 1941)
-	%	- dblP; p-value corresponding to ZETA       %% same as dblZetaP
-    %       % basis: cumulative Gumbel distribution at sample maximum, ζr: 
-    %       % p-value: p = 1−F(ζr;m,β)  ...    
-	%	- dblZetaT; time corresponding to ZETA
-    % ...
-    %	- intZetaIdx; entry corresponding to ZETA
-	%	- dblMeanD; Cohen's D based on mean-rate stim/base difference
-	%	- dblMeanP; p-value based on mean-rate stim/base difference
-	%	- vecSpikeT: timestamps of spike times (corresponding to vecD)
-	%	- vecD: temporal deviation vector of data
-	%	- matRandD; baseline temporal deviation matrix of jittered data
-	%	- dblD_InvSign; largest peak of inverse sign to ZETA (i.e., -ZETA)
-	%	- dblZetaT_InvSign; time corresponding to -ZETA
-	%	- intZetaIdx_InvSign; entry corresponding to -ZETA
-	%	- dblUseMaxDur;=: window length used to calculate ZETA
-    % ...
+%	- dblZETA; responsiveness z-score (i.e., >2 is significant), ZETA (ζ)
+%       % use p with the standard normal's quantile function Φ−1 to obtain a corrected ZETA, ζ, that is interpretable as a z-score
+%       % z-score: ζ = Φ−1(1−p2)
+%	- dblD; temporal deviation value underlying ZETA
+%       % d, a time-invariant mean-normalized version of δ, a neuron's deviation from a temporally non-modulated spiking rate at a time point
+%       % Zenith of Event-based Time-locked Anomalies (ZETA) = most extreme value, that is the maximum of the absolute values: max(|d|)
+%       % Statistical significance of ZETA ... extreme value theory ... distribution of maximum values is known as a Gumbel distribution (Gumbel, 1941)
+%	- dblP; p-value corresponding to ZETA       %% same as dblZetaP
+%       % basis: cumulative Gumbel distribution at sample maximum, ζr:
+%       % p-value: p = 1−F(ζr;m,β)  ...
+%	- dblZetaT; time corresponding to ZETA
+% ...
+%	- intZetaIdx; entry corresponding to ZETA
+%	- dblMeanD; Cohen's D based on mean-rate stim/base difference
+%	- dblMeanP; p-value based on mean-rate stim/base difference
+%	- vecSpikeT: timestamps of spike times (corresponding to vecD)
+%	- vecD: temporal deviation vector of data
+%	- matRandD; baseline temporal deviation matrix of jittered data
+%	- dblD_InvSign; largest peak of inverse sign to ZETA (i.e., -ZETA)
+%	- dblZetaT_InvSign; time corresponding to -ZETA
+%	- intZetaIdx_InvSign; entry corresponding to -ZETA
+%	- dblUseMaxDur;=: window length used to calculate ZETA
+% ...
 
 %   - vecLatencies; different latency estimates, number determined by intLatencyPeaks.
-    %       1) Latency of ZETA peak
-	%	    2) Latency of largest z-score with inverse sign to ZETA
-	%	    3) Peak time of instantaneous firing rate
-	%	    4) Onset time of above peak, defined as the first crossing of peak half-height
-	%           If no peaks are detected, it returns NaNs.
-    %           For true onset latencies, we recommend using LatenZy
-    %           https://github.com/Herseninstituut/latenZy, based on the 
-    %           zeta-test. 
+%       1) Latency of ZETA peak
+%	    2) Latency of largest z-score with inverse sign to ZETA
+%	    3) Peak time of instantaneous firing rate
+%	    4) Onset time of above peak, defined as the first crossing of peak half-height
+%           If no peaks are detected, it returns NaNs.
+%           For true onset latencies, we recommend using LatenZy
+%           https://github.com/Herseninstituut/latenZy, based on the
+%           zeta-test.
 
 %	- sRate; structure with fields:
-    % 	- vecRate; instantaneous spiking rates (like a PSTH)
-	%	- vecT; time-points corresponding to vecRate (same as sZETA.vecSpikeT)
-	%	- vecM; Mean of multi-scale derivatives
-	%	- vecScale; timescales used to calculate derivatives
-	%	- matMSD; multi-scale derivatives matrix
-	%	- vecV; values on which vecRate is calculated (same as sZETA.vecZ)
-    %		Data on the peak: (only if intLatencyPeaks > 0)
-	%		- dblPeakTime; time of peak (in seconds)
-	%		- dblPeakWidth; duration of peak (in seconds)
-	%		- vecPeakStartStop; start and stop time of peak (in seconds)
-	%		- intPeakLoc; spike index of peak (corresponding to sZETA.vecSpikeT)
-	%		- vecPeakStartStopIdx; spike indices of peak start/stop (corresponding to sZETA.vecSpikeT)
-	%		Additionally, it will return peak onset latency (first crossing of peak half-height) using getOnset.m:
-	%		- dblOnset: latency for peak onset
+% 	- vecRate; instantaneous spiking rates (like a PSTH)
+%	- vecT; time-points corresponding to vecRate (same as sZETA.vecSpikeT)
+%	- vecM; Mean of multi-scale derivatives
+%	- vecScale; timescales used to calculate derivatives
+%	- matMSD; multi-scale derivatives matrix
+%	- vecV; values on which vecRate is calculated (same as sZETA.vecZ)
+%		Data on the peak: (only if intLatencyPeaks > 0)
+%		- dblPeakTime; time of peak (in seconds)
+%		- dblPeakWidth; duration of peak (in seconds)
+%		- vecPeakStartStop; start and stop time of peak (in seconds)
+%		- intPeakLoc; spike index of peak (corresponding to sZETA.vecSpikeT)
+%		- vecPeakStartStopIdx; spike indices of peak start/stop (corresponding to sZETA.vecSpikeT)
+%		Additionally, it will return peak onset latency (first crossing of peak half-height) using getOnset.m:
+%		- dblOnset: latency for peak onset
 
 %   - sLatencies; structure containing latencies (copy of sZETA.vecLatencies)
-    %   - Onset (peak half-height) based on instanteneous firing rate
-	%	- Peak based on instanteneous firing rate
-	%	- ZETA
-	%	- ZETA_InvSign
-    %       For true onset latencies, we recommend using LatenZy
-    %       https://github.com/Herseninstituut/latenZy, based on the 
-    %       zeta-test. 
+%   - Onset (peak half-height) based on instanteneous firing rate
+%	- Peak based on instanteneous firing rate
+%	- ZETA
+%	- ZETA_InvSign
+%       For true onset latencies, we recommend using LatenZy
+%       https://github.com/Herseninstituut/latenZy, based on the
+%       zeta-test.
 
 
-%% Run ZETA test for Spikes per MoveType × STN depth 
+%% Run ZETA test for Spikes per MoveType × STN depth
 % using true per-trial durations
 
-% zetatest.m: Calculates the Zenith of Event-based Time-locked Anomalies (ZETA) 
+% zetatest.m: Calculates the Zenith of Event-based Time-locked Anomalies (ZETA)
 % for spike times of a single neuron. Outputs a p-value.
 
 % run wrapper + helper function for zetatest.m
@@ -317,50 +303,50 @@ save(ZetaAll_mat, 'ZETA_Summary', 'all_sZETA', 'all_sRate', 'all_sLatencies', '-
 fprintf('ZETA test outputs saved:\n  %s\n  %s\n', ZetaSummary_csv, ZetaAll_mat);
 
 
-%% Notes re: zetatstest 
+%% Notes re: zetatstest
 
 % https://github.com/JorritMontijn/zetatest/blob/main/zetatstest.m
 % zetatstest.m: Calculates the time-series version of ZETA, for data such as calcium imaging or EEG recordings.
 
 % zetatstest Calculates responsiveness index zeta for timeseries data
-	% Syntax: [dblZetaP,sZETA] = zetatstest(vecTime,vecData,vecEventTimes,dblUseMaxDur,intResampNum,intPlot,boolDirectQuantile,dblJitterSize,boolStitch,dblSuperResFactor)
-	%	Input:
-	%	- vecTime [N x 1]: time (s) corresponding to entries in vecValue
-	%	- vecData [N x 1]: data values (e.g., calcium imaging dF/F0)
-	%	- vecEventTimes [T x 1]: event on times (s), or [T x 2] including event off times
-	%	- dblUseMaxDur: scalar (s), ignore all values beyond this duration after stimulus onset
-	%								[default: median of trial start to trial start]
-	%	- intResampNum: integer, number of resamplings (default: 100)
-	%	- intPlot: integer, plotting switch (0=none, 1=traces only, 2=activity heat map as well) (default: 0)
-	%	- boolDirectQuantile; boolean, switch to use the empirical
-	%							null-distribution rather than the Gumbel approximation (default: false)
-	%	- dblJitterSize: scalar, sets the temporal jitter window relative to dblUseMaxDur (default: 2)
-	%	- boolStitch; boolean, use data-stitching to ensure continuous time (default: true)
-	%	- dblSuperResFactor; scalar, upsampling of data when calculating zeta (default: 100)
-	%
-	%	Output:
-	%	- dblZetaP; Zenith of Event-based Time-locked Anomalies: responsiveness p-value
-	%	- sZETA; structure with fields:
-	%		- dblZetaP; p-value corresponding to ZETA
-	%		- dblZETA; ZETA responsiveness statistic
-	%		- dblD; temporal deviation value underlying ZETA
-	%		- vecTimeSR; timestamps for upscaled data
-	%		- matDataSR; upscaled data values
-	%		- dblPeakT; time corresponding to ZETA
-	%		- intPeakIdx; entry corresponding to ZETA
-	%		- dblMeanZ; z-score based on mean-rate stim/base difference
-	%		- dblMeanP; p-value based on mean-rate stim/base difference
-	%		- vecMu_Dur; within-stimulus values used in mean-rate difference calculation
-	%		- vecMu_Pre; outside-stimulus values used in mean-rate difference calculation
-	%		- vecTime: timestamps of entries (corresponding to vecD)
-	%		- vecD; temporal deviation vector of data
-	%		- cellRandT; reference time vectors for randomly jittered data
-	%		- cellRandDiff; deviation vectors for randomly jittered data
+% Syntax: [dblZetaP,sZETA] = zetatstest(vecTime,vecData,vecEventTimes,dblUseMaxDur,intResampNum,intPlot,boolDirectQuantile,dblJitterSize,boolStitch,dblSuperResFactor)
+%	Input:
+%	- vecTime [N x 1]: time (s) corresponding to entries in vecValue
+%	- vecData [N x 1]: data values (e.g., calcium imaging dF/F0)
+%	- vecEventTimes [T x 1]: event on times (s), or [T x 2] including event off times
+%	- dblUseMaxDur: scalar (s), ignore all values beyond this duration after stimulus onset
+%								[default: median of trial start to trial start]
+%	- intResampNum: integer, number of resamplings (default: 100)
+%	- intPlot: integer, plotting switch (0=none, 1=traces only, 2=activity heat map as well) (default: 0)
+%	- boolDirectQuantile; boolean, switch to use the empirical
+%							null-distribution rather than the Gumbel approximation (default: false)
+%	- dblJitterSize: scalar, sets the temporal jitter window relative to dblUseMaxDur (default: 2)
+%	- boolStitch; boolean, use data-stitching to ensure continuous time (default: true)
+%	- dblSuperResFactor; scalar, upsampling of data when calculating zeta (default: 100)
+%
+%	Output:
+%	- dblZetaP; Zenith of Event-based Time-locked Anomalies: responsiveness p-value
+%	- sZETA; structure with fields:
+%		- dblZetaP; p-value corresponding to ZETA
+%		- dblZETA; ZETA responsiveness statistic
+%		- dblD; temporal deviation value underlying ZETA
+%		- vecTimeSR; timestamps for upscaled data
+%		- matDataSR; upscaled data values
+%		- dblPeakT; time corresponding to ZETA
+%		- intPeakIdx; entry corresponding to ZETA
+%		- dblMeanZ; z-score based on mean-rate stim/base difference
+%		- dblMeanP; p-value based on mean-rate stim/base difference
+%		- vecMu_Dur; within-stimulus values used in mean-rate difference calculation
+%		- vecMu_Pre; outside-stimulus values used in mean-rate difference calculation
+%		- vecTime: timestamps of entries (corresponding to vecD)
+%		- vecD; temporal deviation vector of data
+%		- cellRandT; reference time vectors for randomly jittered data
+%		- cellRandDiff; deviation vectors for randomly jittered data
 
 
 %% Run ZETA-TS test for MUA per MoveType × STN depth
 
-% zetatstest.m: Calculates the time-series version of ZETA, 
+% zetatstest.m: Calculates the time-series version of ZETA,
 % for data such as calcium imaging or EEG ... + MUA & LFP ...  recordings.
 
 % run wrapper + helper function for zetatest.m
@@ -368,7 +354,7 @@ fprintf('ZETA test outputs saved:\n  %s\n  %s\n', ZetaSummary_csv, ZetaAll_mat);
     All_SpikesPerMove_Tbl_MUA, AO_spike_fs, ...
     'UseMaxDur_s',  1.60, ...
     'PadITI_s',     0.005, ...
-    'Resamples',   500, ...    % intResampNum: integer, number of resamplings (default: 100), 500 (exploratory) or 1000 (final analyses).
+    'Resamples',    500, ...   % intResampNum: integer, number of resamplings (default: 100), 500 (exploratory) or 1000 (final analyses).
     'SuperResFactor', 20, ...  % dblSuperResFactor: scalar, upsampling of data when calculating zeta (default: 100)
     'PreWindow_s',  0.050, ...
     'PostWindow_s', 0.000);
@@ -386,47 +372,46 @@ save(ZetaTS_All_mat_MUA, 'ZETA_TS_Summary_MUA', 'all_sZETA_ts_MUA', '-v7.3');
 fprintf('MUA ZETA-TS outputs saved:\n  %s\n  %s\n', ZetaTS_Summary_csv_MUA, ZetaTS_All_mat_MUA);
 
 
-%% Compute instantaneous firing rate (IFR) + PSTH per MoveType × STN depth using getIFR 
+%% Notes re: getIFR: Compute instantaneous firing rate (IFR) + plot PSTHs
 
 % https://github.com/JorritMontijn/zetatest/blob/main/getIFR.m
 
-% uses the temporal deviations upon which ZETA is based 
-% d: temporal deviation vector 
-% δ: scaled to lie between –1 and +1, value depends on the difference between the fractional position of a spike (from 0 to 1) and the linear interval from x,y=[0,0] to [τ,1]. 
+% uses the temporal deviations upon which ZETA is based
+% d: temporal deviation vector
+% δ: scaled to lie between –1 and +1, value depends on the difference between the fractional position of a spike (from 0 to 1) and the linear interval from x,y=[0,0] to [τ,1].
 
 % getIFR.m: Calculates the instantaneous firing rate (IFR) without running the ZETA-test. Use this as you would a PSTH function.
 % Syntax:
-	%   [vecTime,vecRate,sIFR] = getIFR(vecSpikeTimes,vecEventStarts,dblUseMaxDur,intSmoothSd,dblMinScale,dblBase,boolUseParallel)
-	% Required input:
-	%	- vecSpikeTimes [S x 1]: spike times (s)
-	%	- vecEventStarts [T x 1]: event on times (s), or [T x 2] including event off times
-	%	- dblUseMaxDur: float (s), ignore all spikes beyond this duration after stimulus onset
-	%								[default: min of trial start to trial start]
-	%
-	% Optional inputs:
-	%	- intSmoothSd: Gaussian SD of smoothing kernel (in # of bins) [default: 2]
-	%	- dblMinScale: minimum derivative scale in log-seconds [default: round(log(1/1000) / log(dblBase))]
-	%	- dblBase: critical value for locally dynamic derivative [default: 1.5]
-	%
-	% Outputs:
-	%	- vecTime; Time points corresponding to rates in vecRate
-	%	- vecRate; Instantaneous firing rate in Hz
-	%	- sIFR; structure with fields:
-	%		- vecRate;
-	%		- vecTime;
-	%		- vecDiff;
-	%		- vecScale; 
+%   [vecTime,vecRate,sIFR] = getIFR(vecSpikeTimes,vecEventStarts,dblUseMaxDur,intSmoothSd,dblMinScale,dblBase,boolUseParallel)
+% Required input:
+%	- vecSpikeTimes [S x 1]: spike times (s)
+%	- vecEventStarts [T x 1]: event on times (s), or [T x 2] including event off times
+%	- dblUseMaxDur: float (s), ignore all spikes beyond this duration after stimulus onset
+%								[default: min of trial start to trial start]
+%
+% Optional inputs:
+%	- intSmoothSd: Gaussian SD of smoothing kernel (in # of bins) [default: 2]
+%	- dblMinScale: minimum derivative scale in log-seconds [default: round(log(1/1000) / log(dblBase))]
+%	- dblBase: critical value for locally dynamic derivative [default: 1.5]
+%
+% Outputs:
+%	- vecTime; Time points corresponding to rates in vecRate
+%	- vecRate; Instantaneous firing rate in Hz
+%	- sIFR; structure with fields:
+%		- vecRate;
+%		- vecTime;
+%		- vecDiff;
+%		- vecScale;
 
 
-%% Single-Unit (spike clusters) - runIFR_PSTH_byDepthMove
+%% Single-Unit (spike clusters) - run_IFR_PSTH_byDepthMove
 
-IFR_outDir = fullfile(Zeta_outDir, 'IFR_PSTH');  
+IFR_outDir = fullfile(Zeta_outDir, 'IFR_PSTH');
 
 [IFR_PSTH_Summary, all_IFR] = run_IFR_PSTH_byDepthMove( ...
     All_SpikesPerMove_Tbl, AO_spike_fs, ...
     'UseMaxDur_s', 1.60, ...
     'PadITI_s',    0.005, ...
-    'SpikeField',  'C1', ...
     'StartField',  'TTL_spk_idx_Start', ...
     'StopField',   'TTL_spk_idx_End', ...
     'PreWindow_s', 0.050, ...
@@ -443,14 +428,32 @@ IFR_outDir = fullfile(Zeta_outDir, 'IFR_PSTH');
 % Save summary table + all structs
 if ~exist(IFR_outDir,'dir'); mkdir(IFR_outDir); end
 writetable(IFR_PSTH_Summary, fullfile(IFR_outDir, sprintf('%s_IFR_PSTH_Summary.csv', CaseDate)));
-save(fullfile(IFR_outDir, sprintf('%s_IFR_PSTH_All.mat', CaseDate)), ... 
+save(fullfile(IFR_outDir, sprintf('%s_IFR_PSTH_All.mat', CaseDate)), ...
     'IFR_PSTH_Summary', 'all_IFR', '-v7.3');
 fprintf('IFR/PSTH saved to %s\n', IFR_outDir);
 
 cd(IFR_outDir)
 
 
-%% Multi-unit (MUA) - runIFR_PSTH_byDepthMove
+%% Update x-axis per MoveType for visualiztion
+
+
+
+%% SU tiled layout IFR plot MoveType × STN depth
+
+uniqueSF = unique(IFR_PSTH_Summary.SpikeField,'stable');
+
+for i = 1:numel(uniqueSF)
+    thisSF = uniqueSF(i);
+    % convert to char for consistency
+    thisSF = char(string(thisSF));
+
+    plot_IFR_summary_grid_v2(IFR_PSTH_Summary, all_IFR, thisSF, {'t','c','b'}, {'HAND OC','HAND PS','ARM EF'}, ...
+        'SaveDir', IFR_outDir, 'CaseDate', CaseDate, 'XLim', [-0.05 1.60]);
+end
+
+
+%% Multi-unit (MUA) - run_IFR_PSTH_byDepthMove
 
 % Load MUA table -----
 cd(Case_FRKin_Dir)
@@ -465,7 +468,7 @@ IFR_outDir_MUA = fullfile(Zeta_outDir_MUA, 'IFR_PSTH_MUA');
     All_SpikesPerMove_Tbl_MUA, AO_spike_fs, ...
     'UseMaxDur_s', 1.60, ...
     'PadITI_s',    0.005, ...
-    'SpikeField',  'C1_MUA', ...       
+    'SpikeField',  'C1_MUA', ...
     'StartField',  'TTL_spk_idx_Start', ...
     'StopField',   'TTL_spk_idx_End', ...
     'PreWindow_s', 0.050, ...
@@ -483,20 +486,58 @@ if ~exist(IFR_outDir_MUA,'dir'); mkdir(IFR_outDir_MUA); end
 writetable(IFR_PSTH_MUA_Summary, ...
     fullfile(IFR_outDir_MUA, sprintf('%s_IFR_PSTH_MUA_Summary.csv', CaseDate)));
 save(fullfile(IFR_outDir_MUA, sprintf('%s_IFR_PSTH_MUA_All.mat', CaseDate)), ...
-     'IFR_PSTH_MUA_Summary', 'all_IFR_MUA', '-v7.3');
+    'IFR_PSTH_MUA_Summary', 'all_IFR_MUA', '-v7.3');
 fprintf('MUA IFR/PSTH saved to %s\n', IFR_outDir_MUA);
 
 cd(IFR_outDir_MUA)
 
 
+%% MUA tiled layout IFR plot MoveType × STN depth
+
+uniqueSF_MUA = unique(IFR_PSTH_MUA_Summary.SpikeField,'stable');
+
+for i = 1:numel(uniqueSF_MUA)
+    thisSF_MUA = uniqueSF_MUA(i);
+    % convert to char for consistency
+    thisSF_MUA = char(string(thisSF_MUA));
+
+    plot_IFR_summary_grid_v2(IFR_PSTH_MUA_Summary, all_IFR_MUA, thisSF_MUA, {'t','c','b'}, {'HAND OC','HAND PS','ARM EF'}, ...
+        'SaveDir', IFR_outDir_MUA, 'CaseDate', CaseDate, 'XLim', [-0.05 1.60]);
+end
+
+
+%% Run run_MovementFeatureAnalysis_IO_v2
+
+fprintf('[INFO] Loading movement data from: %s\n', MoveDataDir);
+
+% Outputs kinematics summary per move trial per depth
+[kinTbl, kinSummaryTbl] = run_MovementFeatureAnalysis_IO_v2(IO_DataDir, MoveDataDir, MoveDir_CaseID);
+
+cd(KinematicsDir)
+
+
+%% ------- Aggregate Across Subjects -------
+
 %% Aggregate & Plot ZETA z-score scatter plots - Single Unit
-                    
+
 MasterZETA = aggregate_ZETA_and_plot(FR_Kin_Dir, ...
     'IO_DataDir', IO_DataDir, ...
     'ZetaCsvNamePattern','*_ZETA_Summary.csv', ...
     'SigZ', 2, 'SigP', 0.05, ...
-    'YMax', 5); 
+    'YMax', 6);
 
+% in all_sZETA, extract vecLatencies values 3) IFR_peakTime and 4) IFR_peakOnset to MasterZeta
+% https://github.com/JorritMontijn/zetatest/blob/main/zetatest.m
+% vecLatencies; different latency estimates, number determined by intLatencyPeaks. 
+    %			1) Latency of ZETA peak
+	%			2) Latency of largest z-score with inverse sign to ZETA
+	%			3) Peak time of instantaneous firing rate
+	%			4) Onset time of above peak, defined as the first crossing of peak half-height
+	%           If no peaks are detected, it returns NaNs.
+    %           For true onset latencies, we recommend using LatenZy
+    %           https://github.com/Herseninstituut/latenZy, based on the 
+    %           zeta-test. 
+	%		- vecLatencyVals; data values corresponding to the above peaks
 
 %% Aggregate & Plot ZETA z-score scatter plots - MUA
 
@@ -504,31 +545,38 @@ MasterZETA_MUA = aggregate_ZETA_MUA_and_plot(FR_Kin_Dir, ...
     'IO_DataDir', IO_DataDir, ...
     'ZetaCsvNamePattern','*_ZETA_TS_Summary_MUA.csv', ...
     'SigZ', 2, 'SigP', 0.05, ...
-    'YMax', 7); 
+    'YMax', 7);
+
+cd(FR_Kin_Dir)
+
+
+%% ------- Dimensionality Reduction Across Subjects -------
+
+% replicate London et al., 2021 paper's Fig 2
+
+% Run PCA on spike response profiles, given by ZETA temporal deviation vectors (ZETA_vecD) for each MoveType × STN depth,
+% after resampling onto a common time axis given by PSTH_TimeCenters_s.
+
+% x-dim (t, time): PSTH_TimeCenters_s (or Zeta_vecT), time vector (in 10 ms bins), uniform across subjects
+% y-dim (d(t), features): ZETA_vecD, temporal deviation signal d(t) that ZETA (Z-score) is computed from
+% One vector (signals per unit) per MoveType × STN Depth across subjects, defined over time vector (in 10 ms PSTH bins)
+
+% Plot PC1 per MoveType for each STN Depth in a tiled layout (3 rows: depths, color: MoveType)
+% (like in the '...AllCategories_ByDepth_Tiles') plot created by the aggregate_ZETA_and_plot function)
 
 
 %% Spikes - PCA of ZETA_vecD across Subjects - Spikes for each MoveType x STN Depth
 % Clustered Spike Fields (C1, C2, ..., Cn)
 
-% replicate London et al., 2021 paper's Fig 2
+SavePath = fullfile(FR_Kin_Dir, 'Aggregate Zeta Plots', 'PCA Plots');
 
-% Run PCA on spike response profiles, given by ZETA temporal deviation vectors (ZETA_vecD) for each MoveType × STN depth, 
-% after resampling onto a common time axis given by PSTH_TimeCenters_s.
-
-% x-dim (t, time): PSTH_TimeCenters_s (or Zeta_vecT), time vector (in 10 ms bins), uniform across subjects
-% y-dim (d(t), features): ZETA_vecD, temporal deviation signal d(t) that ZETA (Z-score) is computed from
-% One vector (signals per unit) per MoveType × STN Depth across subjects, defined over time vector (in 10 ms PSTH bins) 
-
-% Plot PC1 per MoveType for each STN Depth in a tiled layout (3 rows: depths, color: MoveType)
-% (like in the '...AllCategories_ByDepth_Tiles') plot created by the aggregate_ZETA_and_plot function)
-
-run_PCA_ZETA_byCategory(MasterZETA);
+run_PCA_ZETA_byCategory(MasterZETA, 'SavePath', SavePath);
 
 
 %% MUA - PCA of ZETA_vecD across Subjects - MUA for each MoveType x STN Depth
 % MUA on electrode 1 / C1_MUA
 
-run_PCA_ZETA_MUA_byCategory(MasterZETA_MUA);
+run_PCA_ZETA_MUA_byCategory(MasterZETA_MUA, 'SavePath', SavePath);
 
 
 %% Spikes - 3D PCA Plots
@@ -546,6 +594,7 @@ plot_ZETA_PCA_3D_byDepth(MasterZETA, 'all depths', ...
     'DoLines', true, ...
     'DoTiled', true);
 
+
 %% MUA - 3D PCA Plots
 
 SavePath = fullfile(FR_Kin_Dir, 'Aggregate Zeta Plots', '3D PCA Plots');
@@ -560,5 +609,277 @@ plot_ZETA_PCA_3D_byDepth_MUA(MasterZETA_MUA, 'all depths', ...
     'SavePath', SavePath, 'DoLines', true);
 
 
-%% Heat plot 
+%% Heat plot
 
+
+
+%% ========================== STATS ===================================
+
+%% 1. Statistical comparisons of IFR (normailized mean firing rate)
+
+% use the existing getIFR / vecRate outputs (either from all_IFR or all_sRate),
+% compute mean IFR per subject × MoveType × STN Depth over peri-movement window,
+% compute a within-unit normalized mean IFR (z-scored across that unit's conditions),
+% save both into IFR_PSTH_Summary and all_IFR / all_IFR_MUA,
+% aggregate into MasterZETA / MasterZETA_MUA via aggregate_ZETA_* functions.
+
+
+%% ------- Linear Mixed Effects Models (LMMs) -------
+
+%% IFR Comparisons
+
+% Dependent variables: 
+% - within-unit normalized mean IFR (IFR_norm),
+% - baseline-normalized mean IFR (IFR_baselineNorm)
+% do later 
+%
+% Fixed effects: 
+% - Movement context (HAND OC, HAND PS, ARM EF, REST), 
+% - STN depth
+% - MoveType x Depth
+%
+% Random effect: Subject (random intercept)
+
+
+%% Build analysis table (SU Spikes)
+
+% Reference levels (All other coefficients are deviations from Intercept)
+% % MoveType    = REST
+% % Depth       = b (ventral)
+% % (Intercept) = REST @ ventral STN
+
+% Build LMM table for Single Unit data
+T_SU = build_IFR_LMM_Table(MasterZETA);
+
+% Enforce Category Order
+T_SU.Subject  = categorical(T_SU.Subject);
+T_SU.MoveType = categorical(T_SU.MoveType);
+T_SU.Depth    = categorical(T_SU.Depth);
+
+T_SU.MoveType = reordercats(T_SU.MoveType, {'REST', 'HAND OC','HAND PS','ARM EF'}); 
+T_SU.Depth    = reordercats(T_SU.Depth,    {'b','t','c'}); % change from "t" to "b" as first ref condidtion
+
+
+%% Fit IFR SU LME Models
+
+LME_SU = runIFR_LMMs(T_SU, ["IFR_norm","IFR_baselineNorm","IFR_mean_Hz","logIFR_mean_Hz"]);
+
+
+%% check
+
+lme = LME_SU.IFR_baselineNorm.lme;
+lme_coeffs = string(lme.CoefficientNames(:));
+disp(lme_coeffs);
+
+disp(LME_SU.IFR_baselineNorm.lme);
+disp(LME_SU.IFR_baselineNorm.anova);
+
+% Save LME_SU struct
+
+
+%% Planned contrasts (Active vs REST, and pairwise comparisons)
+
+% Within each depth (t,c,b):
+% - Pairwise: REST vs each Active (3)
+% - Active (HAND OC, HAND PS, ARM EF) pairwise (3)
+% - mean Active vs REST" (1)
+
+% Across depths (interaction contrasts; depth-dependent modulation tests)
+% - for each MoveType vs. REST (Move - Rest)
+% - for Active MoveType pairs = [ ...
+       % "HAND OC","HAND PS"; ...
+       % "HAND OC","ARM EF"; ...
+       % "HAND PS","ARM EF"  ...
+       % ];
+% - for each Active MoveType vs. itself at each depth
+
+
+%% Run contrasts (Active vs REST, and pairwise comparisons)
+
+% use fixedEffects(lme) + coefTest(lme, L, c) where L*beta = c tests a linear hypothesis on fixed-effect coefficients
+
+% constrast must include:
+% - main effect: MoveType
+% - interaction term: MoveType×Depth (within specific depth)
+
+% Contrasts helper function: builds L rows by matching lme.CoefficientNames
+% runs coefTest(lme, L, 0) per contrast, returns table
+
+% ---- IFR_norm ----
+C_IFRnorm = runIFR_PlannedContrasts_SU(LME_SU.IFR_norm.lme, 'DVLabel',"IFR_norm");
+
+% ---- IFR_baselineNorm ----
+C_IFRbaseline = runIFR_PlannedContrasts_SU(LME_SU.IFR_baselineNorm.lme, ...
+    'DVLabel',"IFR_baselineNorm", ...
+    'PAdjust',"holm", ...
+    'AdjustScope',"family");
+
+% ---- IFR_mean_Hz and logIFR_mean_Hz ----
+C_IFRmean = runIFR_PlannedContrasts_SU(LME_SU.IFR_mean_Hz.lme, 'DVLabel',"IFR_mean_Hz");
+C_logIFRmean = runIFR_PlannedContrasts_SU(LME_SU.IFR_mean_Hz.lme, 'DVLabel',"logIFR_mean_Hz");
+
+
+% ---- All Contrasts ----
+C_all = [C_IFRnorm; C_IFRbaseline; C_IFRmean; C_logIFRmean];
+
+
+%% Save Output Tables
+
+SavePath = fullfile(FR_Kin_Dir,'Aggregate Zeta Plots','Stats','IFR');
+if ~exist(SavePath,'dir'), mkdir(SavePath); end
+
+% ---- IFR_norm ----
+writetable(C_IFRnorm, fullfile(SavePath,'SU_IFRnorm_PlannedContrasts_FULL.csv'));
+
+T_IFRnorm_JNE = makeLMM_ContrastsTable(C_IFRnorm, 'DropReverse', true);
+writetable(T_IFRnorm_JNE, fullfile(SavePath,'SU_IFRnorm_PlannedContrasts_JNE.csv'));
+
+% ---- IFR_baselineNorm ----
+writetable(C_IFRbaseline, fullfile(SavePath,'SU_IFRbaselineNorm_PlannedContrasts_FULL.csv'));
+
+T_IFRbaseline_JNE = makeLMM_ContrastsTable(C_IFRbaseline, 'DropReverse', true);
+writetable(T_IFRbaseline_JNE, fullfile(SavePath,'SU_IFRbaselineNorm_PlannedContrasts_JNE.csv'));
+
+
+% ---- IFR_mean_Hz ----
+writetable(C_IFRmean, fullfile(SavePath,'SU_IFRmean_PlannedContrasts_FULL.csv'));
+
+T_IFRmean_JNE = makeLMM_ContrastsTable(C_IFRmean, 'DropReverse', true);
+writetable(T_mean_JNE, fullfile(SavePath,'SU_IFRmean_PlannedContrasts_JNE.csv'));
+
+
+%% ===================== IFR LMMs (SU) — NO REST =====================
+
+% Build NoREST analysis table
+
+% Reference levels (All other coefficients are deviations from Intercept)
+% % MoveType    = Hand OC
+% % Depth       = b (ventral)
+% % (Intercept) = Hand OC @ ventral STN
+
+% Drop REST rows
+T_SU_NoRest = T_SU(T_SU.MoveType ~= categorical("REST"), :);
+
+% Make sure unused categories are removed FIRST
+T_SU_NoRest.MoveType = removecats(categorical(T_SU_NoRest.MoveType));
+T_SU_NoRest.Depth    = removecats(categorical(T_SU_NoRest.Depth));
+T_SU_NoRest.Subject  = categorical(T_SU_NoRest.Subject);
+
+% Inspect what categories actually exist
+disp("MoveType categories present:");
+disp(categories(T_SU_NoRest.MoveType));
+disp("Depth categories present:");
+disp(categories(T_SU_NoRest.Depth));
+
+% Add log mean IFR
+T_SU_NoRest.logIFR_mean_Hz = log(T_SU_NoRest.IFR_mean_Hz + eps);
+
+% Enforce categorical + reference levels
+T_SU_NoRest.Subject  = categorical(T_SU_NoRest.Subject);
+T_SU_NoRest.MoveType = categorical(T_SU_NoRest.MoveType);
+T_SU_NoRest.Depth    = categorical(T_SU_NoRest.Depth);
+
+% Baselines:
+%   MoveType ref = HAND OC
+%   Depth   ref = b (ventral)
+T_SU_NoRest.MoveType = reordercats(T_SU_NoRest.MoveType, {'HAND OC','HAND PS','ARM EF'}); % remove REST as first ref condition
+T_SU_NoRest.Depth    = reordercats(T_SU_NoRest.Depth,    {'b','t','c'});
+
+
+%% Fit LMEs (NoREST)
+
+% Dependent variables to run
+DVlist = ["IFR_norm","IFR_baselineNorm","IFR_mean_Hz","logIFR_mean_Hz"];
+
+% Fit models
+LME_SU_NoRest = runIFR_LMMs(T_SU_NoRest, DVlist);
+
+%% %% Planned contrasts (No REST)
+
+% Within each depth (t,c,b):
+% - Active (HAND OC, HAND PS, ARM EF) pairwise (3)
+
+% Across depths (interaction contrasts; depth-dependent modulation tests)
+% - for Active MoveType pairs = [ ...
+       % "HAND OC","HAND PS"; ...
+       % "HAND OC","ARM EF"; ...
+       % "HAND PS","ARM EF"  ...
+       % ];
+% - for each Active MoveType vs. itself at each depth
+
+%% Run planned contrasts (NoREST) for each DV
+
+% Planned contrasts (NoREST helper)
+C_NoRest_IFRnorm     = runIFR_PlannedContrasts_SU_NoREST(LME_SU_NoRest.IFR_norm.lme,         'DVLabel',"IFR_norm");
+C_NoRest_IFRbaseNorm = runIFR_PlannedContrasts_SU_NoREST(LME_SU_NoRest.IFR_baselineNorm.lme, 'DVLabel',"IFR_baselineNorm");
+C_NoRest_IFRmeanHz   = runIFR_PlannedContrasts_SU_NoREST(LME_SU_NoRest.IFR_mean_Hz.lme,      'DVLabel',"IFR_mean_Hz");
+C_NoRest_logIFRMean  = runIFR_PlannedContrasts_SU_NoREST(LME_SU_NoRest.logIFR_mean_Hz.lme,   'DVLabel',"logIFR_mean_Hz");
+
+% ---- All Contrasts ----
+C_all_NoRest = [C_NoRest_IFRnorm; C_NoRest_IFRbaseNorm; C_NoRest_IFRmeanHz; C_NoRest_logIFRMean];
+
+
+%% Save Output Tables
+
+% ---- All DVs ----
+writetable(C_all_NoRest, fullfile(SavePath,'SU_IFR_PlannedContrasts_NoREST_AllDVs.csv'));
+
+% ---- IFR_norm ----
+writetable(C_NoRest_IFRnorm, fullfile(SavePath,'SU_IFRnorm_PlannedContrasts_FULL.csv'));
+
+T_IFRnorm_NoRest_JNE = makeLMM_ContrastsTable(C_NoRest_IFRnorm, 'DropReverse', true);
+writetable(T_IFRnorm_NoRest_JNE, fullfile(SavePath,'SU_IFRnorm_NoRest_PlannedContrasts_JNE.csv'));
+
+% ---- IFR_baselineNorm ----
+writetable(C_NoRest_IFRbaseNorm, fullfile(SavePath,'SU_IFRbaselineNorm_PlannedContrasts_FULL.csv'));
+
+T_IFRbaseline_JNE = makeLMM_ContrastsTable(C_NoRest_IFRbaseNorm, 'DropReverse', true);
+writetable(T_IFRbaseline_JNE, fullfile(SavePath,'SU_IFRbaselineNorm_PlannedContrasts_JNE.csv'));
+
+
+%% ANOVAS - run on each patient
+
+% Within-subject  - multivar 2-way ANOVAs
+% use matlab function
+% anova()
+
+% aovInteraction = anova(tbl,"PopcornYield ~ Brand + PopperType + Brand:PopperType")
+
+% IFR_baselineNorm ~ MoveType + Depth + MoveType:Depth
+
+
+%% Zeta LMMs
+
+% Analogous LMMs fit for:
+% -	Dependent variables: 
+% o	ZETA responsiveness z-scores: dblZETA (i.e., >2 is significant)
+% o	temporal deviation value underlying ZETA: dblD
+
+% -	Fixed effects: 
+% o	Movement context (HAND OC, HAND PS, ARM EF) % REST 
+% o	STN depth 
+% o	MoveType x Depth
+% -	Random effect: Subject (random intercept)
+
+
+
+
+
+
+
+
+
+
+
+
+%% MUA - IFR Comparisons
+
+% LLM table for MUA data
+T_MUA = build_IFR_LMM_Table(MasterZETA_MUA);
+LME_out_MUA = runIFR_LMMs(T_MUA);
+
+disp(LME_out_MUA.lme_norm);
+disp(LME_out_MUA.anova_norm);
+
+disp(LME_out_MUA.lme_baseline);
+disp(LME_out_MUA.anova_baseline);

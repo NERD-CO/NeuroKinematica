@@ -1,4 +1,4 @@
-function run_PCA_ZETA_MUA_byCategory(MasterZETA_MUA)
+function run_PCA_ZETA_MUA_byCategory(MasterZETA_MUA, varargin)
 
 % run_PCA_ZETA_MUA_byCategory
 %
@@ -7,6 +7,23 @@ function run_PCA_ZETA_MUA_byCategory(MasterZETA_MUA)
 %
 % Each row (subject/hemisphere, MoveType, Depth) = one "unit".
 % Plots PC1 per MoveType for each Depth (3 rows: t/c/b).
+
+p = inputParser;
+p.addParameter('SavePath','', @(x)ischar(x)||isstring(x));
+p.addParameter('FR_Kin_Dir','', @(x)ischar(x)||isstring(x)); % optional helper
+p.parse(varargin{:});
+U = p.Results;
+
+% Default SavePath if not provided
+if isempty(U.SavePath)
+    if ~isempty(U.FR_Kin_Dir)
+        U.SavePath = fullfile(char(U.FR_Kin_Dir), 'Aggregate Zeta Plots', 'PCA Plots');
+    else
+        U.SavePath = fullfile(pwd, 'PCA Plots');
+    end
+end
+if ~exist(U.SavePath,'dir'), mkdir(U.SavePath); end
+
 
 fprintf('[OK] MasterZETA_MUA: %d total entries\n', height(MasterZETA_MUA));
 
@@ -40,20 +57,44 @@ if isempty(M)
     error('No rows with non-empty vecD_MUA and new_vecTime_MUA.');
 end
 
+%% MoveType and STN Depth mapping
+
 moveTypes  = unique(M.MoveType,'stable');
 depths     = {'t','c','b'};
 depthNames = containers.Map({'t','c','b'}, ...
     {'dorsal STN','central STN','ventral STN'});
 
 % Colors by MoveType (same as SU)
-mtColor = containers.Map( ...
-    {'HAND OC','HAND PS','ARM EF','REST'}, ...
-    {[0.95 0.60 0.10], ... % Hand OC = orange
-    [0.20 0.65 0.30], ... % Hand PS = green
-    [0.15 0.45 0.85], ... % Arm EF  = blue
-    [0.60 0.60 0.60]});   % Rest    = gray
+% mtColor = containers.Map( ...
+%     {'HAND OC','HAND PS','ARM EF','REST'}, ...
+%     {[0.95 0.60 0.10], ... % Hand OC = orange
+%     [0.20 0.65 0.30], ... % Hand PS = green
+%     [0.15 0.45 0.85], ... % Arm EF  = blue
+%     [0.60 0.60 0.60]});   % Rest    = gray
 
-% Storage for PC1 per category
+% -----------------------
+% JNE color scheme (canonical)
+% -----------------------
+purpleShades = ([ ...
+    118,42,131;      % dorsal STN (t)
+    175,141,195;     % central STN (c)
+    231-15, 212-15, 232-15] ... % ventral STN (b)
+    ./ 255);
+
+greenShades = ([ ...
+    128,128,128;     % REST
+    217,240,211;     % HAND OC
+    127,191,123;     % HAND PS
+    27,120,55] ...   % ARM EF
+    ./ 255);
+
+depthColorMap = containers.Map({'t','c','b'}, {purpleShades(1,:), purpleShades(2,:), purpleShades(3,:)});
+moveColorMap  = containers.Map({'REST','HAND OC','HAND PS','ARM EF'}, {greenShades(1,:), greenShades(2,:), greenShades(3,:), greenShades(4,:)});
+fallbackCol   = [0.5 0.5 0.5];
+
+
+%% Storage for PC1 per category
+
 PC1_MUA = struct();
 for d = 1:numel(depths)
     for m = 1:numel(moveTypes)
@@ -68,6 +109,7 @@ for d = 1:numel(depths)
         PC1_MUA.(key).labels = [];
     end
 end
+
 
 %% -------- MAIN LOOP: per MoveType × Depth --------
 for d = 1:numel(depths)
@@ -162,6 +204,7 @@ for d = 1:numel(depths)
     end
 end
 
+
 %% -------- PLOT: PC1 per depth (rows) & MoveType (colors) --------
 
 mtOrder = {'HAND OC','HAND PS','ARM EF','REST'};
@@ -209,10 +252,10 @@ for d = 1:numel(depths)
         t_use = PC1_MUA.(key).t;
         pc1   = PC1_MUA.(key).pc1;
 
-        if isKey(mtColor, mv)
-            c = mtColor(mv);
+        if isKey(moveColorMap, mv)
+            c = moveColorMap(mv);
         else
-            c = [0.5 0.5 0.5];
+            c = fallbackCol;
         end
 
         plot(ax, t_use, pc1, 'LineWidth', 2, 'Color', c, 'DisplayName', mv);
@@ -226,6 +269,17 @@ for d = 1:numel(depths)
         title(ax, sprintf('MUA PC1 of ZETA deviation | depth %s', dz));
     end
 
+    % % color subplot titles by depth
+    % if isKey(depthNames, dz)
+    %     tt = title(ax, sprintf('MUA PC1 of ZETA deviation | %s', depthNames(dz)));
+    % else
+    %     tt = title(ax, sprintf('MUA PC1 of ZETA deviation | depth %s', dz));
+    % end
+    % if isKey(depthColorMap, dz)
+    %     set(tt,'Color', depthColorMap(dz));
+    % end
+
+
     xline(ax, 0, 'k--', 'LineWidth', 1);
     xlim(ax, [-0.2 1.6]);  % match SU/MUA PC1 plots
 
@@ -234,11 +288,20 @@ for d = 1:numel(depths)
         ylim(ax, yLimsM);
     end
     % -----------------------------------------------
-
 end
 
 % One legend for all
-lgd = legend(tlo.Children(end), mtOrder, 'Location','eastoutside');
+lgd = legend(tlo.Children(end), mtOrder, 'Location','northeastoutside');    % eastoutside; % change location to top right corner (in line with title)
 title(tlo, 'PC1 of MUA ZETA temporal deviation per MoveType × STN depth');
+
+
+%% Save figure
+
+outPNG = fullfile(U.SavePath, 'ZETA_PC1_MUA_byDepth.png');
+exportgraphics(hFig, outPNG, 'Resolution',300);
+
+outFIG = fullfile(U.SavePath, 'ZETA_PC1_MUA_byDepth.fig');
+savefig(hFig, outFIG);
+
 
 end

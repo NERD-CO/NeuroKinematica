@@ -24,7 +24,7 @@ p.addParameter('SigP', 0.05, @(x) isscalar(x) && x>0 && x<1);                 % 
 p.addParameter('DepthMap', containers.Map({'t','c','b'},{'dorsal STN','central STN','ventral STN'}));
 p.addParameter('PrettyMoveMap', containers.Map( ...
     {'HAND OC','HAND PS','ARM EF','REST'}, {'Hand OC','Hand PS','Arm EF','Rest'}));
-p.addParameter('YMax', 5, @(x) isscalar(x) && x>0);     % fix y-axis upper limit
+p.addParameter('YMax', 6, @(x) isscalar(x) && x>0);     % fix y-axis upper limit
 p.parse(varargin{:});
 U = p.Results;
 
@@ -36,6 +36,31 @@ else
     groupOut = char(U.SaveDir);
 end
 if ~exist(groupOut,'dir'), mkdir(groupOut); end
+
+
+% -----------------------
+% JNE color scheme (canonical)
+% -----------------------
+
+% Depth colors (purple shades)
+JNE_depth = ([ ...
+    118,42,131;      % dorsal STN (t, dark purple)
+    175,141,195;     % central STN (c, lavender)
+    231-15, 212-15, 232-15] ... % ventral STN (b, light purple)
+    ./ 255); % /255 = standard
+
+% Movement-context colors (greens)
+JNE_move = ([ ...
+    128,128,128;     % REST  (grey)
+    217,240,211;     % HAND OC  (light green)
+    127,191,123;     % HAND PS  (green)
+    27,120,55] ...   % ARM EF   (dark green)
+    ./ 255);  % /255 = standard
+
+depthColorMap = containers.Map({'t','c','b'}, {JNE_depth(1,:), JNE_depth(2,:), JNE_depth(3,:)});
+moveColorMap  = containers.Map({'REST','HAND OC','HAND PS','ARM EF'}, {JNE_move(1,:), JNE_move(2,:), JNE_move(3,:), JNE_move(4,:)});
+
+fallbackCol = [0.5 0.5 0.5];
 
 
 %% 1) Scan case folders and collect ZETA CSVs
@@ -50,7 +75,15 @@ canonOrder = {'CaseDate','Hemisphere','SpikeField','MoveType','Depth','nTrials',
     'dblZetaP','ZetaZ','ZetaD','ZetaTime', ...
     'IFR_PeakTime','IFR_OnsetTime', ...
     'MeanStimDur_s','StdStimDur_s', ...
-    'MeanZ','MeanP'};
+    'MeanZ','MeanP', ...
+    'IFR_mean_Hz','IFR_norm','IFR_baseline_Hz','IFR_baselineNorm', ...
+    'ZETA_peakLatency','ZETA_invSign_Latency',...
+    'IFR_peakLatency','IFR_peakOnset_Latency', ...
+    'ZETA_peakLatencyVal','ZETA_invSign_LatencyVal',...
+    'IFR_peakLatencyVal','IFR_peakOnset_LatencyVal'};
+% add sZETA.vecLatencies values:
+% 1) ZETA_peakLatency, 2) ZETA_invSign_Latency
+% 3) IFR_peakTime, 4) IFR_peakOnset_Latency
 
 for k = 1:numel(fileList)
     % ---- core CSV for this case/hemisphere ----
@@ -69,7 +102,16 @@ for k = 1:numel(fileList)
     % Enforce types for key variables
     numVars = {'nTrials','dblZetaP','ZetaZ','ZetaD','ZetaTime', ...
         'IFR_PeakTime','IFR_OnsetTime', ...
-        'MeanStimDur_s','StdStimDur_s','MeanZ','MeanP'};
+        'MeanStimDur_s','StdStimDur_s','MeanZ','MeanP', ...
+        'IFR_mean_Hz','IFR_norm','IFR_baseline_Hz','IFR_baselineNorm'...
+        'ZETA_peakLatency','ZETA_invSign_Latency',...
+        'IFR_peakLatency','IFR_peakOnset_Latency', ...
+        'ZETA_peakLatencyVal','ZETA_invSign_LatencyVal',...
+        'IFR_peakLatencyVal','IFR_peakOnset_LatencyVal'};
+    % add sZETA.vecLatencies values:
+    % 1) ZETA_peakLatency, 2) ZETA_invSign_Latency
+    % 3) IFR_peakTime, 4) IFR_peakOnset_Latency
+
     for v = numVars
         if ismember(v{1}, T.Properties.VariableNames)
             T.(v{1}) = double(T.(v{1}));
@@ -96,7 +138,7 @@ for k = 1:numel(fileList)
 
 
     % =====================================================================
-    % NEW: attach dynamic ZETA + IFR/PSTH info from per-case MAT files
+    % NEW: attach dynamic ZETA + IFR/PSTH metrics from per-case MAT files
     % =====================================================================
 
     % Preallocate new cell columns for this case
@@ -106,6 +148,24 @@ for k = 1:numel(fileList)
     PSTH_Hz          = cell(height(T),1);   % PSTH rate
     IFR_Time_s       = cell(height(T),1);   % IFR time axis
     IFR_Hz           = cell(height(T),1);   % IFR rates
+
+    IFR_mean_Hz      = nan(height(T),1);    % mean IFR
+    IFR_norm         = nan(height(T),1);    % z-score normalized IFR
+    IFR_baseline_Hz  = nan(height(T),1);    % baseline IFR
+    IFR_baselineNorm = nan(height(T),1);    % baseline normalized IFR
+
+    % add sZETA.vecLatencies values:
+    % ---- NEW: scalar latency outputs from sZETA.vecLatencies ----
+    ZETA_peakLatency        = nan(height(T),1);
+    ZETA_invSign_Latency    = nan(height(T),1);
+    IFR_peakLatency         = nan(height(T),1);
+    IFR_peakOnset_Latency   = nan(height(T),1);
+
+    % ---- NEW: corresponding values from sZETA.vecLatencyVals (optional) ----
+    ZETA_peakLatencyVal      = nan(height(T),1);
+    ZETA_invSign_LatencyVal  = nan(height(T),1);
+    IFR_peakLatencyVal       = nan(height(T),1);
+    IFR_peakOnset_LatencyVal = nan(height(T),1);
 
     % Locate ZETA_AllOutputs and IFR_PSTH_All for this case/hemisphere
     zetaFolder = fileparts(csvPath);  % ...\Case\Zeta Testing or ...\Case\LSTN\Zeta Testing
@@ -144,7 +204,7 @@ for k = 1:numel(fileList)
 
     if hasIFRMat
         S2 = load(ifrAll_mat, 'IFR_PSTH_Summary','all_IFR');
-        IFRsum = S2.IFR_PSTH_Summary; %#ok<NASGU>  % kept only for metadata if needed
+        IFRsum = S2.IFR_PSTH_Summary; % kept only for metadata if needed
         all_IFR = S2.all_IFR;
 
         % Build map using the summary table for keys,
@@ -185,6 +245,34 @@ for k = 1:numel(fileList)
             ZETA_vecT{r} = [];
         end
 
+        % --- NEW: vecLatencies + vecLatencyVals extraction ---
+        if hasZetaMat && isKey(zetaMap, key)
+            idxZ = zetaMap(key);
+            sZ   = all_sZETA{idxZ};
+
+            if isfield(sZ,'vecLatencies') && ~isempty(sZ.vecLatencies)
+                vL = double(sZ.vecLatencies(:));
+                % Expected order:
+                % 1) ZETA peak latency
+                % 2) inverse sign latency
+                % 3) IFR peak time
+                % 4) IFR peak onset (half-height crossing)
+                if numel(vL) >= 1, ZETA_peakLatency(r)      = vL(1); end
+                if numel(vL) >= 2, ZETA_invSign_Latency(r)  = vL(2); end
+                if numel(vL) >= 3, IFR_peakLatency(r)       = vL(3); end
+                if numel(vL) >= 4, IFR_peakOnset_Latency(r) = vL(4); end
+            end
+
+            if isfield(sZ,'vecLatencyVals') && ~isempty(sZ.vecLatencyVals)
+                vV = double(sZ.vecLatencyVals(:));
+                if numel(vV) >= 1, ZETA_peakLatencyVal(r)      = vV(1); end
+                if numel(vV) >= 2, ZETA_invSign_LatencyVal(r)  = vV(2); end
+                if numel(vV) >= 3, IFR_peakLatencyVal(r)       = vV(3); end
+                if numel(vV) >= 4, IFR_peakOnset_LatencyVal(r) = vV(4); end
+            end
+        end
+
+
         % IFR/PSTH vectors (now from all_IFR)
         if hasIFRMat && isKey(ifrMap, key)
             idxI = ifrMap(key);
@@ -216,14 +304,30 @@ for k = 1:numel(fileList)
             PSTH_Hz{r}          = cPSTH;
             IFR_Time_s{r}       = cIFRt;
             IFR_Hz{r}           = cIFRr;
+
+            % Scalar IFR metrics
+            if isfield(sI,'IFR_mean_Hz') && ~isempty(sI.IFR_mean_Hz)
+                IFR_mean_Hz(r) = sI.IFR_mean_Hz;
+            end
+            if isfield(sI,'IFR_norm') && ~isempty(sI.IFR_norm)
+                IFR_norm(r) = sI.IFR_norm;
+            end
+            if isfield(sI,'IFR_baseline_Hz') && ~isempty(sI.IFR_baseline_Hz)
+                IFR_baseline_Hz(r) = sI.IFR_baseline_Hz;
+            end
+            if isfield(sI,'IFR_baselineNorm') && ~isempty(sI.IFR_baselineNorm)
+                IFR_baselineNorm(r) = sI.IFR_baselineNorm;
+            end
+
         else
             PSTH_TimeCenters{r} = [];
             PSTH_Hz{r}          = [];
             IFR_Time_s{r}       = [];
             IFR_Hz{r}           = [];
+            % IFR_* arrays remain NaN
         end
-    end
 
+    end
 
     % add new columns to this case table
     T.ZETA_vecD          = ZETA_vecD;
@@ -233,10 +337,30 @@ for k = 1:numel(fileList)
     T.IFR_Time_s         = IFR_Time_s;
     T.IFR_Hz             = IFR_Hz;
 
+    T.IFR_mean_Hz        = IFR_mean_Hz;
+    T.IFR_norm           = IFR_norm;
+    T.IFR_baseline_Hz    = IFR_baseline_Hz;
+    T.IFR_baselineNorm   = IFR_baselineNorm;
+
+    % add sZETA.vecLatencies values:
+    % 1) ZETA_peakLatency, 2) ZETA_invSign_Latency
+    % 3) IFR_peakTime, 4) IFR_peakOnset_Latency
+    T.ZETA_peakLatency         = ZETA_peakLatency;
+    T.ZETA_invSign_Latency     = ZETA_invSign_Latency;
+    T.IFR_peakLatency          = IFR_peakLatency;
+    T.IFR_peakOnset_Latency    = IFR_peakOnset_Latency;
+
+    T.ZETA_peakLatencyVal      = ZETA_peakLatencyVal;
+    T.ZETA_invSign_LatencyVal  = ZETA_invSign_LatencyVal;
+    T.IFR_peakLatencyVal       = IFR_peakLatencyVal;
+    T.IFR_peakOnset_LatencyVal = IFR_peakOnset_LatencyVal;
+
+
     % =====================================================================
 
     % Append
     MasterZETA = [MasterZETA; T];
+
 end
 
 if isempty(MasterZETA)
@@ -396,7 +520,7 @@ xlim([0.5, numel(uniqSubsAll)+0.5]);
 % y-axis fixed [0, U.YMax]
 ylim([0, U.YMax]);
 ylabel('ZETA z-score (ZetaZ)');
-title(sprintf('ZETA z-scores | All categories (MoveType × Depth)  (N=%d subjects)', numel(uniqSubsAll)));
+title(sprintf('ZETA z-scores | All conditions (MoveType × Depth)  (N=%d subjects)', numel(uniqSubsAll)));
 legend('Location','northeastoutside');
 
 % Save
@@ -445,16 +569,17 @@ dz_all   = string(MasterZETA.Depth);
 
 
 % ----- MoveType colors (fill) -----
-mtColor = containers.Map( ...
-    {'HAND OC','HAND PS','ARM EF','REST'}, ...
-    {[0.95 0.60 0.10],  ... % Hand OC = orange
-    [0.20 0.65 0.30],  ... % Hand PS = green
-    [0.15 0.45 0.85],  ... % Arm EF  = blue
-    [0.75 0.75 0.75]});    % REST    = light gray
+% mtColor = containers.Map( ...
+%     {'HAND OC','HAND PS','ARM EF','REST'}, ...
+%     {[0.95 0.60 0.10],  ... % Hand OC = orange
+%     [0.20 0.65 0.30],  ... % Hand PS = green
+%     [0.15 0.45 0.85],  ... % Arm EF  = blue
+%     [0.75 0.75 0.75]});    % REST    = light gray
+
 
 % Edge colors by significance
-edgeGray = [0.6 0.6 0.6];
-edgeRed  = [0.85 0.10 0.10];
+% edgeGray = [0.6 0.6 0.6];
+% edgeRed  = [0.85 0.10 0.10];
 
 % Depth order & pretty names (row = depth)
 depthKeys  = {'t','c','b'};
@@ -468,14 +593,21 @@ for dd = 1:numel(depthKeys)
     dzKey = depthKeys{dd};
     ax = nexttile; hold(ax,'on'); grid(ax,'on');
 
+    % Use depth color for subplot annotation
+    if isKey(depthColorMap, dzKey)
+        dc = depthColorMap(dzKey);
+    else
+        dc = fallbackCol;
+    end
+
     % within this depth, plot each MoveType with its color and edge by significance
     movesHere = unique(mv_all(dz_all==dzKey),'stable');
 
     for im = 1:numel(movesHere)
         mv = movesHere(im);
         % pick fill color
-        if isKey(mtColor, char(mv)), fc = mtColor(char(mv));
-        else, fc = [0.5 0.5 0.5]; end
+        if isKey(moveColorMap, char(mv)), fc = moveColorMap(char(mv));
+        else, fc = fallbackCol; end
 
         idx = (dz_all==dzKey) & (mv_all==mv) & ~isnan(y_all);
         if ~any(idx), continue; end
@@ -484,15 +616,14 @@ for dd = 1:numel(depthKeys)
         idx_ns = idx & ~isSig;
         if any(idx_ns)
             scatter(ax, xj_all(idx_ns), y_all(idx_ns), 36, fc, ...
-                'filled', 'MarkerEdgeColor', edgeGray, 'MarkerFaceAlpha', 0.95, 'MarkerEdgeAlpha', 0.95);
+                'filled', 'MarkerEdgeColor', 'none', 'MarkerFaceAlpha', 0.95);
         end
 
         % sig
         idx_sig = idx & isSig;
         if any(idx_sig)
             scatter(ax, xj_all(idx_sig), y_all(idx_sig), 60, fc, ...
-                'filled', 'MarkerEdgeColor', edgeRed, 'LineWidth', 1.2, ...
-                'MarkerFaceAlpha', 0.95, 'MarkerEdgeAlpha', 0.95);
+                'filled', 'MarkerEdgeColor', 'none', 'MarkerFaceAlpha', 0.95);
         end
     end
 
@@ -503,40 +634,48 @@ for dd = 1:numel(depthKeys)
     xtickangle(ax, 60);
     xlim(ax, [0.5, numel(uniqSubsAll)+0.5]);
     ylim(ax, [0, U.YMax]);
-    ylabel(ax, 'ZETA z-score (ZetaZ)');
+    ylabel(ax, 'ZETA z-score');
     title(ax, sprintf('All MoveTypes | %s', depthNames{dd}));
+    % tt = title(ax, sprintf('All MoveTypes | %s', depthNames{dd}));
+    % set(tt,'Color',dc);
 end
 
 % --- Legend (robust across MATLAB versions) ---
 % Dummy handles for MoveType colors + edge significance
-hOC = scatter(nan,nan,50,mtColor('HAND OC'),'filled','MarkerEdgeColor',edgeGray,'DisplayName','Hand OC');
-hPS = scatter(nan,nan,50,mtColor('HAND PS'),'filled','MarkerEdgeColor',edgeGray,'DisplayName','Hand PS');
-hEF = scatter(nan,nan,50,mtColor('ARM EF'), 'filled','MarkerEdgeColor',edgeGray,'DisplayName','Arm EF');
-hRE = scatter(nan,nan,50,mtColor('REST'),   'filled','MarkerEdgeColor',edgeGray,'DisplayName','Rest');
-hNS = scatter(nan,nan,36,[1 1 1],'filled','MarkerEdgeColor',edgeGray,'DisplayName','n.s. edge');
-hSG = scatter(nan,nan,36,[1 1 1],'filled','MarkerEdgeColor',edgeRed, 'DisplayName','sig edge');
+hOC = scatter(nan,nan,50,moveColorMap('HAND OC'),'filled', 'DisplayName','Hand OC');
+hPS = scatter(nan,nan,50,moveColorMap('HAND PS'),'filled', 'DisplayName','Hand PS');
+hEF = scatter(nan,nan,50,moveColorMap('ARM EF'), 'filled', 'DisplayName','Arm EF');
+hRE = scatter(nan,nan,50,moveColorMap('REST'),   'filled', 'DisplayName','Rest');
+% hNS = scatter(nan,nan,36,[1 1 1],'filled','MarkerEdgeColor',edgeGray,'DisplayName','n.s. edge');
+% hSG = scatter(nan,nan,36,[1 1 1],'filled','MarkerEdgeColor',edgeRed, 'DisplayName','sig edge');
+
 
 % Try to dock in the tiledlayout header (newer MATLAB), otherwise overlay legend on an invisible axes
 try
-    lgd = legend([hOC hPS hEF hRE hNS hSG], 'Orientation','horizontal');
+    % lgd = legend([hOC hPS hEF hRE hNS hSG], 'Orientation','horizontal');
+    lgd = legend([hOC hPS hEF hRE], 'Orientation','horizontal');
     if isprop(lgd,'Layout') && isprop(lgd.Layout,'Tile')
         lgd.Layout.Tile = 'north';     % docks legend above the tiles
     else
         % Fallback: overlay legend in figure using an invisible, full-figure axes
         delete(lgd); % remove the axes-attached legend first
         axLeg = axes('Parent',hT,'Units','normalized','Position',[0 0 1 1], 'Visible','off');
-        lgd = legend(axLeg,[hOC hPS hEF hRE hNS hSG], 'Orientation','horizontal','Box','off');
+
+        % lgd = legend(axLeg,[hOC hPS hEF hRE hNS hSG], 'Orientation','horizontal','Box','off');
+        lgd = legend(axLeg,[hOC hPS hEF hRE], 'Orientation','horizontal','Box','off');
+
         % Tweak position near the top center (x y w h in normalized fig coords)
         lgd.Units = 'normalized';
         lgd.Position = [0.32 0.965 0.36 0.03];   % adjust if needed
     end
 catch
     % Absolute fallback: put a standard legend below the bottom tile
-    lgd = legend([hOC hPS hEF hRE hNS hSG], 'Orientation','horizontal', 'Location','southoutside');
+    % lgd = legend([hOC hPS hEF hRE hNS hSG], 'Orientation','horizontal', 'Location','southoutside');
+    lgd = legend([hOC hPS hEF hRE], 'Orientation','horizontal', 'Location','southoutside');
 end
 
 % Figure title for the whole tiledlayout
-title(tlo, sprintf('ZETA z-scores | All categories by depth '));
+title(tlo, sprintf('ZETA z-scores | All Movement Types by STN depth '));
 
 fnameAll2 = 'ZETA_Scatter_AllCategories_ByDepth_Tiles.png';
 print(hT, fullfile(groupOut, fnameAll2), '-dpng', '-r300');
@@ -610,6 +749,114 @@ for i = 1:height(cats)
 end
 
 
+%% 5) ZETA scatter by depth (rows) with x = MoveType (REST, HAND OC, HAND PS, ARM EF)
+% Color = MoveType (JNE greens), edge = significance, jitter + median line per MoveType.
+
+mv_order = ["REST","HAND OC","HAND PS","ARM EF"];
+depthKeys  = ["t","c","b"];
+depthNames = ["dorsal STN","central STN","ventral STN"];
+
+y_all  = MasterZETA.ZetaZ;
+isSig  = (MasterZETA.ZetaZ >= U.SigZ) & (MasterZETA.dblZetaP <= U.SigP);
+mv_all = string(strtrim(MasterZETA.MoveType));
+dz_all = string(strtrim(MasterZETA.Depth));
+
+hT = figure('Color','w','Position',[90 90 950 900]);
+tlo = tiledlayout(3,1,'TileSpacing','compact','Padding','compact');
+
+for dd = 1:numel(depthKeys)
+    dzKey = depthKeys(dd);
+    ax = nexttile; hold(ax,'on'); grid(ax,'on');
+
+    for mi = 1:numel(mv_order)
+        mv = mv_order(mi);
+
+        idx = (dz_all==dzKey) & (mv_all==mv) & ~isnan(y_all);
+        if ~any(idx), continue; end
+
+        % MoveType color (JNE)
+        if isKey(moveColorMap, char(mv))
+            fc = moveColorMap(char(mv));
+        else
+            fc = fallbackCol;
+        end
+
+        % x position + jitter
+        x0 = mi * ones(sum(idx),1);
+
+        % Split sig vs n.s. for edge styling
+        idx_sig = idx & isSig;
+        idx_ns  = idx & ~isSig;
+
+        if any(idx_ns)
+            s = scatter(ax, mi*ones(sum(idx_ns),1), y_all(idx_ns), 48, fc, 'filled', ...
+                'MarkerFaceAlpha', 0.9, 'MarkerEdgeColor', [0.65 0.65 0.65], 'LineWidth', 0.75);
+            s.XJitter = "rand";
+            s.XJitterWidth = 0.25;
+        end
+
+        if any(idx_sig)
+            s = scatter(ax, mi*ones(sum(idx_sig),1), y_all(idx_sig), 70, fc, 'filled', ...
+                'MarkerFaceAlpha', 0.95, 'MarkerEdgeColor', [0 0 0], 'LineWidth', 1.25);
+            s.XJitter = "rand";
+            s.XJitterWidth = 0.25;
+        end
+
+        % Median line for this MoveType in this depth
+        medY = median(y_all(idx), 'omitnan');
+        medW = 0.20;
+        line(ax, [mi-medW mi+medW], [medY medY], 'Color', fc, 'LineWidth', 2);
+    end
+
+    % yline(ax, U.SigZ, '--', 'Color',[0.3 0.3 0.3], 'LineWidth', 1);
+    % dashed threshold line at Z = SigZ
+    yline(ax, U.SigZ, '--', 'Color',[0.3 0.3 0.3], 'LineWidth', 1, 'DisplayName','ZETA significance threshold');
+
+    xticks(ax, 1:numel(mv_order));
+    xticklabels(ax, mv_order);
+    xlim(ax, [0.5, numel(mv_order)+0.5]);
+
+    ylim(ax, [0, U.YMax]);
+    ylabel(ax, 'ZETA z-score');
+    title(ax, sprintf('%s', depthNames(dd)));
+end
+
+% Legend (MoveType colors)
+hRE = scatter(nan,nan,60,moveColorMap('REST'),   'filled','DisplayName','Rest');
+hOC = scatter(nan,nan,60,moveColorMap('HAND OC'),'filled','DisplayName','Hand OC');
+hPS = scatter(nan,nan,60,moveColorMap('HAND PS'),'filled','DisplayName','Hand PS');
+hEF = scatter(nan,nan,60,moveColorMap('ARM EF'), 'filled','DisplayName','Arm EF');
+
+% ---- NEW: threshold line legend item ----
+hThr = line(nan,nan,'LineStyle','--','Color',[0.3 0.3 0.3],'LineWidth',1, ...
+    'DisplayName', sprintf('ZETA significance threshold (Z=%g)', U.SigZ)); % (p<0.05 & Z\geq2)
+
+% Build one combined legend
+legHandles = [hRE hOC hPS hEF hThr];
+
+try
+    lgd = legend(legHandles, 'Orientation','horizontal');
+    if isprop(lgd,'Layout') && isprop(lgd.Layout,'Tile')
+        lgd.Layout.Tile = 'north';
+    else
+        delete(lgd);
+        axLeg = axes('Parent',hT,'Units','normalized','Position',[0 0 1 1], 'Visible','off');
+        lgd = legend(axLeg, legHandles, 'Orientation','horizontal','Box','off');
+        lgd.Units = 'normalized';
+        lgd.Position = [0.08 0.965 0.84 0.03];  % wider for extra items % [0.22 0.965 0.56 0.03];
+    end
+catch
+    legend(legHandles, 'Orientation','horizontal', 'Location','southoutside');
+end
+
+
+title(tlo, sprintf('ZETA z-scores by depth'));
+
+fnameAll2 = 'ZETA_Scatter_ByDepth_XisMoveType.png';
+print(hT, fullfile(groupOut, fnameAll2), '-dpng', '-r300');
+close(hT);
+
+
 %% Save the Master table for reference
 
 writetable(MasterZETA, fullfile(groupOut, 'MasterZETA_AllSubjects.csv'));
@@ -617,6 +864,9 @@ writetable(MasterZETA, fullfile(groupOut, 'MasterZETA_AllSubjects.csv'));
 writetable(MasterZETA(:,[ ...
     "SubjectNum", "CaseDate","Hemisphere","HemisphereFilled","PrettyLabel", ...
     "MoveType","Depth", "nTrials", "dblZetaP", "ZetaZ", "ZetaD" , "ZetaTime", ...
+    "IFR_mean_Hz","IFR_norm","IFR_baseline_Hz","IFR_baselineNorm" ...
+    "ZETA_peakLatencyVal","ZETA_invSign_LatencyVal",...
+    "IFR_peakLatencyVal","IFR_peakOnset_LatencyVal"...
     ]), fullfile(groupOut,'MasterZETA_AllSubjects_Summary.csv'));
 
 

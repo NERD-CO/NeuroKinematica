@@ -58,7 +58,6 @@ for m = 1:numel(move_types)
 
         % Nudge lead-in/out if zero
         if U.PreWindow_s == 0,  U.PreWindow_s  = 0.050; end  % 50 ms
-        if U.PostWindow_s == 0, U.PostWindow_s = 0.050; end  % 50 ms
 
         % =========================================================
         % Run helper function: makeZetaInputs_fromAOStartStopTimes

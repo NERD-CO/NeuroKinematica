@@ -1,8 +1,12 @@
 function [vecSpikeTimes_sec, matEventTimes_sec, useMaxDur_s, perTrialDur_s, kept_tbl] = ...
     makeZetaInputs_fromAOStartStopTimes(move_tbl, AO_spike_fs, varargin)
 
-% Build ZETA inputs by stitching spike data trials with per-trial durations.
+% Build ZETA/getIFR inputs by stitching trials with per-trial durations.
 % Uses user-provided field names for spike data, start, and stop.
+%
+% Modes:
+%   DropEmptySpikeTrials = true  -> "unit-centric" (only trials where this SpikeField fired)
+%   DropEmptySpikeTrials = false -> "rep-centric"  (all valid reps; empty-spike trials kept)
 %
 % OUTPUTS (for zetatest.m and getIFR)
 %   vecSpikeTimes_sec   [S×1],  vector of stitched spike times (s)
@@ -25,6 +29,9 @@ p.addParameter('StopField',    'TTL_spk_idx_End',   @(s) ischar(s) || isstring(s
 % lead-in / lead-out to keep around each event (seconds)
 p.addParameter('PreWindow_s',  0.050,      @(x) isscalar(x) && x>=0);
 p.addParameter('PostWindow_s', 0.000,      @(x) isscalar(x) && x>=0);
+% NEW FLAG
+p.addParameter('DropEmptySpikeTrials', true, @(x) isscalar(x) && (islogical(x) || isnumeric(x)));
+
 p.parse(varargin{:}); % parse inputs
 ParsedInputs = p.Results; % holds parsed inputs
 
@@ -38,18 +45,40 @@ assert(all(ismember(needCols, move_tbl.Properties.VariableNames)), ...
     'Table must contain columns: %s', strjoin(needCols, ', '));
 
 % -------------------- keep usable trials --------------------
-keep = ~cellfun(@isempty, move_tbl.(Spkf)) ...
-     & ~isnan(move_tbl.(Start_idx)) ...
-     & ~isnan(move_tbl.(End_idx)) ...
-     & (move_tbl.(End_idx) > move_tbl.(Start_idx));
+hasStartStop = ~isnan(move_tbl.(Start_idx)) ...
+            & ~isnan(move_tbl.(End_idx)) ...
+            & (move_tbl.(End_idx) > move_tbl.(Start_idx));
+
+% Spike presence definition (robust to non-cell / missing)
+hasSpikes = true(height(move_tbl),1);
+if ismember(Spkf, move_tbl.Properties.VariableNames)
+    col = move_tbl.(Spkf);
+    if iscell(col)
+        hasSpikes = ~cellfun(@isempty, col);
+    else
+        % if non-cell, treat non-missing/non-empty as "has spikes"
+        try
+            hasSpikes = ~ismissing(col);
+        catch
+            hasSpikes = true(height(move_tbl),1);
+        end
+    end
+end
+
+if logical(ParsedInputs.DropEmptySpikeTrials)
+    keep = hasStartStop & hasSpikes;     % unit-centric
+else
+    keep = hasStartStop;                % rep-centric
+end
 
 kept_tbl = move_tbl(keep,:);
 nT = height(kept_tbl);
+
 if nT==0
     vecSpikeTimes_sec = [];
     matEventTimes_sec = [];
     useMaxDur_s       = [];
-    perTrialDur_s = [];
+    perTrialDur_s     = [];
     return;
 end
 
@@ -64,33 +93,36 @@ perTrialDur_s(perTrialDur_s <= 0) = max(1/AO_spike_fs, 1e-4);
 if isempty(ParsedInputs.UseMaxDur_s)
     useMaxDur_s = max(perTrialDur_s);
     if ~isfinite(useMaxDur_s) || useMaxDur_s <= 0
-        useMaxDur_s = 0.4; % conservative fallback
+        useMaxDur_s = 0.4; % fallback
     end
 else
     useMaxDur_s = ParsedInputs.UseMaxDur_s;
 end
 
 % -------------------- stitch offsets --------------------
-trialOffsets = (0:nT-1)' .* (useMaxDur_s + ParsedInputs.PadITI_s); % stitch trials on one timeline
+trialOffsets = (0:nT-1)' .* (useMaxDur_s + ParsedInputs.PadITI_s);
 
-% [T×2] event matrix on stitched axis (true start/stop; does NOT include pre/post windows)
+% Event matrix (true start/stop; does not include pre/post)
 eventOn_sec  = trialOffsets;
 eventOff_sec = trialOffsets + perTrialDur_s;
 matEventTimes_sec = [eventOn_sec, eventOff_sec];
 
 % -------------------- spikes → stitched axis --------------------
-% Keep spikes from (-PreWindow_s) before onset through (trialDur + PostWindow_s)
 vecSpikeTimes_sec = [];
-% Convert spike samples to seconds relative to that trial's onset.
-for i = 1:nT
-    spkSamp = double(kept_tbl.(Spkf){i}); % spikes in AO samples
-    relSec  = (spkSamp - double(kept_tbl.(Start_idx)(i))) ./ AO_spike_fs; % each spike time relative to onset (s)
 
-    % Decide which spikes to keep [−PreWindow_s​, perTrialDurs​(i) + PostWindow_s​]
-    hi = perTrialDur_s(i) + ParsedInputs.PostWindow_s;  % upper bound = true duration + any post-extension
+for i = 1:nT
+    % If rep-centric, some trials may have empty spikes for this unit — skip safely
+    spkCell = kept_tbl.(Spkf){i};
+    if isempty(spkCell)
+        continue;
+    end
+
+    spkSamp = double(spkCell); % spikes in AO samples
+    relSec  = (spkSamp - double(kept_tbl.(Start_idx)(i))) ./ AO_spike_fs;
+
+    hi = perTrialDur_s(i) + ParsedInputs.PostWindow_s;
     keepSpk = (relSec >= -ParsedInputs.PreWindow_s) & (relSec <= hi);
 
-    % Shift kept spikes forward by per-trial trialOffsets(i) to place each trial in correct stitched block
     if any(keepSpk)
         vecSpikeTimes_sec = [vecSpikeTimes_sec; relSec(keepSpk) + trialOffsets(i)];
     end

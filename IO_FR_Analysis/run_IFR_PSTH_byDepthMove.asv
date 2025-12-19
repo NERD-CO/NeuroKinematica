@@ -128,8 +128,6 @@ for SpkF = spikeFields
                 (move_tbl.(End_idx) > move_tbl.(Start_idx));
 
             repIdx_behavioral = find(hasStartStop);  % indices into move_tbl
-
-            % Store behavioral rep count alongside neural-valid trial count
             nReps_behavioral = sum(hasStartStop);    % true rep count for y-axis
 
             % Helper function:
@@ -159,7 +157,8 @@ for SpkF = spikeFields
 
             if isempty(spkT) || isempty(evTimes), continue; end
             nTrials = size(evTimes,1); % neural trials contributing to IFR/ZETA
-            
+            % Store behavioral rep count alongside neural-valid trial count
+
             % Map neural trials back onto behavioral rep indices
             repIdx_neural = repIdx_behavioral(1:nTrials);
 
@@ -189,13 +188,11 @@ for SpkF = spikeFields
                 rel  = spkT(mask) - on;
 
                 if ~isempty(rel)
-                    rel = rel(:);  % forces column
-
                     ras_t   = [ras_t; rel];
                     % ras_tr  = [ras_tr; i*ones(numel(rel),1)];
-
                     % Map neural trials back onto behavioral rep indices
-                    ras_tr = [ras_tr; repIdx_neural(i) .* ones(size(rel))];
+            repIdx_neural = repIdx_behavioral(1:nTrials);
+
                     counts  = counts + histcounts(rel, edges);
                 end
             end
@@ -253,7 +250,7 @@ for SpkF = spikeFields
                 % y-axis: integer ticks only
                 ylim([0.5 nTrials+0.5]);
                 yticks(1:nTrials);
-                ylabel('Trial Index');
+                ylabel('Trial Rep');
 
                 % x-axis
                 xlim([tmin tmax]);

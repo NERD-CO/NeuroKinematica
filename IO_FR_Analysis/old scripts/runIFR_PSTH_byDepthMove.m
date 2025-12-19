@@ -1,4 +1,4 @@
-function [IFR_PSTH_Summary, all_IFR] = run_IFR_PSTH_byDepthMove(All_SpikesPerMove_Tbl, AO_spike_fs, varargin)
+function [IFR_PSTH_Summary, all_IFR] = runIFR_PSTH_byDepthMove(All_SpikesPerMove_Tbl, AO_spike_fs, varargin)
 
 % Compute instantaneous firing rate (IFR; via getIFR.m) and PSTH for each MoveType × STN depth
 % (and for each SpikeField C# if present).
@@ -14,10 +14,12 @@ p.addParameter('UseMaxDur_s', [], @(x) isempty(x) || isscalar(x));
 p.addParameter('PadITI_s', 0.005, @(x) isscalar(x) && x>=0);
 p.addParameter('DepthIDs', {'t','c','b'});
 p.addParameter('MoveTypeOrder', {'HAND OC','HAND PS','ARM EF','REST'});
+% For plotting:
+p.addParameter('PlotXMax_s', [], @(x) isempty(x) || isscalar(x));
 
 % spike fields: allow either SpikeField (single) or SpikeFields (multi/auto)
-p.addParameter('SpikeField', 'C1', @(s) ischar(s) || isstring(s));
-p.addParameter('SpikeFields', [], @(x) iscellstr(x) || isempty(x));
+p.addParameter('SpikeField', 'C1', @(s) ischar(s) || isstring(s)); % if single electrode {'C1'}
+p.addParameter('SpikeFields', [], @(x) iscellstr(x) || isempty(x)); % if multiple electrodes {'C1','C2',...}
 
 % start/stop bounds for spike field segments:
 p.addParameter('StartField', 'TTL_spk_idx_Start', @(s) ischar(s) || isstring(s));
@@ -40,44 +42,6 @@ p.addParameter('SaveDir', '', @(s) ischar(s) || isstring(s));   % if non-empty, 
 p.addParameter('CaseDate', '', @(s) ischar(s) || isstring(s));  % used in filenames
 p.parse(varargin{:});
 U = p.Results;
-
-% ---- JNE Color scheme ---------------------------------------------------
-
-JNE_colors = (...                                             % full palette
-    [118,42,131;   % dark purple      (dorsal STN)
-    175,141,195;   % lavender         (central STN)
-    231,212,232;   % *light purple     (ventral STN)
-    128,128,128;   % grey (REST / neutral)
-    217,240,211;   % light green      (Hand OC)
-    127,191,123;   % green            (Hand PS)
-    27,120,55]) ... % dark green       (Arm EF)
-    ./ 256; % rgb scaling
-
-% Depth colors (purple shades)
-purpleShades = ([ ...
-    118,42,131;      % dorsal STN (t)
-    175,141,195;     % central STN (c)
-    231-15, 212-15, 232-15] ... % ventral STN (b)
-    ./ 255); % /255 = standard
-
-% Movement-context colors (greens)
-greenShades = ([ ...
-    128,128,128;     % REST  (grey)
-    217,240,211;     % HAND OC  (light green)
-    127,191,123;     % HAND PS  (green)
-    27,120,55] ...   % ARM EF   (dark green)
-    ./ 255);  % /255 = standard
-
-
-% Maps for easy lookup
-depthColorMap = containers.Map( ...
-    {'t','c','b'}, ...
-    {purpleShades(1,:), purpleShades(2,:), purpleShades(3,:)});
-
-moveColorMap  = containers.Map( ...
-    {'REST','HAND OC','HAND PS','ARM EF'}, ...
-    {greenShades(1,:), greenShades(2,:), greenShades(3,:), greenShades(4,:)});
-
 
 
 % Normalize spike fields: prefer SpikeFields; else use SpikeField; else auto-detect C\d+ with any spikes
@@ -120,31 +84,8 @@ for SpkF = spikeFields
 
             if isempty(move_tbl), continue; end
 
-            % --- Behavioral repetition count (unit/MUA independent) ---
-            Start_idx = char(U.StartField);
-            End_idx   = char(U.StopField);
-
-            hasStartStop = ~isnan(move_tbl.(Start_idx)) & ~isnan(move_tbl.(End_idx)) & ...
-                (move_tbl.(End_idx) > move_tbl.(Start_idx));
-
-            repIdx_behavioral = find(hasStartStop);  % indices into move_tbl
-
-            % Store behavioral rep count alongside neural-valid trial count
-            nReps_behavioral = sum(hasStartStop);    % true rep count for y-axis
-
             % Helper function:
             % --- Stitched inputs (true [start stop], optional pre/post kept in spikes) ---
-            % [spkT, evTimes, useMaxDur, trialDur, kept_tbl] = makeZetaInputs_fromAOStartStopTimes( ...
-            %     move_tbl, AO_spike_fs, ...
-            %     'UseMaxDur_s', U.UseMaxDur_s, ...
-            %     'PadITI_s',    U.PadITI_s, ...
-            %     'SpikeField',  curSF, ...
-            %     'StartField',  U.StartField, ...
-            %     'StopField',   U.StopField, ...
-            %     'PreWindow_s', U.PreWindow_s, ...
-            %     'PostWindow_s',U.PostWindow_s);
-
-            % Rep-centric (recommended for consistent raster rep counts across SU vs MUA):
             [spkT, evTimes, useMaxDur, trialDur, kept_tbl] = makeZetaInputs_fromAOStartStopTimes( ...
                 move_tbl, AO_spike_fs, ...
                 'UseMaxDur_s', U.UseMaxDur_s, ...
@@ -153,16 +94,10 @@ for SpkF = spikeFields
                 'StartField',  U.StartField, ...
                 'StopField',   U.StopField, ...
                 'PreWindow_s', U.PreWindow_s, ...
-                'PostWindow_s',U.PostWindow_s, ...
-                'DropEmptySpikeTrials', false);
-            % Unit-centric version: 'DropEmptySpikeTrials', true
+                'PostWindow_s',U.PostWindow_s);
 
             if isempty(spkT) || isempty(evTimes), continue; end
-            nTrials = size(evTimes,1); % neural trials contributing to IFR/ZETA
-            
-            % Map neural trials back onto behavioral rep indices
-            repIdx_neural = repIdx_behavioral(1:nTrials);
-
+            nTrials = size(evTimes,1);
 
             % --- IFR (getIFR works on stitched timeline like zetatest) ---
             [vecTime, vecRate, sIFR] = getIFR( ...
@@ -175,6 +110,12 @@ for SpkF = spikeFields
             tmax    =  useMaxDur;                       % cap PSTH to the IFR window
             edges   = tmin:bin_w:tmax;
             centers = edges(1:end-1) + bin_w/2;
+
+            % --- Add a fixed plotting x-axis max option                    %% new
+            plotXMax = useMaxDur;      %% adjust if desired
+            if ~isempty(U.PlotXMax_s)
+                plotXMax = U.PlotXMax_s;
+            end
 
             % build raster (relative times) and histogram
             ras_t = [];
@@ -189,13 +130,8 @@ for SpkF = spikeFields
                 rel  = spkT(mask) - on;
 
                 if ~isempty(rel)
-                    rel = rel(:);  % forces column
-
                     ras_t   = [ras_t; rel];
-                    % ras_tr  = [ras_tr; i*ones(numel(rel),1)];
-
-                    % Map neural trials back onto behavioral rep indices
-                    ras_tr = [ras_tr; repIdx_neural(i) .* ones(size(rel))];
+                    ras_tr  = [ras_tr; i*ones(numel(rel),1)];
                     counts  = counts + histcounts(rel, edges);
                 end
             end
@@ -227,43 +163,27 @@ for SpkF = spikeFields
                 depthMap = containers.Map({'t','c','b'},{'dorsal STN','central STN','ventral STN'});
                 if isKey(depthMap,dz); depthLbl = depthMap(dz); else, depthLbl = dz; end
 
-                % Colors for this depth/movement
-                if isKey(depthColorMap, dz)
-                    depthCol = depthColorMap(dz);
-                else
-                    depthCol = [0 0 0];
-                end
-
-                if isKey(moveColorMap, mv)
-                    moveCol = moveColorMap(mv);
-                else
-                    moveCol = [0.3 0.3 0.3];
-                end
-
                 % Raster
                 ax1 = nexttile;
                 if ~isempty(ras_t)
-                    % raster dots colored by depth
-                    scatter(ras_t, ras_tr, 6, depthCol, 'filled'); hold on;
+                    scatter(ras_t, ras_tr, 6, 'k', 'filled'); hold on;
                 end
-                % time-zero line in neutral dark gray
-                xline(0,'-','Color',[0.2 0.2 0.2]);
-                grid on;
+                xline(0,'r-'); grid on;
 
                 % y-axis: integer ticks only
                 ylim([0.5 nTrials+0.5]);
                 yticks(1:nTrials);
-                ylabel('Trial Index');
+                ylabel('Trial Rep');
 
                 % x-axis
                 xlim([tmin tmax]);
+                % xlim([tmin plotXMax]);           % fixed plotting window   %% new
                 xlabel('Time from onset (s)');
 
                 % Title format: Raster | MoveType - Depth (n=## reps)
                 % title(sprintf('Raster | %s - %s - %s (n=%d reps)', mv, depthLbl, curSF, nTrials));
                 sfLabel = strrep(curSF,'_','\_');  % escape '_' so it's not a subscript
                 title(sprintf('Raster | %s - %s - %s (n=%d reps)', mv, depthLbl, sfLabel, nTrials));
-
 
                 % IFR + PSTH overlay (two y-axes)
                 ax2 = nexttile;
@@ -280,22 +200,20 @@ for SpkF = spikeFields
                     blockDur = useMaxDur + U.PadITI_s;
                     relIFR_t = mod(vecTime, blockDur);
                     keepIFR  = relIFR_t >= 0 & relIFR_t <= tmax; % [0,useMaxDur]
-                    plot(relIFR_t(keepIFR), vecRate(keepIFR), 'LineWidth', 2, ...
-                        'Color', depthCol);
-                    hold on;
+                    plot(relIFR_t(keepIFR), vecRate(keepIFR), 'LineWidth', 2); hold on;
                 end
                 ylabel('IFR (Hz)');
                 yl = ylim; ylim([0 max(yl(2), eps)]); % Force IFR y-axis to start at 0
 
                 % Right y-axis: PSTH
                 yyaxis right
-                plot(centers, psth_Hz, '--', 'LineWidth', 2, ...
-                    'Color', moveCol);
+                plot(centers, psth_Hz, '--', 'LineWidth', 2);
                 ylabel(sprintf('PSTH (Hz, %d ms bins)', U.BinSize_ms));
                 y2 = ylim; ylim([0 max(y2(2), eps)]);  % Force PSTH y-axis to start at 0
 
                 % Shared x settings
                 xlim([tmin tmax]); grid on;
+                % xlim([tmin plotXMax]); grid on;  % fixed plotting window   %% new
                 xlabel('Time from onset (s)');
                 title('IFR (solid) + PSTH (dashed)');
             end
@@ -303,7 +221,7 @@ for SpkF = spikeFields
 
             % --- Collect outputs ---
             rows(end+1,:) = { ...
-                curSF, mv, dz, nTrials, nReps_behavioral, useMaxDur, ...
+                curSF, mv, dz, nTrials, useMaxDur, ...
                 U.BinSize_ms, mean(trialDur,'omitnan'), std(trialDur,'omitnan'), ...
                 max(vecRate,[],'omitnan'), IFR_mean_Hz, ...
                 centers, psth_Hz, ...
@@ -314,16 +232,22 @@ for SpkF = spikeFields
             sOut.MoveType = mv;
             sOut.Depth = dz;
             sOut.nTrials = nTrials;
-            sOut.nReps_behavioral = nReps_behavioral;
             sOut.useMaxDur_s = useMaxDur;
-            sOut.PreWindow_s = U.PreWindow_s; sOut.PostWindow_s = U.PostWindow_s;
+            sOut.PreWindow_s = U.PreWindow_s;
+            sOut.PostWindow_s = U.PostWindow_s;
             sOut.binSize_ms  = U.BinSize_ms;
-            sOut.edges = edges; sOut.centers = centers; sOut.psth_Hz = psth_Hz;
-            sOut.raster_t = ras_t; sOut.raster_trial = ras_tr;
-            sOut.vecTime = vecTime; sOut.vecRate = vecRate; sOut.sIFR = sIFR;
+            sOut.edges = edges;
+            sOut.centers = centers;
+            sOut.psth_Hz = psth_Hz;
+            sOut.raster_t = ras_t;
+            sOut.raster_trial = ras_tr;
+            sOut.vecTime = vecTime;
+            sOut.vecRate = vecRate;
+            sOut.sIFR = sIFR;
             sOut.IFR_mean_Hz  = IFR_mean_Hz;
 
             all_IFR{end+1,1} = sOut;
+
 
             % --- Save?
             if ~isempty(U.SaveDir)
@@ -342,14 +266,15 @@ for SpkF = spikeFields
                 save(fullfile(U.SaveDir, [base,'.mat']), '-struct','sOut','-v7.3');
             end
 
+
         end % depth
     end % move
 end % spike field
 
+
 % ---- finalize table ----
 varNames = { ...
-    'SpikeField','MoveType','Depth', ...
-    'nTrials', 'nReps_behavioral', 'UseMaxDur_s', ...
+    'SpikeField','MoveType','Depth','nTrials','UseMaxDur_s', ...
     'BinSize_ms','MeanDur_s','StdDur_s', ...
     'MaxIFR_Hz', 'IFR_mean_Hz', ...
     'PSTH_TimeCenters_s','PSTH_Hz', ...
@@ -371,12 +296,12 @@ unitID = IFR_PSTH_Summary.SpikeField; % (C1, C1_MUA, etc.)
 if ~iscategorical(unitID)
     unitID = categorical(unitID);
 end
-[G_unit, unitLevels] = findgroups(unitID);
+[G, unitLevels] = findgroups(unitID);
 
 IFR_norm = nan(nRows,1);
 
 for g = 1:numel(unitLevels)
-    idx  = (G_unit == g);
+    idx  = (G == g);
     vals = IFR_mean_Hz_col(idx);
 
     if sum(~isnan(vals)) >= 2
@@ -395,76 +320,11 @@ end
 IFR_PSTH_Summary.IFR_norm = IFR_norm;
 
 for i = 1:nRows
+    % all_IFR is a cell array of structs
     all_IFR{i}.IFR_norm = IFR_norm(i);
 end
 
 
-%% Compute baseline IFR per unit × depth (REST trials only)
-% and baseline-normalized IFR
-
-IFR_baseline_Hz     = nan(nRows,1);
-IFR_baselineNorm     = nan(nRows,1);
-
-tbl = IFR_PSTH_Summary;
-
-% Ensure grouping variables are categorical
-if ~iscategorical(tbl.SpikeField)
-    tbl.SpikeField = categorical(tbl.SpikeField);
-end
-if ~iscategorical(tbl.Depth)
-    tbl.Depth = categorical(tbl.Depth);
-end
-if ~iscategorical(tbl.MoveType)
-    tbl.MoveType = categorical(tbl.MoveType);
 end
 
-% Group by unit × depth
-[G_ud, udLevels] = findgroups(tbl.SpikeField, tbl.Depth);
 
-for g = 1:numel(udLevels)
-    idx  = (G_ud == g);
-    rows_here = tbl(idx,:);
-
-    % REST rows within this unit × depth
-    rest_mask = rows_here.MoveType == "REST";
-
-    if ~any(rest_mask)
-        % No REST baseline for this depth for this unit
-        continue
-    end
-
-    % % Use FIRST REST row as baseline
-    % rest_idx_local = find(rest_mask,1,'first');
-    % rest_row       = rows_here(rest_idx_local,:);
-    % baseline_val = rest_row.IFR_mean_Hz;
-
-    % Mean REST IFR across ALL REST rows for this unit × depth
-    rest_vals   = rows_here.IFR_mean_Hz(rest_mask);
-    baseline_val = mean(rest_vals, 'omitnan');
-
-    % Guard against NaN or zero baseline
-    if isnan(baseline_val) || baseline_val == 0
-        IFR_baseline_Hz(idx)  = NaN;
-        IFR_baselineNorm(idx) = NaN;
-    else
-
-        % Map local index back to global indices in IFR_PSTH_Summary
-        IFR_baseline_Hz(idx) = baseline_val;
-
-        % Baseline-normalized: (IFR - baseline)/baseline
-        IFR_baselineNorm(idx) = (tbl.IFR_mean_Hz(idx) - baseline_val) ./ baseline_val;
-
-    end
-end
-
-% Attach to summary table
-IFR_PSTH_Summary.IFR_baseline_Hz      = IFR_baseline_Hz;
-IFR_PSTH_Summary.IFR_baselineNorm     = IFR_baselineNorm;
-
-% Mirror into all_IFR structs
-for i = 1:nRows
-    all_IFR{i}.IFR_baseline_Hz      = IFR_baseline_Hz(i);
-    all_IFR{i}.IFR_baselineNorm     = IFR_baselineNorm(i);
-end
-
-end
