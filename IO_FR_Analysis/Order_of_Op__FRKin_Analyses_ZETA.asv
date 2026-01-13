@@ -78,7 +78,7 @@ useOffset = true;
 %% Inputs:
 
 % Ephys data folder:
-CaseDate = '03_23_2023'; % Adjust as needed
+CaseDate = '11_30_2023_bilateral'; % Adjust as needed
 
 % 1: '03_23_2023';             % NER 2025
 % 1: '04_05_2023';             % NER 2025
@@ -98,7 +98,7 @@ CaseDate = '03_23_2023'; % Adjust as needed
 
 
 % Kinematic data folder:
-MoveDir_CaseID = 'IO_03_23_2023_LSTN'; % Adjust as needed
+MoveDir_CaseID = 'IO_11_30_2023_RSTN'; % Adjust as needed
 
 % 'IO_03_23_2023_LSTN';   % NER 2025
 % 'IO_04_05_2023_RSTN';   % NER 2025
@@ -507,7 +507,6 @@ MasterZETA = aggregate_ZETA_and_plot(FR_Kin_Dir, ...
     'SigZ', 2, 'SigP', 0.05, ...
     'YMax', 6);
 
-
 % in all_sZETA, extract vecLatencies values and add to MasterZETA
         % 1) ZETA_peakLatency, 2) ZETA_invSign_Latency
         % 3) IFR_peakTime, 4) IFR_peakOnset_Latency 
@@ -541,9 +540,9 @@ for i = 1:numel(uniqueSF)
     'AddLegends', true, ...
     'AddGroupSummary', true, ...
     'GroupMaster', MasterZETA, ...
-    'IFR_YLim', [0 185], ...         % 07/13_LSTN: [0 55],  % update per case
-    'IFR_YTicks', 0:20:185, ...       % 07/13_LSTN: 0:10:50, % update per case
-    'Summary_YLim', [0 65]);         % 07/13_LSTN: [0 55],  % update per case
+    'IFR_YLim', [0 45], ...         % 07/13_LSTN: [0 55],  % update per case
+    'IFR_YTicks', 0:10:60, ...      % 07/13_LSTN: 0:10:50, % update per case
+    'Summary_YLim', [0 55]);        % 07/13_LSTN: [0 55],  % update per case
 end
 
 
@@ -566,9 +565,9 @@ for i = 1:numel(uniqueSF_MUA)
     'GroupField_Spike', "MUA_Field", ...
     'GroupField_Time',  "IFR_Time_s_MUA", ...
     'GroupField_Hz',    "IFR_Hz_MUA", ...
-    'IFR_YLim', [0 285], ...       % update per case
-    'IFR_YTicks', 0:40:280, ...
-    'Summary_YLim', [0 150], ...
+    'IFR_YLim', [0 285], ...       % 07/13_LSTN: [0 285], % update per case
+    'IFR_YTicks', 0:40:280, ...    % 07/13_LSTN: 0:40:280, % update per case
+    'Summary_YLim', [0 160], ...   % 07/13_LSTN: [0 160], % update per case (11/30_LSTN)
     'Group_DT', 0.005, ...         % 0.01: force 10 ms timebase
     'Group_MaxN', 2500);           % optional cap
 end

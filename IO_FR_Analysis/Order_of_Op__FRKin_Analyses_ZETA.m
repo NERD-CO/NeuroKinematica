@@ -78,7 +78,7 @@ useOffset = true;
 %% Inputs:
 
 % Ephys data folder:
-CaseDate = '05_31_2023'; % Adjust as needed
+CaseDate = '07_13_2023_bilateral'; % Adjust as needed
 
 % 1: '03_23_2023';             % NER 2025
 % 1: '04_05_2023';             % NER 2025
@@ -98,7 +98,7 @@ CaseDate = '05_31_2023'; % Adjust as needed
 
 
 % Kinematic data folder:
-MoveDir_CaseID = 'IO_05_31_2023_LSTN'; % Adjust as needed
+MoveDir_CaseID = 'IO_07_13_2023_LSTN'; % Adjust as needed
 
 % 'IO_03_23_2023_LSTN';   % NER 2025
 % 'IO_04_05_2023_RSTN';   % NER 2025
@@ -540,9 +540,9 @@ for i = 1:numel(uniqueSF)
     'AddLegends', true, ...
     'AddGroupSummary', true, ...
     'GroupMaster', MasterZETA, ...
-    'IFR_YLim', [0 65], ...         % 07/13_LSTN: [0 55],  % update per case
+    'IFR_YLim', [0 55], ...         % 07/13_LSTN: [0 55],  % update per case
     'IFR_YTicks', 0:10:60, ...      % 07/13_LSTN: 0:10:50, % update per case
-    'Summary_YLim', [0 65]);         % 07/13_LSTN: [0 55],  % update per case
+    'Summary_YLim', [0 55]);        % 07/13_LSTN: [0 55],  % update per case
 end
 
 
@@ -565,9 +565,9 @@ for i = 1:numel(uniqueSF_MUA)
     'GroupField_Spike', "MUA_Field", ...
     'GroupField_Time',  "IFR_Time_s_MUA", ...
     'GroupField_Hz',    "IFR_Hz_MUA", ...
-    'IFR_YLim', [0 285], ...       % update per case
-    'IFR_YTicks', 0:40:280, ...
-    'Summary_YLim', [0 150], ...
+    'IFR_YLim', [0 285], ...       % 07/13_LSTN: [0 285], % update per case
+    'IFR_YTicks', 0:40:280, ...    % 07/13_LSTN: 0:40:280, % update per case
+    'Summary_YLim', [0 160], ...   % 07/13_LSTN: [0 160], % update per case (11/30_LSTN)
     'Group_DT', 0.005, ...         % 0.01: force 10 ms timebase
     'Group_MaxN', 2500);           % optional cap
 end
@@ -918,3 +918,5 @@ writetable(Tsig_ZETA_SU, fullfile(SavePath_ZETA_Stats, 'Tsig_ZETA_SU.csv'));
 writetable(Tsig_ZETA_SU_NoRest, fullfile(SavePath_ZETA_Stats, 'Tsig_ZETA_SU_NoRest.csv'));
 writetable(Tsig_ZETA_MUA, fullfile(SavePath_ZETA_Stats, 'Tsig_ZETA_MUA.csv'));
 writetable(Tsig_ZETA_MUA_NoRest, fullfile(SavePath_ZETA_Stats, 'Tsig_ZETA_MUA_NoRest.csv'));
+
+%%
