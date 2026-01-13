@@ -1,4 +1,4 @@
-function C = runIFR_PlannedContrasts_SU(lme, varargin)
+function C = runLMM_PlannedContrasts(lme, varargin)
 
 % runIFR_PlannedContrasts_SU
 %
@@ -16,7 +16,7 @@ p.addParameter('Alpha', 0.05, @(x) isnumeric(x) && isscalar(x) && x>0 && x<1);
 p.addParameter('DoActiveMeanVsRest', true, @islogical);   % mean(active) vs REST within depth
 p.addParameter('DoRestVsEachActive', true, @islogical);   % REST vs each active within depth
 p.addParameter('DoActivePairs', true, @islogical);        % active-active pairwise within depth
-p.addParameter('DoDepthDiffOfDiff', true, @islogical);    % (move-rest) depth modulation vs dorsal
+p.addParameter('DoDepthDiffOfDiff', true, @islogical);    % (move-rest) depth modulation vs refernce depth
 p.addParameter('DoDepthPairs', true, @islogical);         % depth modulation of ActivePairs (A-B) across depths vs b
 p.addParameter('DoSameMoveAcrossDepth', true, @islogical); % mv@t-vs-b and mv@c-vs-b (includes REST optionally)
 
@@ -223,11 +223,10 @@ end
 %% =====================================================================
 %  B) Across-depth contrasts (depth-dependent modulation tests) 
 %     "difference-of-differences" 
-%     Interaction terms vs. reference depth (ventral).
 % ======================================================================
 
+% B1) (Move - REST), Interaction terms vs. Reference depth (ventral)
 if U.DoDepthDiffOfDiff
-    % B1) (Move - REST) 
     for mv = activeMT
         w = containers.Map('KeyType','char','ValueType','double');
         w(char(mtDepth(mv,"t"))) = 1;
@@ -238,7 +237,7 @@ if U.DoDepthDiffOfDiff
         addContrastRow("DepthModulation", "c", "(" + mv + "-REST) c vs b", makeL_map(w));
     end
 
-    % REST baseline shift across depths (Depth_t, Depth_c), Reference: Depth_b
+    % REST baseline shift across depths (Reference: Depth_b)
     % (REST@t - REST@b = Depth_t; REST@c - REST@b = Depth_c)
     w = containers.Map('KeyType','char','ValueType','double');
     w(char(depthMain("t"))) = 1;
@@ -249,6 +248,64 @@ if U.DoDepthDiffOfDiff
     addContrastRow("DepthModulation", "c", "REST c vs b", makeL_map(w));
 end
 
+
+
+% B2) Depth modulation of ActivePairs: (A-B)@d - (A-B)@b, depth ref=b
+if U.DoDepthPairs
+    pairs = [ ...
+        "HAND OC","HAND PS"; ...
+        "HAND OC","ARM EF"; ...
+        "HAND PS","ARM EF"  ...
+    ];
+
+    for k = 1:size(pairs,1)
+        A = pairs(k,1);
+        B = pairs(k,2);
+
+        % t vs b
+        w = containers.Map('KeyType','char','ValueType','double');
+        w(char(mtDepth(A,"t"))) =  1;
+        w(char(mtDepth(B,"t"))) = -1;
+        addContrastRow("DepthMod_ActivePair", "t", "(" + A + "-" + B + ") t vs b", makeL_map(w));
+
+        % c vs b
+        w = containers.Map('KeyType','char','ValueType','double');
+        w(char(mtDepth(A,"c"))) =  1;
+        w(char(mtDepth(B,"c"))) = -1;
+        addContrastRow("DepthMod_ActivePair", "c", "(" + A + "-" + B + ") c vs b", makeL_map(w));
+    end
+end
+
+% ----------------------------------------------------------
+% B3) Same MoveType across depths: mv@d - mv@b
+%     For active mv:
+%       mv@t - mv@b = Depth_t + (mv:Depth_t)
+%       mv@c - mv@b = Depth_c + (mv:Depth_c)
+%     For REST:
+%       REST@t - REST@b = Depth_t
+%       REST@c - REST@b = Depth_c
+% ----------------------------------------------------------
+if U.DoSameMoveAcrossDepth
+    allMovesForThis = [activeMT, "REST"];  % include REST; remove if you prefer active-only
+
+    for mv = allMovesForThis
+        % t vs b
+        w = containers.Map('KeyType','char','ValueType','double');
+        w(char(depthMain("t"))) = 1;
+        if mv ~= "REST"
+            w(char(mtDepth(mv,"t"))) = 1;
+        end
+        addContrastRow("SameMove_AcrossDepth", "t", mv + " t vs b", makeL_map(w));
+
+        % c vs b
+        w = containers.Map('KeyType','char','ValueType','double');
+        w(char(depthMain("c"))) = 1;
+        if mv ~= "REST"
+            w(char(mtDepth(mv,"c"))) = 1;
+        end
+        addContrastRow("SameMove_AcrossDepth", "c", mv + " c vs b", makeL_map(w));
+    end
+end
 
 %% ---- Assemble table ----
 

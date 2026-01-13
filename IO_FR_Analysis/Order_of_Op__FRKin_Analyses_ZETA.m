@@ -78,7 +78,7 @@ useOffset = true;
 %% Inputs:
 
 % Ephys data folder:
-CaseDate = '07_13_2023_bilateral'; % Adjust as needed
+CaseDate = '05_31_2023'; % Adjust as needed
 
 % 1: '03_23_2023';             % NER 2025
 % 1: '04_05_2023';             % NER 2025
@@ -98,7 +98,7 @@ CaseDate = '07_13_2023_bilateral'; % Adjust as needed
 
 
 % Kinematic data folder:
-MoveDir_CaseID = 'IO_07_13_2023_LSTN'; % Adjust as needed
+MoveDir_CaseID = 'IO_05_31_2023_LSTN'; % Adjust as needed
 
 % 'IO_03_23_2023_LSTN';   % NER 2025
 % 'IO_04_05_2023_RSTN';   % NER 2025
@@ -114,7 +114,7 @@ MoveDir_CaseID = 'IO_07_13_2023_LSTN'; % Adjust as needed
 % 'IO_08_23_2023_RSTN';   % INS 2026
 % 'IO_11_30_2023_LSTN';   % GRC 2026
 % 'IO_11_30_2023_RSTN';   % GRC 2026
-% 'IO_12_06_2023_LSTN';   % GRC 2026
+% 'IO_12_06_2023_LSTN';   % GRC 2026        % exclude for now
 % 'IO_12_06_2023_RSTN';   % GRC 2026
 
 
@@ -181,7 +181,7 @@ end
 [Max_SpikeDuration_samples, spikesMatrix] = MaxSpkDuration_Raster_PSTH(CaseDate, All_SpikesPerMove_Tbl, AO_spike_fs, Case_FRKin_Dir);
 
 Max_SpkDur_seconds = Max_SpikeDuration_samples/AO_spike_fs; % seconds
-Max_SpkDur_ms = Max_SpkDur_seconds * 1000 % milliseconds
+Max_SpkDur_ms = Max_SpkDur_seconds * 1000; % milliseconds
 
 %% ------- Zeta Test Functions -------
 
@@ -286,7 +286,7 @@ rehash
     'DirectQuantile', false, ...
     'JitterSize',    2, ...
     'Stitch',        true, ...
-    'PreWindow_s',   0.050, ...   % 50 ms lead-in
+    'PreWindow_s',   0.050, ...   % 50 ms lead-in 
     'PostWindow_s',  0.000);
 
 
@@ -356,7 +356,7 @@ fprintf('ZETA test outputs saved:\n  %s\n  %s\n', ZetaSummary_csv, ZetaAll_mat);
     'PadITI_s',     0.005, ...
     'Resamples',    500, ...   % intResampNum: integer, number of resamplings (default: 100), 500 (exploratory) or 1000 (final analyses).
     'SuperResFactor', 20, ...  % dblSuperResFactor: scalar, upsampling of data when calculating zeta (default: 100)
-    'PreWindow_s',  0.050, ...
+    'PreWindow_s',  0.050, ...  
     'PostWindow_s', 0.000);
 
 % Save Outputs to "Zeta Testing MUA" folder
@@ -413,8 +413,8 @@ IFR_outDir = fullfile(Zeta_outDir, 'IFR_PSTH');
     'UseMaxDur_s', 1.60, ...
     'PadITI_s',    0.005, ...
     'StartField',  'TTL_spk_idx_Start', ...
-    'StopField',   'TTL_spk_idx_End', ...
-    'PreWindow_s', 0.050, ...
+    'EndField',   'TTL_spk_idx_End', ...
+    'PreWindow_s', 0.050, ... 
     'PostWindow_s',0.000, ...
     'BinSize_ms',  10, ...
     'IFR_SmoothSd',2, ...
@@ -435,24 +435,6 @@ fprintf('IFR/PSTH saved to %s\n', IFR_outDir);
 cd(IFR_outDir)
 
 
-%% Update x-axis per MoveType for visualiztion
-
-
-
-%% SU tiled layout IFR plot MoveType × STN depth
-
-uniqueSF = unique(IFR_PSTH_Summary.SpikeField,'stable');
-
-for i = 1:numel(uniqueSF)
-    thisSF = uniqueSF(i);
-    % convert to char for consistency
-    thisSF = char(string(thisSF));
-
-    plot_IFR_summary_grid_v2(IFR_PSTH_Summary, all_IFR, thisSF, {'t','c','b'}, {'HAND OC','HAND PS','ARM EF'}, ...
-        'SaveDir', IFR_outDir, 'CaseDate', CaseDate, 'XLim', [-0.05 1.60]);
-end
-
-
 %% Multi-unit (MUA) - run_IFR_PSTH_byDepthMove
 
 % Load MUA table -----
@@ -470,8 +452,8 @@ IFR_outDir_MUA = fullfile(Zeta_outDir_MUA, 'IFR_PSTH_MUA');
     'PadITI_s',    0.005, ...
     'SpikeField',  'C1_MUA', ...
     'StartField',  'TTL_spk_idx_Start', ...
-    'StopField',   'TTL_spk_idx_End', ...
-    'PreWindow_s', 0.050, ...
+    'EndField',   'TTL_spk_idx_End', ...
+    'PreWindow_s', 0.050, ... 
     'PostWindow_s',0.000, ...
     'BinSize_ms',  10, ...
     'IFR_SmoothSd',2, ...
@@ -490,30 +472,29 @@ save(fullfile(IFR_outDir_MUA, sprintf('%s_IFR_PSTH_MUA_All.mat', CaseDate)), ...
 fprintf('MUA IFR/PSTH saved to %s\n', IFR_outDir_MUA);
 
 cd(IFR_outDir_MUA)
+ 
+
+%% IFR ANOVAS - within-subject comparisons - run on each subject (last)
+
+% % Within-subject  - multivar 2-way ANOVAs
+% % use matlab function
+% % anova()
+% 
+% % aovInteraction = anova(tbl,"PopcornYield ~ Brand + PopperType + Brand:PopperType")
+% 
+% % IFR_baselineNorm ~ MoveType + Depth + MoveType:Depth
 
 
-%% MUA tiled layout IFR plot MoveType × STN depth
 
-uniqueSF_MUA = unique(IFR_PSTH_MUA_Summary.SpikeField,'stable');
+%% %% Run run_MovementFeatureAnalysis_IO_v2
+% 
+% fprintf('[INFO] Loading movement data from: %s\n', MoveDataDir);
+% 
+% % Outputs kinematics summary per move trial per depth
+% [kinTbl, kinSummaryTbl] = run_MovementFeatureAnalysis_IO_v2(IO_DataDir, MoveDataDir, MoveDir_CaseID);
+% 
+% cd(KinematicsDir)
 
-for i = 1:numel(uniqueSF_MUA)
-    thisSF_MUA = uniqueSF_MUA(i);
-    % convert to char for consistency
-    thisSF_MUA = char(string(thisSF_MUA));
-
-    plot_IFR_summary_grid_v2(IFR_PSTH_MUA_Summary, all_IFR_MUA, thisSF_MUA, {'t','c','b'}, {'HAND OC','HAND PS','ARM EF'}, ...
-        'SaveDir', IFR_outDir_MUA, 'CaseDate', CaseDate, 'XLim', [-0.05 1.60]);
-end
-
-
-%% Run run_MovementFeatureAnalysis_IO_v2
-
-fprintf('[INFO] Loading movement data from: %s\n', MoveDataDir);
-
-% Outputs kinematics summary per move trial per depth
-[kinTbl, kinSummaryTbl] = run_MovementFeatureAnalysis_IO_v2(IO_DataDir, MoveDataDir, MoveDir_CaseID);
-
-cd(KinematicsDir)
 
 
 %% ------- Aggregate Across Subjects -------
@@ -530,17 +511,7 @@ MasterZETA = aggregate_ZETA_and_plot(FR_Kin_Dir, ...
         % 1) ZETA_peakLatency, 2) ZETA_invSign_Latency
         % 3) IFR_peakTime, 4) IFR_peakOnset_Latency 
         % https://github.com/JorritMontijn/zetatest/blob/main/zetatest.m
-        % vecLatencies; different latency estimates, number determined by intLatencyPeaks.
-        %			1) Latency of ZETA peak
-    	%			2) Latency of largest z-score with inverse sign to ZETA
-    	%			3) Peak time of instantaneous firing rate
-    	%			4) Onset time of above peak, defined as the first crossing of peak half-height
-    	%           If no peaks are detected, it returns NaNs.
-        %           For true onset latencies, we recommend using LatenZy
-        %           https://github.com/Herseninstituut/latenZy, based on the
-        %           zeta-test.
-    	%		- vecLatencyVals; data values corresponding to the above peaks
-        
+
 
 %% Aggregate & Plot ZETA z-score scatter plots - MUA
 
@@ -551,6 +522,55 @@ MasterZETA_MUA = aggregate_ZETA_MUA_and_plot(FR_Kin_Dir, ...
     'YMax', 7);
 
 cd(FR_Kin_Dir)
+
+
+%% SU tiled layout IFR plot MoveType × STN depth
+% 1st 3 rows: single representative subject
+% last/4th row: across-subject average
+
+uniqueSF = unique(IFR_PSTH_Summary.SpikeField,'stable');
+
+for i = 1:numel(uniqueSF)
+    thisSF = uniqueSF(i);
+    % convert to char for consistency
+    thisSF = char(string(thisSF));
+
+    plot_IFR_summary_grid_v2(IFR_PSTH_Summary, all_IFR, thisSF, {'t','c','b'}, {'HAND OC','HAND PS','ARM EF'}, ...
+    'SaveDir', IFR_outDir, 'CaseDate', CaseDate, 'XLim', [-0.05 1.60], ...
+    'AddLegends', true, ...
+    'AddGroupSummary', true, ...
+    'GroupMaster', MasterZETA, ...
+    'IFR_YLim', [0 65], ...         % 07/13_LSTN: [0 55],  % update per case
+    'IFR_YTicks', 0:10:60, ...      % 07/13_LSTN: 0:10:50, % update per case
+    'Summary_YLim', [0 65]);         % 07/13_LSTN: [0 55],  % update per case
+end
+
+
+%% MUA tiled layout IFR plot MoveType × STN depth
+% 1st 3 rows: single representative subject
+% last/4th row: across-subject average
+
+uniqueSF_MUA = unique(IFR_PSTH_MUA_Summary.SpikeField,'stable');
+
+for i = 1:numel(uniqueSF_MUA)
+    thisSF_MUA = uniqueSF_MUA(i);
+    % convert to char for consistency
+    thisSF_MUA = char(string(thisSF_MUA));
+
+    plot_IFR_summary_grid_v2(IFR_PSTH_MUA_Summary, all_IFR_MUA, thisSF_MUA, {'t','c','b'}, {'HAND OC','HAND PS','ARM EF'}, ...
+    'SaveDir', IFR_outDir_MUA, 'CaseDate', CaseDate, 'XLim', [-0.05 1.60], ...
+    'AddLegends', true, ...
+    'AddGroupSummary', true, ...
+    'GroupMaster', MasterZETA_MUA, ...
+    'GroupField_Spike', "MUA_Field", ...
+    'GroupField_Time',  "IFR_Time_s_MUA", ...
+    'GroupField_Hz',    "IFR_Hz_MUA", ...
+    'IFR_YLim', [0 285], ...       % update per case
+    'IFR_YTicks', 0:40:280, ...
+    'Summary_YLim', [0 150], ...
+    'Group_DT', 0.005, ...         % 0.01: force 10 ms timebase
+    'Group_MaxN', 2500);           % optional cap
+end
 
 
 %% ------- Dimensionality Reduction Across Subjects -------
@@ -573,13 +593,15 @@ cd(FR_Kin_Dir)
 
 SavePath = fullfile(FR_Kin_Dir, 'Aggregate Zeta Plots', 'PCA Plots');
 
-run_PCA_ZETA_byCategory(MasterZETA, 'SavePath', SavePath);
+run_PCA_ZETA_byCategory(MasterZETA, 'SavePath', SavePath, ...
+    'PeakMode','abs', 'PeakSmooth_N', 11, 'PeakWindow_s',[0.05 1.6]);
 
 
 %% MUA - PCA of ZETA_vecD across Subjects - MUA for each MoveType x STN Depth
 % MUA on electrode 1 / C1_MUA
 
-run_PCA_ZETA_MUA_byCategory(MasterZETA_MUA, 'SavePath', SavePath);
+run_PCA_ZETA_MUA_byCategory(MasterZETA_MUA, 'SavePath', SavePath, ...
+    'PeakMode','abs', 'PeakSmooth_N', 11, 'PeakWindow_s',[0.05 1.6]);
 
 
 %% Spikes - 3D PCA Plots
@@ -616,273 +638,283 @@ plot_ZETA_PCA_3D_byDepth_MUA(MasterZETA_MUA, 'all depths', ...
 
 
 
-%% ========================== STATS ===================================
+%% =========================== STATS ===================================
 
 %% 1. Statistical comparisons of IFR (normailized mean firing rate)
 
-% use the existing getIFR / vecRate outputs (either from all_IFR or all_sRate),
-% compute mean IFR per subject × MoveType × STN Depth over peri-movement window,
+% use existing getIFR / vecRate outputs (either from all_IFR or all_sRate),
+% compare mean IFR per subject × MoveType × STN Depth over peri-movement analysis window,
 % compute a within-unit normalized mean IFR (z-scored across that unit's conditions),
 % save both into IFR_PSTH_Summary and all_IFR / all_IFR_MUA,
 % aggregate into MasterZETA / MasterZETA_MUA via aggregate_ZETA_* functions.
 
+% 2. Statistical comparisons of ZETA (neuronal responsiveness)
 
-%% ------- Linear Mixed Effects Models (LMMs) -------
 
-%% IFR Comparisons
+%% ============== Linear Mixed Effects Models (LMMs) ===================
+
+%% Analysis Table with REST (SU, MUA)
+
+% % Reference levels (All other coefficients are deviations from Intercept)
+% % - MoveType    = REST
+% % - Depth       = b (ventral)
+% % (Intercept) = REST @ ventral STN
+
+%% Planned Contrasts (with REST)
+
+% % Within each depth (t,c,b):
+% % - Pairwise: REST vs each Active (3)
+% % - Active (HAND OC, HAND PS, ARM EF) pairwise (3)
+% % - mean Active vs REST" (1)
+% 
+% % Across depths (interaction contrasts; depth-dependent modulation tests)
+% % - for each MoveType vs. REST (Move - Rest)
+% % - for Active MoveType pairs:
+% %        % "HAND OC", "HAND PS"
+% %        % "HAND OC", "ARM EF"
+% %        % "HAND PS", "ARM EF"
+% % - for each Active MoveType vs. itself
+
+%% Analysis Table with NO REST (SU, MUA)
+
+% Reference levels (All other coefficients are deviations from Intercept)
+% - MoveType    = Hand OC
+% - Depth       = b (ventral)
+% (Intercept) = Hand OC @ ventral STN
+
+%% Planned Contrasts (No REST)
+
+% % Within each depth (t,c,b):
+% % - Active (HAND OC, HAND PS, ARM EF) pairwise (3)
+% 
+% % Across depths (interaction contrasts; depth-dependent modulation tests)
+% % - for Active MoveType pairs:
+% %        % "HAND OC", "HAND PS"
+% %        % "HAND OC", "ARM EF"
+% %        % "HAND PS", "ARM EF"
+% % - for each Active MoveType vs. itself
+
+
+%% =======================  IFR LMMs  ==================================
 
 % Dependent variables: 
-% - within-unit normalized mean IFR (IFR_norm),
+% - within-unit normalized mean IFR (IFR_norm)
 % - baseline-normalized mean IFR (IFR_baselineNorm)
-% do later 
+% - IFR_peakLatency
+% - IFR_peakOnset_Latency
 %
 % Fixed effects: 
-% - Movement context (HAND OC, HAND PS, ARM EF, REST), 
+% - Movement context
 % - STN depth
 % - MoveType x Depth
 %
 % Random effect: Subject (random intercept)
 
 
-%% Build analysis table (SU Spikes)
-
-% Reference levels (All other coefficients are deviations from Intercept)
-% % MoveType    = REST
-% % Depth       = b (ventral)
-% % (Intercept) = REST @ ventral STN
-
-% Build LMM table for Single Unit data
-T_SU = build_IFR_LMM_Table(MasterZETA);
-
-% Enforce Category Order
-T_SU.Subject  = categorical(T_SU.Subject);
-T_SU.MoveType = categorical(T_SU.MoveType);
-T_SU.Depth    = categorical(T_SU.Depth);
-
-T_SU.MoveType = reordercats(T_SU.MoveType, {'REST', 'HAND OC','HAND PS','ARM EF'}); 
-T_SU.Depth    = reordercats(T_SU.Depth,    {'b','t','c'}); % change from "t" to "b" as first ref condidtion
-
-
-%% Fit IFR SU LME Models
-
-LME_SU = runIFR_LMMs(T_SU, ["IFR_norm","IFR_baselineNorm","IFR_mean_Hz","logIFR_mean_Hz"]);
-
-
-%% check
-
-lme = LME_SU.IFR_baselineNorm.lme;
-lme_coeffs = string(lme.CoefficientNames(:));
-disp(lme_coeffs);
-
-disp(LME_SU.IFR_baselineNorm.lme);
-disp(LME_SU.IFR_baselineNorm.anova);
-
-% Save LME_SU struct
-
-
-%% Planned contrasts (Active vs REST, and pairwise comparisons)
-
-% Within each depth (t,c,b):
-% - Pairwise: REST vs each Active (3)
-% - Active (HAND OC, HAND PS, ARM EF) pairwise (3)
-% - mean Active vs REST" (1)
-
-% Across depths (interaction contrasts; depth-dependent modulation tests)
-% - for each MoveType vs. REST (Move - Rest)
-% - for Active MoveType pairs = [ ...
-       % "HAND OC","HAND PS"; ...
-       % "HAND OC","ARM EF"; ...
-       % "HAND PS","ARM EF"  ...
-       % ];
-% - for each Active MoveType vs. itself at each depth
-
-
-%% Run contrasts (Active vs REST, and pairwise comparisons)
-
-% use fixedEffects(lme) + coefTest(lme, L, c) where L*beta = c tests a linear hypothesis on fixed-effect coefficients
-
-% constrast must include:
-% - main effect: MoveType
-% - interaction term: MoveType×Depth (within specific depth)
-
-% Contrasts helper function: builds L rows by matching lme.CoefficientNames
-% runs coefTest(lme, L, 0) per contrast, returns table
-
-% ---- IFR_norm ----
-C_IFRnorm = runIFR_PlannedContrasts_SU(LME_SU.IFR_norm.lme, 'DVLabel',"IFR_norm");
-
-% ---- IFR_baselineNorm ----
-C_IFRbaseline = runIFR_PlannedContrasts_SU(LME_SU.IFR_baselineNorm.lme, ...
-    'DVLabel',"IFR_baselineNorm", ...
-    'PAdjust',"holm", ...
-    'AdjustScope',"family");
-
-% ---- IFR_mean_Hz and logIFR_mean_Hz ----
-C_IFRmean = runIFR_PlannedContrasts_SU(LME_SU.IFR_mean_Hz.lme, 'DVLabel',"IFR_mean_Hz");
-C_logIFRmean = runIFR_PlannedContrasts_SU(LME_SU.IFR_mean_Hz.lme, 'DVLabel',"logIFR_mean_Hz");
-
-
-% ---- All Contrasts ----
-C_all = [C_IFRnorm; C_IFRbaseline; C_IFRmean; C_logIFRmean];
-
-
-%% Save Output Tables
-
-SavePath = fullfile(FR_Kin_Dir,'Aggregate Zeta Plots','Stats','IFR');
-if ~exist(SavePath,'dir'), mkdir(SavePath); end
-
-% ---- IFR_norm ----
-writetable(C_IFRnorm, fullfile(SavePath,'SU_IFRnorm_PlannedContrasts_FULL.csv'));
-
-T_IFRnorm_JNE = makeLMM_ContrastsTable(C_IFRnorm, 'DropReverse', true);
-writetable(T_IFRnorm_JNE, fullfile(SavePath,'SU_IFRnorm_PlannedContrasts_JNE.csv'));
-
-% ---- IFR_baselineNorm ----
-writetable(C_IFRbaseline, fullfile(SavePath,'SU_IFRbaselineNorm_PlannedContrasts_FULL.csv'));
-
-T_IFRbaseline_JNE = makeLMM_ContrastsTable(C_IFRbaseline, 'DropReverse', true);
-writetable(T_IFRbaseline_JNE, fullfile(SavePath,'SU_IFRbaselineNorm_PlannedContrasts_JNE.csv'));
-
-
-% ---- IFR_mean_Hz ----
-writetable(C_IFRmean, fullfile(SavePath,'SU_IFRmean_PlannedContrasts_FULL.csv'));
-
-T_IFRmean_JNE = makeLMM_ContrastsTable(C_IFRmean, 'DropReverse', true);
-writetable(T_IFRmean_JNE, fullfile(SavePath,'SU_IFRmean_PlannedContrasts_JNE.csv'));
-
-
-%% ===================== IFR LMMs (SU) — NO REST =====================
-
-% Build NoREST analysis table
-
-% Reference levels (All other coefficients are deviations from Intercept)
-% % MoveType    = Hand OC
-% % Depth       = b (ventral)
-% % (Intercept) = Hand OC @ ventral STN
-
-% Drop REST rows
-T_SU_NoRest = T_SU(T_SU.MoveType ~= categorical("REST"), :);
-
-% Make sure unused categories are removed FIRST
-T_SU_NoRest.MoveType = removecats(categorical(T_SU_NoRest.MoveType));
-T_SU_NoRest.Depth    = removecats(categorical(T_SU_NoRest.Depth));
-T_SU_NoRest.Subject  = categorical(T_SU_NoRest.Subject);
-
-% Inspect what categories actually exist
-disp("MoveType categories present:");
-disp(categories(T_SU_NoRest.MoveType));
-disp("Depth categories present:");
-disp(categories(T_SU_NoRest.Depth));
-
-% Add log mean IFR
-T_SU_NoRest.logIFR_mean_Hz = log(T_SU_NoRest.IFR_mean_Hz + eps);
-
-% Enforce categorical + reference levels
-T_SU_NoRest.Subject  = categorical(T_SU_NoRest.Subject);
-T_SU_NoRest.MoveType = categorical(T_SU_NoRest.MoveType);
-T_SU_NoRest.Depth    = categorical(T_SU_NoRest.Depth);
-
-% Baselines:
-%   MoveType ref = HAND OC
-%   Depth   ref = b (ventral)
-T_SU_NoRest.MoveType = reordercats(T_SU_NoRest.MoveType, {'HAND OC','HAND PS','ARM EF'}); % remove REST as first ref condition
-T_SU_NoRest.Depth    = reordercats(T_SU_NoRest.Depth,    {'b','t','c'});
-
-
-%% Fit LMEs (NoREST)
-
-% Dependent variables to run
-DVlist = ["IFR_norm","IFR_baselineNorm","IFR_mean_Hz","logIFR_mean_Hz"];
-
-% Fit models
-LME_SU_NoRest = runIFR_LMMs(T_SU_NoRest, DVlist);
-
-%% %% Planned contrasts (No REST)
-
-% Within each depth (t,c,b):
-% - Active (HAND OC, HAND PS, ARM EF) pairwise (3)
-
-% Across depths (interaction contrasts; depth-dependent modulation tests)
-% - for Active MoveType pairs = [ ...
-       % "HAND OC","HAND PS"; ...
-       % "HAND OC","ARM EF"; ...
-       % "HAND PS","ARM EF"  ...
-       % ];
-% - for each Active MoveType vs. itself at each depth
-
-%% Run planned contrasts (NoREST) for each DV
-
-% Planned contrasts (NoREST helper)
-C_NoRest_IFRnorm     = runIFR_PlannedContrasts_SU_NoREST(LME_SU_NoRest.IFR_norm.lme,         'DVLabel',"IFR_norm");
-C_NoRest_IFRbaseNorm = runIFR_PlannedContrasts_SU_NoREST(LME_SU_NoRest.IFR_baselineNorm.lme, 'DVLabel',"IFR_baselineNorm");
-C_NoRest_IFRmeanHz   = runIFR_PlannedContrasts_SU_NoREST(LME_SU_NoRest.IFR_mean_Hz.lme,      'DVLabel',"IFR_mean_Hz");
-C_NoRest_logIFRMean  = runIFR_PlannedContrasts_SU_NoREST(LME_SU_NoRest.logIFR_mean_Hz.lme,   'DVLabel',"logIFR_mean_Hz");
-
-% ---- All Contrasts ----
-C_all_NoRest = [C_NoRest_IFRnorm; C_NoRest_IFRbaseNorm; C_NoRest_IFRmeanHz; C_NoRest_logIFRMean];
-
-
-%% Save Output Tables
-
-% ---- All DVs ----
-writetable(C_all_NoRest, fullfile(SavePath,'SU_IFR_PlannedContrasts_NoREST_AllDVs.csv'));
-
-% ---- IFR_norm ----
-writetable(C_NoRest_IFRnorm, fullfile(SavePath,'SU_IFRnorm_PlannedContrasts_FULL.csv'));
-
-T_IFRnorm_NoRest_JNE = makeLMM_ContrastsTable(C_NoRest_IFRnorm, 'DropReverse', true);
-writetable(T_IFRnorm_NoRest_JNE, fullfile(SavePath,'SU_IFRnorm_NoRest_PlannedContrasts_JNE.csv'));
-
-% ---- IFR_baselineNorm ----
-writetable(C_NoRest_IFRbaseNorm, fullfile(SavePath,'SU_IFRbaselineNorm_PlannedContrasts_FULL.csv'));
-
-T_IFRbaseline_NoRest_JNE = makeLMM_ContrastsTable(C_NoRest_IFRbaseNorm, 'DropReverse', true);
-writetable(T_IFRbaseline_NoRest_JNE, fullfile(SavePath,'SU_IFRbaselineNorm_NoRest_PlannedContrasts_JNE.csv'));
-
-
-%% ANOVAS - run on each patient
-
-% Within-subject  - multivar 2-way ANOVAs
-% use matlab function
-% anova()
-
-% aovInteraction = anova(tbl,"PopcornYield ~ Brand + PopperType + Brand:PopperType")
-
-% IFR_baselineNorm ~ MoveType + Depth + MoveType:Depth
-
-
-%% Zeta LMMs
+%% IFR Dependent variables to run
+
+% IFR SU DVs
+IFR_SU_DVlist = ["IFR_mean_baselineNorm", "IFR_max_baselineNorm" , ...      % exclude "IFR_mean_Znorm", 
+            "IFR_peakLatency","IFR_peakOnset_Latency"]; 
+
+% IFR MUA Dvs
+IFR_MUA_DVlist = ["IFR_mean_baselineNorm", "IFR_max_baselineNorm"];         % exclude "IFR_mean_Znorm"
+
+
+%% Run IFR LMM Pipeline
+
+SavePath_IFR_Stats = fullfile(FR_Kin_Dir,'Aggregate Zeta Stats', 'IFR');
+if ~exist(SavePath_IFR_Stats,'dir'), mkdir(SavePath_IFR_Stats); end
+
+% SU — with REST
+OUT_IFR_SU = run_IFR_LMM_Pipeline(MasterZETA, ...
+    'DataType',"SU", ...
+    'IncludeREST', true, ...
+    'SavePath', SavePath_IFR_Stats, ...
+    'DVList', IFR_SU_DVlist, ...
+    'PAdjust',"holm", 'AdjustScope',"family");
+
+% SU — NoREST
+OUT_IFR_SU_NoREST = run_IFR_LMM_Pipeline(MasterZETA, ...
+    'DataType',"SU", ...
+    'IncludeREST', false, ...
+    'SavePath', SavePath_IFR_Stats, ...
+    'DVList', IFR_SU_DVlist, ...
+    'PAdjust',"holm", 'AdjustScope',"family");
+
+% MUA — with REST
+OUT_IFR_MUA = run_IFR_LMM_Pipeline(MasterZETA_MUA, ...
+    'DataType',"MUA", ...
+    'IncludeREST', true, ...
+    'SavePath', SavePath_IFR_Stats, ...
+    'DVList', IFR_MUA_DVlist, ...
+    'PAdjust',"holm", 'AdjustScope',"family");
+
+% MUA — NoREST
+OUT_IFR_MUA_NoREST = run_IFR_LMM_Pipeline(MasterZETA_MUA, ...
+    'DataType',"MUA", ...
+    'IncludeREST', false, ...
+    'SavePath', SavePath_IFR_Stats, ...
+    'DVList', IFR_MUA_DVlist, ...
+    'PAdjust',"holm", 'AdjustScope',"family");
+
+
+%% check IFR LMM coeffs
+
+% % SU IFR
+% lme_IFR = OUT_IFR_SU.LME.IFR_baselineNorm.lme;
+% lme_Icoeffs = string(lme_IFR.CoefficientNames(:));
+% disp(lme_Icoeffs);
+% 
+% % SU IFR - No REST
+% lme_IFR_NoREST = OUT_IFR_SU_NoREST.LME.IFR_baselineNorm.lme;
+% lme_Icoeffs_NoREST = string(lme_IFR_NoREST.CoefficientNames(:));
+% disp(lme_Icoeffs_NoREST);
+% 
+% % MUA IFR
+% lme_IFR_MUA = OUT_IFR_MUA.LME.IFR_baselineNorm.lme;
+% lme_MUA_Icoeffs = string(lme_IFR_MUA.CoefficientNames(:));
+% disp(lme_MUA_Icoeffs);
+% 
+% % MUA IFR - No REST
+% lme_IFR_MUA_NoREST = OUT_IFR_MUA_NoREST.LME.IFR_baselineNorm.lme;
+% lme_MUA_NoREST_Icoeffs = string(lme_IFR_MUA_NoREST.CoefficientNames(:));
+% disp(lme_MUA_NoREST_Icoeffs);
+
+
+%% Review and Save IFR Summary Tables
+
+T_IFR_SU         = OUT_IFR_SU.All_JNE;
+T_IFR_SU_NoRest  = OUT_IFR_SU_NoREST.All_JNE;
+T_IFR_MUA        = OUT_IFR_MUA.All_JNE;
+T_IFR_MUA_NoRest = OUT_IFR_MUA_NoREST.All_JNE;
+
+% Significant Only
+Tsig_IFR_SU = sortrows(T_IFR_SU(T_IFR_SU.p_adj < 0.05, :), ... 
+    {'DV','Depth','Contrast', 'p_adj'});
+Tsig_IFR_SU_NoRest = sortrows(T_IFR_SU_NoRest(T_IFR_SU_NoRest.p_adj < 0.05, :), ... 
+    {'DV','Depth','Contrast', 'p_adj'});
+Tsig_IFR_MUA = sortrows(T_IFR_MUA(T_IFR_MUA.p_adj < 0.05, :), ... 
+    {'DV','Depth','Contrast', 'p_adj'});
+Tsig_IFR_MUA_NoRest = sortrows(T_IFR_MUA_NoRest(T_IFR_MUA_NoRest.p_adj < 0.05, :), ... 
+    {'DV','Depth','Contrast', 'p_adj'});
+
+% Save significant tables to .csv files
+writetable(Tsig_IFR_SU, fullfile(SavePath_IFR_Stats, 'Tsig_IFR_SU.csv'));
+writetable(Tsig_IFR_SU_NoRest, fullfile(SavePath_IFR_Stats, 'Tsig_IFR_SU_NoRest.csv'));
+writetable(Tsig_IFR_MUA, fullfile(SavePath_IFR_Stats, 'Tsig_IFR_MUA.csv'));
+writetable(Tsig_IFR_MUA_NoRest, fullfile(SavePath_IFR_Stats, 'Tsig_IFR_MUA_NoRest.csv'));
+
+
+%% ======================  ZETA LMMs  ===================================
+
+% ZETA (neuronal responsiveness) Comparisons
 
 % Analogous LMMs fit for:
-% -	Dependent variables: 
+% Dependent variables: 
 % o	ZETA responsiveness z-scores: dblZETA (i.e., >2 is significant)
 % o	temporal deviation value underlying ZETA: dblD
+% o	ZETA_peakLatency
+% o	ZETA_invSign_Latency
 
-% -	Fixed effects: 
-% o	Movement context (HAND OC, HAND PS, ARM EF) % REST 
+% Fixed effects: 
+% o	Movement context (HAND OC, HAND PS, ARM EF, REST), 
 % o	STN depth 
 % o	MoveType x Depth
-% -	Random effect: Subject (random intercept)
+
+% Random effect: Subject (random intercept)
 
 
+%% ZETA LMM Dependent variables to run
+
+% ZETA SU DVs
+ZETA_SU_DVlist = ["ZetaZ", "ZETA_peakLatency", "ZETA_invSign_Latency"];
+
+% ZETA MUA Dvs
+ZETA_MUA_DVlist = "ZetaZ_MUA";
 
 
+%% Run ZETA LMM Pipeline
+
+SavePath_ZETA_Stats = fullfile(FR_Kin_Dir,'Aggregate Zeta Stats', 'ZETA');
+if ~exist(SavePath_ZETA_Stats,'dir'), mkdir(SavePath_ZETA_Stats); end
+
+% SU — with REST
+OUT_ZETA_SU = run_ZETA_LMM_Pipeline(MasterZETA, ...
+    'DataType',"SU", ...
+    'IncludeREST', true, ...
+    'SavePath', SavePath_ZETA_Stats, ...
+    'DVList', ZETA_SU_DVlist, ...
+    'PAdjust',"holm", 'AdjustScope',"family");
+
+% SU — NoREST
+OUT_ZETA_SU_NoREST = run_ZETA_LMM_Pipeline(MasterZETA, ...
+    'DataType',"SU", ...
+    'IncludeREST', false, ...
+    'SavePath', SavePath_ZETA_Stats, ...
+    'DVList', ZETA_SU_DVlist, ...
+    'PAdjust',"holm", 'AdjustScope',"family");
+
+% MUA — with REST
+OUT_ZETA_MUA = run_ZETA_LMM_Pipeline(MasterZETA_MUA, ...
+    'DataType',"MUA", ...
+    'IncludeREST', true, ...
+    'SavePath', SavePath_ZETA_Stats, ...
+    'DVList', ZETA_MUA_DVlist, ...
+    'PAdjust',"holm", 'AdjustScope',"family");
+
+% MUA — NoREST
+OUT_ZETA_MUA_NoREST = run_ZETA_LMM_Pipeline(MasterZETA_MUA, ...
+    'DataType',"MUA", ...
+    'IncludeREST', false, ...
+    'SavePath', SavePath_ZETA_Stats, ...
+    'DVList', ZETA_MUA_DVlist, ...
+    'PAdjust',"holm", 'AdjustScope',"family");
 
 
+%% check ZETA LMM coeffs
+
+% % SU ZETA
+% lme_ZETA = OUT_ZETA_SU.LME.ZetaZ.lme;
+% lme_Zcoeffs = string(lme_ZETA.CoefficientNames(:));
+% disp(lme_Zcoeffs);
+% 
+% % SU ZETA - No REST
+% lme_ZETA_NoREST = OUT_ZETA_SU_NoREST.LME.ZetaZ.lme;
+% lme_Zcoeffs_NoREST = string(lme_ZETA_NoREST.CoefficientNames(:));
+% disp(lme_Zcoeffs_NoREST);
+% 
+% % MUA ZETA
+% lme_ZETA_MUA = OUT_ZETA_MUA.LME.ZetaZ_MUA.lme;
+% lme_MUA_Zcoeffs = string(lme_ZETA_MUA.CoefficientNames(:));
+% disp(lme_MUA_Zcoeffs);
+% 
+% % MUA ZETA - No REST
+% lme_ZETA_MUA_NoREST = OUT_ZETA_MUA_NoREST.LME.ZetaZ_MUA.lme;
+% lme_MUA_NoREST_Zcoeffs = string(lme_ZETA_MUA_NoREST.CoefficientNames(:));
+% disp(lme_MUA_NoREST_Zcoeffs);
 
 
+%% Review and Save ZETA Summary Tables
+
+T_ZETA_SU           = OUT_ZETA_SU.All_JNE;
+T_ZETA_SU_NoRest    = OUT_ZETA_SU_NoREST.All_JNE;
+T_ZETA_MUA          = OUT_ZETA_MUA.All_JNE;
+T_ZETA_MUA_NoRest   = OUT_ZETA_MUA_NoREST.All_JNE;
 
 
+% Significant Only
+Tsig_ZETA_SU = sortrows(T_ZETA_SU(T_ZETA_SU.p_adj < 0.05, :), ... 
+    {'DV','Depth','Contrast', 'p_adj'});
+Tsig_ZETA_SU_NoRest = sortrows(T_ZETA_SU_NoRest(T_ZETA_SU_NoRest.p_adj < 0.05, :), ... 
+    {'DV','Depth','Contrast', 'p_adj'});
+Tsig_ZETA_MUA = sortrows(T_ZETA_MUA(T_ZETA_MUA.p_adj < 0.05, :), ... 
+    {'DV','Depth','Contrast', 'p_adj'});
+Tsig_ZETA_MUA_NoRest = sortrows(T_ZETA_MUA_NoRest(T_ZETA_MUA_NoRest.p_adj < 0.05, :), ... 
+    {'DV','Depth','Contrast', 'p_adj'});
 
-
-%% MUA - IFR Comparisons
-
-% LLM table for MUA data
-T_MUA = build_IFR_LMM_Table(MasterZETA_MUA);
-LME_out_MUA = runIFR_LMMs(T_MUA);
-
-disp(LME_out_MUA.lme_norm);
-disp(LME_out_MUA.anova_norm);
-
-disp(LME_out_MUA.lme_baseline);
-disp(LME_out_MUA.anova_baseline);
+% Save significant tables to .csv files
+writetable(Tsig_ZETA_SU, fullfile(SavePath_ZETA_Stats, 'Tsig_ZETA_SU.csv'));
+writetable(Tsig_ZETA_SU_NoRest, fullfile(SavePath_ZETA_Stats, 'Tsig_ZETA_SU_NoRest.csv'));
+writetable(Tsig_ZETA_MUA, fullfile(SavePath_ZETA_Stats, 'Tsig_ZETA_MUA.csv'));
+writetable(Tsig_ZETA_MUA_NoRest, fullfile(SavePath_ZETA_Stats, 'Tsig_ZETA_MUA_NoRest.csv'));

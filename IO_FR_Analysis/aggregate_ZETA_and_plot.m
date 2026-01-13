@@ -74,9 +74,11 @@ MasterZETA = table();
 canonOrder = {'CaseDate','Hemisphere','SpikeField','MoveType','Depth','nTrials', ...
     'dblZetaP','ZetaZ','ZetaD','ZetaTime', ...
     'IFR_PeakTime','IFR_OnsetTime', ...
-    'MeanStimDur_s','StdStimDur_s', ...
     'MeanZ','MeanP', ...
-    'IFR_mean_Hz','IFR_norm','IFR_baseline_Hz','IFR_baselineNorm', ...
+    'MeanStimDur_s','StdStimDur_s', ...
+    'IFR_mean_Hz', 'IFR_max_Hz', ...
+    'IFR_mean_Znorm', 'IFR_baseline_Hz',...
+    'IFR_mean_baselineNorm','IFR_max_baselineNorm',...
     'ZETA_peakLatency','ZETA_invSign_Latency',...
     'IFR_peakLatency','IFR_peakOnset_Latency', ...
     'ZETA_peakLatencyVal','ZETA_invSign_LatencyVal',...
@@ -102,8 +104,11 @@ for k = 1:numel(fileList)
     % Enforce types for key variables
     numVars = {'nTrials','dblZetaP','ZetaZ','ZetaD','ZetaTime', ...
         'IFR_PeakTime','IFR_OnsetTime', ...
-        'MeanStimDur_s','StdStimDur_s','MeanZ','MeanP', ...
-        'IFR_mean_Hz','IFR_norm','IFR_baseline_Hz','IFR_baselineNorm'...
+        'MeanZ','MeanP', ...
+        'MeanStimDur_s','StdStimDur_s', ...
+        'IFR_mean_Hz','IFR_max_Hz', ...
+        'IFR_mean_Znorm','IFR_baseline_Hz',...
+        'IFR_mean_baselineNorm', 'IFR_max_baselineNorm'...
         'ZETA_peakLatency','ZETA_invSign_Latency',...
         'IFR_peakLatency','IFR_peakOnset_Latency', ...
         'ZETA_peakLatencyVal','ZETA_invSign_LatencyVal',...
@@ -148,12 +153,14 @@ for k = 1:numel(fileList)
     PSTH_Hz          = cell(height(T),1);   % PSTH rate
     IFR_Time_s       = cell(height(T),1);   % IFR time axis
     IFR_Hz           = cell(height(T),1);   % IFR rates
-
+   
     IFR_mean_Hz      = nan(height(T),1);    % mean IFR
-    IFR_norm         = nan(height(T),1);    % z-score normalized IFR
-    IFR_baseline_Hz  = nan(height(T),1);    % baseline IFR
-    IFR_baselineNorm = nan(height(T),1);    % baseline normalized IFR
-
+    IFR_max_Hz       = nan(height(T),1);    % max IFR
+    IFR_mean_Znorm   = nan(height(T),1);    % z-score normalized mean IFR
+    IFR_baseline_Hz  = nan(height(T),1);    % baseline IFR (mean REST)
+    IFR_mean_baselineNorm = nan(height(T),1);    % baseline normalized mean IFR
+    IFR_max_baselineNorm  = nan(height(T),1);    % baseline normalized max IFR
+        
     % add sZETA.vecLatencies values:
     % ---- NEW: scalar latency outputs from sZETA.vecLatencies ----
     ZETA_peakLatency        = nan(height(T),1);
@@ -309,15 +316,22 @@ for k = 1:numel(fileList)
             if isfield(sI,'IFR_mean_Hz') && ~isempty(sI.IFR_mean_Hz)
                 IFR_mean_Hz(r) = sI.IFR_mean_Hz;
             end
-            if isfield(sI,'IFR_norm') && ~isempty(sI.IFR_norm)
-                IFR_norm(r) = sI.IFR_norm;
+            if isfield(sI,'IFR_max_Hz') && ~isempty(sI.IFR_max_Hz)
+                IFR_max_Hz(r) = sI.IFR_max_Hz;
+            end
+            if isfield(sI,'IFR_mean_Znorm') && ~isempty(sI.IFR_mean_Znorm)
+                IFR_mean_Znorm(r) = sI.IFR_mean_Znorm;
             end
             if isfield(sI,'IFR_baseline_Hz') && ~isempty(sI.IFR_baseline_Hz)
                 IFR_baseline_Hz(r) = sI.IFR_baseline_Hz;
             end
-            if isfield(sI,'IFR_baselineNorm') && ~isempty(sI.IFR_baselineNorm)
-                IFR_baselineNorm(r) = sI.IFR_baselineNorm;
+            if isfield(sI,'IFR_mean_baselineNorm') && ~isempty(sI.IFR_mean_baselineNorm)
+                IFR_mean_baselineNorm(r) = sI.IFR_mean_baselineNorm;
             end
+            if isfield(sI,'IFR_max_baselineNorm') && ~isempty(sI.IFR_max_baselineNorm)
+                IFR_max_baselineNorm(r) = sI.IFR_max_baselineNorm;
+            end
+
 
         else
             PSTH_TimeCenters{r} = [];
@@ -337,11 +351,14 @@ for k = 1:numel(fileList)
     T.IFR_Time_s         = IFR_Time_s;
     T.IFR_Hz             = IFR_Hz;
 
+    % add IFR values
     T.IFR_mean_Hz        = IFR_mean_Hz;
-    T.IFR_norm           = IFR_norm;
+    T.IFR_max_Hz         = IFR_max_Hz;
+    T.IFR_mean_Znorm     = IFR_mean_Znorm;
     T.IFR_baseline_Hz    = IFR_baseline_Hz;
-    T.IFR_baselineNorm   = IFR_baselineNorm;
-
+    T.IFR_mean_baselineNorm   = IFR_mean_baselineNorm;
+    T.IFR_max_baselineNorm    = IFR_max_baselineNorm;
+    
     % add sZETA.vecLatencies values:
     % 1) ZETA_peakLatency, 2) ZETA_invSign_Latency
     % 3) IFR_peakTime, 4) IFR_peakOnset_Latency
@@ -354,7 +371,6 @@ for k = 1:numel(fileList)
     T.ZETA_invSign_LatencyVal  = ZETA_invSign_LatencyVal;
     T.IFR_peakLatencyVal       = IFR_peakLatencyVal;
     T.IFR_peakOnset_LatencyVal = IFR_peakOnset_LatencyVal;
-
 
     % =====================================================================
 
@@ -738,7 +754,7 @@ for i = 1:height(cats)
     ylim([0, U.YMax]);              % fixed y-axis
 
     ylabel('ZETA z-score (ZetaZ)');
-    title(sprintf('ZETA z-scores | %s × %s  (N=%d subjects)', mvPretty, depthLbl, numel(uniqSubs)));
+    title(sprintf('ZETA z-scores | %s × %s  (N=%d hemispheres)', mvPretty, depthLbl, numel(uniqSubs)));
 
     legend('Location','northeastoutside');
 
@@ -768,6 +784,9 @@ for dd = 1:numel(depthKeys)
     dzKey = depthKeys(dd);
     ax = nexttile; hold(ax,'on'); grid(ax,'on');
 
+    dotSz = 55;          % <-- one size for everything
+    jitterW = 0.25;
+
     for mi = 1:numel(mv_order)
         mv = mv_order(mi);
 
@@ -781,36 +800,21 @@ for dd = 1:numel(depthKeys)
             fc = fallbackCol;
         end
 
-        % x position + jitter
-        x0 = mi * ones(sum(idx),1);
+        % One scatter: uniform size, no significance edge styling
+        s = scatter(ax, mi*ones(sum(idx),1), y_all(idx), dotSz, fc, 'filled', ...
+            'MarkerFaceAlpha', 0.9, ...
+            'MarkerEdgeColor', 'none');   % or [0.2 0.2 0.2] if you want a subtle border
+        s.XJitter = "rand";
+        s.XJitterWidth = jitterW;
 
-        % Split sig vs n.s. for edge styling
-        idx_sig = idx & isSig;
-        idx_ns  = idx & ~isSig;
-
-        if any(idx_ns)
-            s = scatter(ax, mi*ones(sum(idx_ns),1), y_all(idx_ns), 48, fc, 'filled', ...
-                'MarkerFaceAlpha', 0.9, 'MarkerEdgeColor', [0.65 0.65 0.65], 'LineWidth', 0.75);
-            s.XJitter = "rand";
-            s.XJitterWidth = 0.25;
-        end
-
-        if any(idx_sig)
-            s = scatter(ax, mi*ones(sum(idx_sig),1), y_all(idx_sig), 70, fc, 'filled', ...
-                'MarkerFaceAlpha', 0.95, 'MarkerEdgeColor', [0 0 0], 'LineWidth', 1.25);
-            s.XJitter = "rand";
-            s.XJitterWidth = 0.25;
-        end
-
-        % Median line for this MoveType in this depth
+        % Median line
         medY = median(y_all(idx), 'omitnan');
         medW = 0.20;
         line(ax, [mi-medW mi+medW], [medY medY], 'Color', fc, 'LineWidth', 2);
     end
 
-    % yline(ax, U.SigZ, '--', 'Color',[0.3 0.3 0.3], 'LineWidth', 1);
     % dashed threshold line at Z = SigZ
-    yline(ax, U.SigZ, '--', 'Color',[0.3 0.3 0.3], 'LineWidth', 1, 'DisplayName','ZETA significance threshold');
+    yline(ax, U.SigZ, '--', 'Color',[0.3 0.3 0.3], 'LineWidth', 1);
 
     xticks(ax, 1:numel(mv_order));
     xticklabels(ax, mv_order);
@@ -821,36 +825,34 @@ for dd = 1:numel(depthKeys)
     title(ax, sprintf('%s', depthNames(dd)));
 end
 
-% Legend (MoveType colors)
-hRE = scatter(nan,nan,60,moveColorMap('REST'),   'filled','DisplayName','Rest');
-hOC = scatter(nan,nan,60,moveColorMap('HAND OC'),'filled','DisplayName','Hand OC');
-hPS = scatter(nan,nan,60,moveColorMap('HAND PS'),'filled','DisplayName','Hand PS');
-hEF = scatter(nan,nan,60,moveColorMap('ARM EF'), 'filled','DisplayName','Arm EF');
 
-% ---- NEW: threshold line legend item ----
-hThr = line(nan,nan,'LineStyle','--','Color',[0.3 0.3 0.3],'LineWidth',1, ...
-    'DisplayName', sprintf('ZETA significance threshold (Z=%g)', U.SigZ)); % (p<0.05 & Z\geq2)
+% Legend (MoveType colors)
+hRE = scatter(nan,nan,dotSz,moveColorMap('REST'),   'filled','DisplayName','Rest');
+hOC = scatter(nan,nan,dotSz,moveColorMap('HAND OC'),'filled','DisplayName','Hand OC');
+hPS = scatter(nan,nan,dotSz,moveColorMap('HAND PS'),'filled','DisplayName','Hand PS');
+hEF = scatter(nan,nan,dotSz,moveColorMap('ARM EF'), 'filled','DisplayName','Arm EF');
+
+% ---- threshold line legend item ----
+hThr = line(nan,nan,'LineStyle','--','Color',[0.3 0.3 0.3],'LineWidth', 1, ...
+    'DisplayName', sprintf('Significance: z-score > %g', U.SigZ));
+                 % sprintf('Significance: p<%g & Z\\geq%g', U.SigP, U.SigZ));
 
 % Build one combined legend
 legHandles = [hRE hOC hPS hEF hThr];
+legLabels  = {'Rest','Hand OC','Hand PS','Arm EF', ...
+    sprintf('Significance: z-score > %g', U.SigZ)};
+  % sprintf('Significance: p<%g & Z\\geq%g', U.SigP, U.SigZ)};
 
-try
-    lgd = legend(legHandles, 'Orientation','horizontal');
-    if isprop(lgd,'Layout') && isprop(lgd.Layout,'Tile')
-        lgd.Layout.Tile = 'north';
-    else
-        delete(lgd);
-        axLeg = axes('Parent',hT,'Units','normalized','Position',[0 0 1 1], 'Visible','off');
-        lgd = legend(axLeg, legHandles, 'Orientation','horizontal','Box','off');
-        lgd.Units = 'normalized';
-        lgd.Position = [0.08 0.965 0.84 0.03];  % wider for extra items % [0.22 0.965 0.56 0.03];
-    end
-catch
-    legend(legHandles, 'Orientation','horizontal', 'Location','southoutside');
-end
+% Attach legend to one real axes (e.g., the first tile's axes)
+axForLegend = nexttile(tlo, 1);   % or store ax handles during loop and use axHandles(1)
 
+lgd = legend(axForLegend, legHandles, legLabels, ...
+    'Orientation','vertical', ...
+    'Location','northeastoutside', ...
+    'FontSize', 12, ...
+    'Box','off');
 
-title(tlo, sprintf('ZETA z-scores per Movement Type by STN depth')); % add (N=%d hemispheres)', numel(uniqSubsAll)
+title(tlo, sprintf('ZETA z-scores per Movement Type by STN Depth  (N=%d hemispheres)', numel(uniqSubsAll))); % add (N=%d hemispheres)', numel(uniqSubsAll)
 
 fnameAll2 = 'ZETA_Scatter_ByDepth_XisMoveType.png';
 print(hT, fullfile(groupOut, fnameAll2), '-dpng', '-r300');
@@ -864,9 +866,10 @@ writetable(MasterZETA, fullfile(groupOut, 'MasterZETA_AllSubjects.csv'));
 writetable(MasterZETA(:,[ ...
     "SubjectNum", "CaseDate","Hemisphere","HemisphereFilled","PrettyLabel", ...
     "MoveType","Depth", "nTrials", "dblZetaP", "ZetaZ", "ZetaD" , "ZetaTime", ...
-    "IFR_mean_Hz","IFR_norm","IFR_baseline_Hz","IFR_baselineNorm" ...
-    "ZETA_peakLatencyVal","ZETA_invSign_LatencyVal",...
-    "IFR_peakLatencyVal","IFR_peakOnset_LatencyVal"...
+    "IFR_mean_Hz", "IFR_max_Hz","IFR_mean_Znorm", "IFR_baseline_Hz", ...
+    "IFR_mean_baselineNorm", 'IFR_max_baselineNorm', ...
+    "ZETA_peakLatencyVal","ZETA_invSign_LatencyVal", ...
+    "IFR_peakLatencyVal","IFR_peakOnset_LatencyVal" ...
     ]), fullfile(groupOut,'MasterZETA_AllSubjects_Summary.csv'));
 
 

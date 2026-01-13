@@ -20,24 +20,30 @@ function [vecSpikeTimes_sec, matEventTimes_sec, useMaxDur_s, perTrialDur_s, kept
 % Read name–value options with defaults:
 p = inputParser;
 p.addParameter('UseMaxDur_s', [],        @(x) isempty(x) || isscalar(x));   
-p.addParameter('PadITI_s',     0.005,    @(x) isscalar(x) && x>=0);         % gap inserted between trials on the stitched timeline (prevents overlap)
+p.addParameter('PadITI_s',     0.005,    @(x) isscalar(x) && x>=0);         % 5 ms gap inserted between trials on the stitched timeline (prevents overlap)
 p.addParameter('MinDur_s',     0,        @(x) isscalar(x) && x>=0);
 p.addParameter('MaxDur_s',     inf,      @(x) isscalar(x) && x>0);
-p.addParameter('SpikeField',   'C1',     @(s) ischar(s) || isstring(s));
-p.addParameter('StartField',   'TTL_spk_idx_Start', @(s) ischar(s) || isstring(s));
-p.addParameter('StopField',    'TTL_spk_idx_End',   @(s) ischar(s) || isstring(s)); % goes from start of current rep to start of next rep (minus 5 frames), a full move rep
+p.addParameter('SpikeField',   'C1',     @(s) ischar(s) || isstring(s));    % default if only one cluster
+
+% event start (onset) and end (offset) timestamps (based on align_SpikesPerMove_TTL)
+p.addParameter('StartField',   'TTL_spk_idx_Start', @(s) ischar(s) || isstring(s)); % TTL_spk_idx_Start(move_i) - offset_spike_samples (50 ms), onset (t=0) minus 50ms
+p.addParameter('EndField',    'TTL_spk_idx_End',   @(s) ischar(s) || isstring(s));  % from start of current rep to start of next rep (minus 10 frames), a full move rep
+
 % lead-in / lead-out to keep around each event (seconds)
-p.addParameter('PreWindow_s',  0.050,      @(x) isscalar(x) && x>=0);
+p.addParameter('PreWindow_s',  0.050,      @(x) isscalar(x) && x>=0);       % 50 ms pre-onset
 p.addParameter('PostWindow_s', 0.000,      @(x) isscalar(x) && x>=0);
+
 % NEW FLAG
-p.addParameter('DropEmptySpikeTrials', true, @(x) isscalar(x) && (islogical(x) || isnumeric(x)));
+p.addParameter('DropEmptySpikeTrials', false, @(x) isscalar(x) && (islogical(x) || isnumeric(x)));
 
 p.parse(varargin{:}); % parse inputs
 ParsedInputs = p.Results; % holds parsed inputs
 
+
+% -------------------- ensure character inputs --------------------
 Spkf = char(ParsedInputs.SpikeField);
 Start_idx = char(ParsedInputs.StartField);
-End_idx = char(ParsedInputs.StopField);
+End_idx = char(ParsedInputs.EndField);
 
 % -------------------- validate columns --------------------
 needCols = {Spkf, Start_idx, End_idx};
@@ -68,7 +74,7 @@ end
 if logical(ParsedInputs.DropEmptySpikeTrials)
     keep = hasStartStop & hasSpikes;     % unit-centric
 else
-    keep = hasStartStop;                % rep-centric
+    keep = hasStartStop;                 % rep-centric
 end
 
 kept_tbl = move_tbl(keep,:);

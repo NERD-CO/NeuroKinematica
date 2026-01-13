@@ -1,4 +1,4 @@
-function C = runLMM_PlannedContrasts_NoREST(lme, varargin)
+function C = run_PlannedContrasts_NoREST(lme, varargin)
 
 % Planned contrasts for SU LME without REST:
 %   DV ~ MoveType*Depth + (1|Subject)

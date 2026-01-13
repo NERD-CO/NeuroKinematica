@@ -138,9 +138,11 @@ for k = 1:numel(fileList)
 
     % New: scalar IFR metrics per row (mirroring SU MasterZETA)
     IFR_mean_MUA          = nan(height(T),1);
-    IFR_norm_MUA          = nan(height(T),1);
+    IFR_max_MUA           = nan(height(T),1);
+    IFR_mean_Znorm_MUA    = nan(height(T),1);
     IFR_baseline_MUA      = nan(height(T),1);
-    IFR_baselineNorm_MUA  = nan(height(T),1);
+    IFR_mean_baselineNorm_MUA  = nan(height(T),1);
+    IFR_max_baselineNorm_MUA  = nan(height(T),1);
 
     % Assumes (optionally) a file:
     %   ...\Zeta Testing MUA\IFR_PSTH_MUA\<CaseID>_IFR_PSTH_MUA_All.mat
@@ -236,15 +238,22 @@ for k = 1:numel(fileList)
             if ismember('IFR_mean_Hz', IFRsumMUA.Properties.VariableNames)
                 IFR_mean_MUA(r) = double(IFRsumMUA.IFR_mean_Hz(idxI));
             end
-            if ismember('IFR_norm', IFRsumMUA.Properties.VariableNames)
-                IFR_norm_MUA(r) = double(IFRsumMUA.IFR_norm(idxI));
+            if ismember('IFR_max_Hz', IFRsumMUA.Properties.VariableNames)
+                IFR_max_MUA(r) = double(IFRsumMUA.IFR_max_Hz(idxI));
+            end
+            if ismember('IFR_mean_Znorm', IFRsumMUA.Properties.VariableNames)
+                IFR_mean_Znorm_MUA(r) = double(IFRsumMUA.IFR_mean_Znorm(idxI));
             end
             if ismember('IFR_baseline_Hz', IFRsumMUA.Properties.VariableNames)
                 IFR_baseline_MUA(r) = double(IFRsumMUA.IFR_baseline_Hz(idxI));
             end
-            if ismember('IFR_baselineNorm', IFRsumMUA.Properties.VariableNames)
-                IFR_baselineNorm_MUA(r) = double(IFRsumMUA.IFR_baselineNorm(idxI));
+            if ismember('IFR_mean_baselineNorm', IFRsumMUA.Properties.VariableNames)
+                IFR_mean_baselineNorm_MUA(r) = double(IFRsumMUA.IFR_mean_baselineNorm(idxI));
             end
+            if ismember('IFR_max_baselineNorm', IFRsumMUA.Properties.VariableNames)
+                IFR_max_baselineNorm_MUA(r) = double(IFRsumMUA.IFR_max_baselineNorm(idxI));
+            end
+
 
         else
             PSTH_TimeCenters_MUA{r} = [];
@@ -265,9 +274,11 @@ for k = 1:numel(fileList)
 
     % New scalar IFR metrics (same names as SU MasterZETA)
     T.IFR_mean_Hz        = IFR_mean_MUA;
-    T.IFR_norm           = IFR_norm_MUA;
+    T.IFR_max_Hz         = IFR_max_MUA;
+    T.IFR_mean_Znorm     = IFR_mean_Znorm_MUA;
     T.IFR_baseline_Hz    = IFR_baseline_MUA;
-    T.IFR_baselineNorm   = IFR_baselineNorm_MUA;
+    T.IFR_mean_baselineNorm   = IFR_mean_baselineNorm_MUA;
+    T.IFR_max_baselineNorm    = IFR_max_baselineNorm_MUA;
 
     % Append this case
     MasterZETA_MUA = [MasterZETA_MUA; T];
@@ -431,7 +442,7 @@ xlim([0.5, numel(uniqSubsAll)+0.5]);
 % y-axis fixed [0, U.YMax]
 ylim([0, U.YMax]);
 ylabel('ZETA z-score (ZetaZ_MUA)');
-title(sprintf('ZETA z-scores (MUA) | All categories (MoveType × Depth)  (N=%d subjects)', numel(uniqSubsAll)));
+title(sprintf('ZETA z-scores (MUA) | All categories (MoveType × Depth)  (N=%d hemispheres)', numel(uniqSubsAll)));
 legend('Location','northeastoutside');
 
 % Save
@@ -457,7 +468,7 @@ xj_all = x_all + jitter_all;
 
 % ----- data -----
 y_all    = MasterZETA_MUA.ZetaZ_MUA;
-isSig    = (MasterZETA_MUA.ZetaZ_MUA >= U.SigZ) & (MasterZETA_MUA.ZetaP_MUA <= U.SigP);
+% isSig    = (MasterZETA_MUA.ZetaZ_MUA >= U.SigZ) & (MasterZETA_MUA.ZetaP_MUA <= U.SigP);
 mv_all   = string(MasterZETA_MUA.MoveType);
 dz_all   = string(MasterZETA_MUA.Depth);
 
@@ -478,88 +489,76 @@ dz_all   = string(MasterZETA_MUA.Depth);
 depthKeys  = {'t','c','b'};
 depthNames = {'dorsal STN','central STN','ventral STN'};
 
+dotSz = 55;
+
 % Figure with 3 rows (one per depth)
 hT = figure('Color','w','Position',[90 90 1200 800]);
 tlo = tiledlayout(3,1,'TileSpacing','compact','Padding','compact');
 
 for dd = 1:numel(depthKeys)
-    dzKey = depthKeys{dd};
+    dzKey = depthKeys(dd);
     ax = nexttile; hold(ax,'on'); grid(ax,'on');
 
-    % within this depth, plot each MoveType with its color and edge by significance
+    % Plot each MoveType in this depth using JNE move colors
     movesHere = unique(mv_all(dz_all==dzKey),'stable');
-
     for im = 1:numel(movesHere)
         mv = movesHere(im);
-        % pick fill color
-        if isKey(moveColorMap, char(mv)), fc = moveColorMap(char(mv));
-        else, fc = fallbackCol; end
+
+        if isKey(moveColorMap, char(mv))
+            fc = moveColorMap(char(mv));
+        else
+            fc = fallbackCol;
+        end
 
         idx = (dz_all==dzKey) & (mv_all==mv) & ~isnan(y_all);
         if ~any(idx), continue; end
 
-        % non-sig
-        idx_ns = idx & ~isSig;
-        if any(idx_ns)
-            scatter(ax, xj_all(idx_ns), y_all(idx_ns), 36, fc, ...
-    'filled', 'MarkerEdgeColor','none', 'MarkerFaceAlpha', 0.95);
-
-        end
-
-        % sig
-        idx_sig = idx & isSig;
-        if any(idx_sig)
-            scatter(ax, xj_all(idx_sig), y_all(idx_sig), 60, fc, ...
-    'filled', 'MarkerEdgeColor','none', 'MarkerFaceAlpha', 0.95);
-
-        end
+        scatter(ax, xj_all(idx), y_all(idx), dotSz, fc, 'filled', ...
+            'MarkerFaceAlpha', 0.9, 'MarkerEdgeColor','none');
     end
 
-    % threshold and axes for this depth
+    % threshold line (no legend here; we'll keep legend clean via dummy handle if desired)
     yline(ax, U.SigZ, '--', 'Color',[0.3 0.3 0.3], 'LineWidth', 1);
+
     xticks(ax, 1:numel(uniqSubsAll));
     xticklabels(ax, uniqSubsAll);
     xtickangle(ax, 60);
     xlim(ax, [0.5, numel(uniqSubsAll)+0.5]);
+
     ylim(ax, [0, U.YMax]);
-    ylabel(ax, 'ZETA z-score (ZetaZ_MUA)');
+    ylabel(ax, 'ZETA z-score (ZetaZ\_MUA)');
     title(ax, sprintf('All MoveTypes | %s', depthNames{dd}));
 end
 
-% --- Legend (robust across MATLAB versions) ---
-% Dummy handles for MoveType colors + edge significance
-% hOC = scatter(nan,nan,50,mtColor('HAND OC'),'filled','MarkerEdgeColor',edgeGray,'DisplayName','Hand OC');
-% hPS = scatter(nan,nan,50,mtColor('HAND PS'),'filled','MarkerEdgeColor',edgeGray,'DisplayName','Hand PS');
-% hEF = scatter(nan,nan,50,mtColor('ARM EF'), 'filled','MarkerEdgeColor',edgeGray,'DisplayName','Arm EF');
-% hRE = scatter(nan,nan,50,mtColor('REST'),   'filled','MarkerEdgeColor',edgeGray,'DisplayName','Rest');
-% hNS = scatter(nan,nan,36,[1 1 1],'filled','MarkerEdgeColor',edgeGray,'DisplayName','n.s. edge');
-% hSG = scatter(nan,nan,36,[1 1 1],'filled','MarkerEdgeColor',edgeRed, 'DisplayName','sig edge');
-hOC = scatter(nan,nan,50,moveColorMap('HAND OC'),'filled', 'DisplayName','Hand OC');
-hPS = scatter(nan,nan,50,moveColorMap('HAND PS'),'filled', 'DisplayName','Hand PS');
-hEF = scatter(nan,nan,50,moveColorMap('ARM EF'), 'filled', 'DisplayName','Arm EF');
-hRE = scatter(nan,nan,50,moveColorMap('REST'),   'filled', 'DisplayName','Rest');
+% Legend (MoveType colors) + threshold explanation
+hRE = scatter(nan,nan,dotSz,moveColorMap('REST'),   'filled','DisplayName','Rest');
+hOC = scatter(nan,nan,dotSz,moveColorMap('HAND OC'),'filled','DisplayName','Hand OC');
+hPS = scatter(nan,nan,dotSz,moveColorMap('HAND PS'),'filled','DisplayName','Hand PS');
+hEF = scatter(nan,nan,dotSz,moveColorMap('ARM EF'), 'filled','DisplayName','Arm EF');
+
+hThr = line(nan,nan,'LineStyle','--','Color',[0.3 0.3 0.3],'LineWidth',1, ...
+    'DisplayName', sprintf('Significance: p<%g & Z\\geq%g', U.SigP, U.SigZ));
+
+legHandles = [hRE hOC hPS hEF hThr];
+
 
 % Try to dock in the tiledlayout header (newer MATLAB), otherwise overlay legend on an invisible axes
 try
-    lgd = legend([hOC hPS hEF hRE], 'Orientation','horizontal');
+    lgd = legend(legHandles, 'Orientation','horizontal');
     if isprop(lgd,'Layout') && isprop(lgd.Layout,'Tile')
-        lgd.Layout.Tile = 'north';     % docks legend above the tiles
+        lgd.Layout.Tile = 'north';
     else
-        % Fallback: overlay legend in figure using an invisible, full-figure axes
-        delete(lgd); % remove the axes-attached legend first
+        delete(lgd);
         axLeg = axes('Parent',hT,'Units','normalized','Position',[0 0 1 1], 'Visible','off');
-        lgd = legend(axLeg,[hOC hPS hEF hRE], 'Orientation','horizontal','Box','off');
-        % Tweak position near the top center (x y w h in normalized fig coords)
+        lgd = legend(axLeg, legHandles, 'Orientation','horizontal','Box','off');
         lgd.Units = 'normalized';
-        lgd.Position = [0.32 0.965 0.36 0.03];   % adjust if needed
+        lgd.Position = [0.08 0.965 0.84 0.03];
     end
 catch
-    % Absolute fallback: put a standard legend below the bottom tile
-    lgd = legend([hOC hPS hEF hRE], 'Orientation','horizontal', 'Location','southoutside');
+    legend(legHandles, 'Orientation','horizontal', 'Location','southoutside');
 end
 
-% Figure title for the whole tiledlayout
-title(tlo, sprintf('ZETA z-scores (MUA) | All Movement Types by STN depth '));
+title(tlo, sprintf('ZETA z-scores (MUA) | All Movement Types by STN depth (N=%d hemispheres)', numel(uniqSubsAll)));
 
 fnameAll2 = 'ZETA_Scatter_MUA_AllCategories_ByDepth_Tiles.png';
 print(hT, fullfile(groupOut, fnameAll2), '-dpng', '-r300');
@@ -622,7 +621,7 @@ for i = 1:height(cats)
     ylim([0, U.YMax]);              % fixed y-axis
 
     ylabel('ZETA z-score (ZetaZ_MUA)');
-    title(sprintf('ZETA z-scores (MUA) | %s × %s  (N=%d subjects)', mvPretty, depthLbl, numel(uniqSubs)));
+    title(sprintf('ZETA z-scores (MUA) | %s × %s  (N=%d hemispheres)', mvPretty, depthLbl, numel(uniqSubs)));
 
     legend('Location','northeastoutside');
 
@@ -633,8 +632,115 @@ for i = 1:height(cats)
 end
 
 
+%% 5) ZETA scatter (MUA) by depth (rows) with x = MoveType (REST, HAND OC, HAND PS, ARM EF)
+% Color = MoveType (JNE greens), uniform dots, jitter + median line per MoveType.
 
-%% 5) Save MasterZETA_MUA
+mv_order   = ["REST","HAND OC","HAND PS","ARM EF"];
+depthKeys  = ["t","c","b"];
+depthNames = ["dorsal STN","central STN","ventral STN"];
+
+y_all  = MasterZETA_MUA.ZetaZ_MUA;
+mv_all = string(strtrim(MasterZETA_MUA.MoveType));
+dz_all = string(strtrim(MasterZETA_MUA.Depth));
+
+dotSz   = 55;
+jitterW = 0.25;
+
+hT = figure('Color','w','Position',[90 90 950 900]);
+tlo = tiledlayout(3,1,'TileSpacing','compact','Padding','compact');
+
+for dd = 1:numel(depthKeys)
+    dzKey = depthKeys(dd);
+    ax = nexttile; hold(ax,'on'); grid(ax,'on');
+
+    for mi = 1:numel(mv_order)
+        mv = mv_order(mi);
+
+        idx = (dz_all==dzKey) & (mv_all==mv) & ~isnan(y_all);
+        if ~any(idx), continue; end
+
+        % MoveType color (JNE)
+        if isKey(moveColorMap, char(mv))
+            fc = moveColorMap(char(mv));
+        else
+            fc = fallbackCol;
+        end
+
+        % Uniform scatter
+        s = scatter(ax, mi*ones(sum(idx),1), y_all(idx), dotSz, fc, 'filled', ...
+            'MarkerFaceAlpha', 0.9, 'MarkerEdgeColor','none');
+        s.XJitter = "rand";
+        s.XJitterWidth = jitterW;
+
+        % Median line
+        medY = median(y_all(idx), 'omitnan');
+        medW = 0.20;
+        line(ax, [mi-medW mi+medW], [medY medY], 'Color', fc, 'LineWidth', 2);
+    end
+
+    % Threshold line (shown in legend via dummy handle)
+    yline(ax, U.SigZ, '--', 'Color',[0.3 0.3 0.3], 'LineWidth', 1);
+
+    xticks(ax, 1:numel(mv_order));
+    xticklabels(ax, mv_order);
+    xlim(ax, [0.5, numel(mv_order)+0.5]);
+
+    ylim(ax, [0, U.YMax]);
+    ylabel(ax, 'ZETA z-score');
+    title(ax, sprintf('%s', depthNames(dd)));
+end
+
+% Legend (MoveType colors) + threshold explanation
+hRE = scatter(nan,nan,dotSz,moveColorMap('REST'),   'filled','DisplayName','Rest');
+hOC = scatter(nan,nan,dotSz,moveColorMap('HAND OC'),'filled','DisplayName','Hand OC');
+hPS = scatter(nan,nan,dotSz,moveColorMap('HAND PS'),'filled','DisplayName','Hand PS');
+hEF = scatter(nan,nan,dotSz,moveColorMap('ARM EF'), 'filled','DisplayName','Arm EF');
+
+hThr = line(nan,nan,'LineStyle','--','Color',[0.3 0.3 0.3],'LineWidth',1, ...
+    'DisplayName', sprintf('Significance: z-score > %g', U.SigZ));
+                 % sprintf('Significance: p<%g & Z\\geq%g', U.SigP, U.SigZ));
+
+legHandles = [hRE hOC hPS hEF hThr];
+legLabels  = {'Rest','Hand OC','Hand PS','Arm EF', ...
+    sprintf('Significance: z-score > %g', U.SigZ)};
+  % sprintf('Significance: p<%g & Z\\geq%g', U.SigP, U.SigZ)};
+
+% try
+%     lgd = legend(legHandles, 'Orientation','horizontal');
+%     if isprop(lgd,'Layout') && isprop(lgd.Layout,'Tile')
+%         lgd.Layout.Tile = 'north';
+%     else
+%         delete(lgd);
+%         axLeg = axes('Parent',hT,'Units','normalized','Position',[0 0 1 1], 'Visible','off');
+%         lgd = legend(axLeg, legHandles, 'Orientation','horizontal','Box','off');
+%         lgd.Units = 'normalized';
+%         lgd.Position = [0.08 0.965 0.84 0.03];
+%     end
+% catch
+%     legend(legHandles, 'Orientation','horizontal', 'Location','southoutside');
+% end
+
+% Attach legend to one real axes (e.g., the first tile's axes)
+axForLegend = nexttile(tlo, 1);   % or store ax handles during loop and use axHandles(1)
+
+lgd = legend(axForLegend, legHandles, legLabels, ...
+    'Orientation','vertical', ...
+    'Location','northeastoutside', ...
+    'FontSize', 12, ...
+    'Box','off');
+
+% Use the same N as your 3a plot (hemispheres)
+prettyPerRow = MasterZETA_MUA.PrettyLabel;
+[uniqSubsAll,~,~] = unique(prettyPerRow,'stable');
+
+title(tlo, sprintf('ZETA z-scores (MUA) per Movement Type by STN Depth  (N=%d hemispheres)', numel(uniqSubsAll)));
+
+fname = 'ZETA_Scatter_MUA_ByDepth_XisMoveType.png';
+print(hT, fullfile(groupOut, fname), '-dpng', '-r300');
+close(hT);
+
+
+%% 6) Save MasterZETA_MUA
 
 writetable(MasterZETA_MUA, fullfile(groupOut, 'MasterZETA_MUA_AllSubjects.csv'));
 

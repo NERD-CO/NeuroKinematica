@@ -1,4 +1,4 @@
-function OUT = runIFR_LMMs(T, dvList, varargin)
+function OUT = run_LMMs(T, dvList, varargin)
 
 % runIFR_LMMs
 % Fits LMM per DV: DV ~ 1 + MoveType*Depth + (1|Subject)
@@ -10,21 +10,12 @@ function OUT = runIFR_LMMs(T, dvList, varargin)
 %   'MinRows'          : 5 (default)
 %   'MinSubjects'      : 2 (default)
 %   'VerboseCoefs'     : false (default) -> print coefficient names
-%
-% dvList example:
-% ["IFR_norm","IFR_baselineNorm","IFR_mean_Hz","logIFR_mean_Hz", ...
-%  "IFR_peakLatency","IFR_peakOnset_Latency"]
 
 % varargin name-value:
 p = inputParser;
 p.addParameter('FitMethod','ML', @(x)ischar(x)||isstring(x));
 p.parse(varargin{:});
 FitMethod = char(p.Results.FitMethod);
-
-% IFR DVs default
-if nargin < 2 || isempty(dvList)
-    dvList = ["IFR_norm","IFR_baselineNorm"];
-end
 
 % Ensure categoricals
 % (Order should be set upstream in your pipeline to enforce references.)

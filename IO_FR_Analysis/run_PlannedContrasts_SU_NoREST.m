@@ -1,4 +1,4 @@
-function C = runIFR_PlannedContrasts_SU_NoREST(lme, varargin)
+function C = run_PlannedContrasts_SU_NoREST(lme, varargin)
 
 % Planned contrasts for SU LME without REST:
 %   DV ~ MoveType*Depth + (1|Subject)

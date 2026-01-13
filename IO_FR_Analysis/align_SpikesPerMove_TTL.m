@@ -18,6 +18,7 @@ cd(Move_CaseVideos)
 
 %% define offset duration
 
+% pre_offset_ms = 50; % milliseconds
 offset_seconds = pre_offset_ms / 1000; % seconds
 
 % Calculate the number of TTL samples
@@ -151,50 +152,6 @@ for spk_mat_name = 1:length(SPKmatnames)
         frame_endTime = min(frame_endTime, nFramesTTL);
         frame_endTime = round(frame_endTime);
 
-        % -------------------------------------------------------------------------
-
-        % mv = string(SpkMoveTbl.MoveType(move_i));
-        %
-        % if any(mv == ["HAND OC","HAND PS","ARM EF"])
-        %     % Candidate 1: next BeginF - buffer (if there is a next row)
-        %     if ~isnan(SpkMoveTbl.BeginF(move_i + 1))
-        %         frame_endTime = SpkMoveTbl.BeginF(move_i + 1) - frameLead_buffer;
-        %     else
-        %         % If the next BeginF is missing, fall back to last TTL frame
-        %         frame_endTime = nFramesTTL;
-        %     end
-        %
-        % elseif mv == "REST"
-        %     % Candidate 2: this row's EndF
-        %     frame_endTime = frame_endTime1;
-        %
-        % elseif isLastRow
-        %     % Candidate 3: last TTL frame for the last row
-        %     frame_endTime = nFramesTTL;
-        %
-        % else
-        %     % Fallback for any other MoveType: behave like REST (use EndF)
-        %     frame_endTime = frame_endTime1;
-        % end
-        %
-        % % Safety clamps: finite, within [start+1, nFramesTTL], and integer
-        % if ~isfinite(frame_endTime) || isnan(frame_endTime)
-        %     frame_endTime = nFramesTTL;
-        % end
-        % % Ensure at least one frame long
-        % frame_endTime = max(frame_endTime, frame_startTime + 1);
-        % % Don't exceed last TTL frame
-        % frame_endTime = min(frame_endTime, nFramesTTL);
-        % frame_endTime = round(frame_endTime);  % frames should be integer indices
-
-        % -----------------------------------------------------------
-
-        % % Ensure ≥1 frame long
-        % if frame_endTime <= frame_startTime
-        %     frame_endTime = min(frame_startTime + 1, nFramesTTL);
-        % end
-
-        % --------------------------------------------------------------
 
         % --- fetch TTL sample indices for those frames (cell- or numeric-safe) ---
         if iscell(TTL_Down)
@@ -206,7 +163,7 @@ for spk_mat_name = 1:length(SPKmatnames)
         end
         % --------------------------------------------------------------
 
-
+        
         % define AO recording times
         AO_startTime = spikeClInfo.AOstartTS;
 
@@ -269,7 +226,6 @@ for spk_mat_name = 1:length(SPKmatnames)
     SpkMoveTbl.move_trial_ID = move_trial_ID;
     SpkMoveTbl.TTL_spk_idx_Start = TTL_spk_idx_Start;
     SpkMoveTbl.TTL_spk_idx_End = TTL_spk_idx_End;
-
 
     All_spikesPermove{spk_mat_name} = SpkMoveTbl;
 
@@ -336,15 +292,6 @@ save('All_SpikesPerMove_offset.mat',"All_SpikesPerMove_Tbl");
 
 
 %% next steps
-
-% movement indices from raw case vids
-% 3/09/2023     - incomplete case contexts, revisit (Ruby)
-% 3/23/2023     - complete, awesome case
-% 4/05/2023     - complete, awesome case
-% 4/13/2023_L   - complete, odd results, revisit
-% 5/11/2023     - incomplete case contexts, revisit (Ruby)
-% ...
-
 
 % firing rate cut off for STN spike clusters
 % bin size

@@ -114,16 +114,17 @@ for csv_i = 1:length(useCSV)
     tIME = transpose(seconds(0:1/60:(length(euclidall)-1)/60));
 
     euclidTT = array2timetable(euclidall,'RowTimes',tIME);
+    figure
+    hold off
     stackedplot(euclidTT)
 
-    tmpCSVpng = extractBefore(tmpCSV,'.');
-    % fileNAME = [moveTypeIDs{mmi}, ' ', sessID , ' ' , runID];
-    title(tmpCSVpng)
-    cd(mainDirCSV)
-
-
-    saveas(gcf,tmpCSVpng,'png')
-
+    % tmpCSVpng = extractBefore(tmpCSV,'.');
+    % % fileNAME = [moveTypeIDs{mmi}, ' ', sessID , ' ' , runID];
+    % title(tmpCSVpng)
+    % cd(mainDirCSV)
+    % 
+    % 
+    % saveas(gcf,tmpCSVpng,'png')
 
 
 end

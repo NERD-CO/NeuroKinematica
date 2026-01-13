@@ -78,7 +78,7 @@ Active_moveTypes = {'HAND OC','HAND PS','ARM EF'};  % consistent plotting order
 %     [0.20 0.65 0.30], ... % Hand PS = green
 %     [0.15 0.45 0.85], ... % Arm EF  = blue
 %     [0.60 0.60 0.60]});   % Rest    = gray
-% 
+%
 % Active_mtColors = containers.Map( ...
 %     {'HAND OC','HAND PS','ARM EF'}, ...
 %     {[0.95 0.60 0.10], ... % Hand OC = orange
@@ -114,7 +114,7 @@ hasT = ~cellfun(@isempty, MasterZETA.PSTH_TimeCenters_s);
 
 
 %% =========================================================
-%  PART 1: Single-depth 3D PCA (PC1,PC2,PC3) for depthCode
+%  PART 1: Single 3D PCA (PC1,PC2,PC3) plot per depth
 % ==========================================================
 
 isDepth = MasterZETA.Depth == string(depthCode);
@@ -162,7 +162,7 @@ if ~isAllDepths
     PC3 = score(:,3);
 
 
-    %% --- FIGURE: clean, not-enormous 3D scatter ---
+    %% --- 3D scatter ---
 
     hFig = figure('Color','w', ...
         'Units','pixels', ...
@@ -176,7 +176,7 @@ if ~isAllDepths
 
     % Plot each MoveType with its own color
     mtOrder = moveTypes; % {'HAND OC','HAND PS','ARM EF','REST'};
-   
+
     % Collect handles for legend
     hLegend = gobjects(1,numel(mtOrder));
 
@@ -186,11 +186,10 @@ if ~isAllDepths
         if ~any(idx), continue; end
 
         if isKey(moveColorMap, mv)
-    c = moveColorMap(mv);
-else
-    c = fallbackCol;
-end
-
+            c = moveColorMap(mv);
+        else
+            c = fallbackCol;
+        end
 
         % % Scatter points
         % scatter3(ax, PC1(idx), PC2(idx), PC3(idx), ...
@@ -198,7 +197,7 @@ end
 
         % Scatter and capture handle
         hLegend(mIdx) = scatter3(ax, PC1(idx), PC2(idx), PC3(idx), ...
-             50, c, 'filled', 'MarkerFaceAlpha',0.9);
+            50, c, 'filled', 'MarkerFaceAlpha',0.9);
 
         % Optional trajectory lines (exclude REST)
         if U.DoLines && ~strcmp(mv,'REST')
@@ -225,7 +224,7 @@ end
 
     % View / scaling
     view(ax, [-40 20]);   % azimuth, elevation
-    axis(ax,'vis3d');     % preserves aspect ratio under rotation
+    axis(ax,'vis3d');     % preserve aspect ratio under rotation
 
     % Optional: center axes around data with small margin
     margin = 0.1;
@@ -250,6 +249,7 @@ end
         fprintf('Saved single-depth 3D PCA figure to:\n  %s\n', outSingle);
     end
 end
+
 
 %% =========================================================
 %  PART 2: Tiled layout (1×3) across depths (t,c,b)
@@ -284,16 +284,18 @@ if U.DoTiled || isAllDepths
             continue;
         end
 
-        % Build aligned matrix and PCA for this depth
+        % Build time-aligned matrix and PCA for this depth
         [Xd, t_used, mtPerUnit_d, ~] = build_SU_ZETA_timeAlignedMatrix(Md, ...
-            'DepthCode', dz);
+            'DepthCode', dz); % Xd = [units x time]
 
         if size(Xd,2) < 3
             title(ax, sprintf('Too few units for 3D PCA | depth %s', dz));
             continue;
         end
 
-        [coeff_d, score_d, latent_d] = pca(Xd', 'Centered', true);
+        [coeff_d, score_d, latent_d] = pca(Xd', 'Centered', true); % Xd = [units x time]
+        % score_d = unit coordinates in PC space; 
+        % coeff_d is time-bin loadings (a temporal "shape" per PC)
         if size(score_d,2) < 3
             score_d(:,3) = 0;
         end
@@ -355,6 +357,14 @@ if U.DoTiled || isAllDepths
         axis(ax,'vis3d');
     end
 
+    
+    % --- standardize axis box geometry across tiles ---
+    set(ax, 'PlotBoxAspectRatio', [1 1 1]);   % forces cube-like plot box
+    set(ax, 'DataAspectRatioMode','manual');  % keep consistent
+    daspect(ax, [1 1 1]);                     % equal scaling in x,y,z
+    ax.PositionConstraint = 'innerposition';  % keeps inner box consistent
+
+
     % Apply uniform limits across all valid axes
     validAxes = axHandles(isgraphics(axHandles));
     if ~isempty(validAxes) && isfinite(globalXmin)
@@ -369,6 +379,13 @@ if U.DoTiled || isAllDepths
             zlim(ax, [globalZmin-mz, globalZmax+mz]);
         end
     end
+    
+    % --- standardize axis box geometry across tiles ---
+    for ax = reshape(validAxes,1,[])
+        set(ax, 'PlotBoxAspectRatio', [1 1 1]);
+        ax.PositionConstraint = 'innerposition';
+    end
+
 
     % --- Global legend (dummy handles so all MoveTypes appear) ---
     firstAx = validAxes(1);
@@ -407,7 +424,7 @@ end
 
 
 %% =========================================================
-%  PART 3: Exclude REST - Single-depth 3D PCA (PC1,PC2,PC3) 
+%  PART 3: Exclude REST - Single-depth 3D PCA (PC1,PC2,PC3)
 % ==========================================================
 
 if ~isAllDepths
@@ -464,7 +481,7 @@ if ~isAllDepths
 
     % Plot each MoveType with its own color
     Active_mtOrder = Active_moveTypes; % exclude REST
-   
+
     % Collect handles for legend
     hLegend = gobjects(1,numel(Active_mtOrder));
 
@@ -485,7 +502,7 @@ if ~isAllDepths
 
         % Scatter and capture handle
         hLegend(mIdx) = scatter3(ax, PC1(idx), PC2(idx), PC3(idx), ...
-             50, c, 'filled', 'MarkerFaceAlpha',0.9);
+            50, c, 'filled', 'MarkerFaceAlpha',0.9);
 
         % Optional trajectory lines (exclude REST)
         if U.DoLines && ~strcmp(mv,'REST')
@@ -539,7 +556,7 @@ if ~isAllDepths
 end
 
 %% =========================================================
-%  PART 4: Exclude REST - Tiled layout (1×3) across depths 
+%  PART 4: Exclude REST - Tiled layout (1×3) across depths
 % ==========================================================
 
 if U.DoTiled || isAllDepths
@@ -642,10 +659,16 @@ if U.DoTiled || isAllDepths
         axis(ax,'vis3d');
     end
 
+    % --- standardize axis box geometry across tiles ---
+    set(ax, 'PlotBoxAspectRatio', [1 1 1]);   % forces cube-like plot box
+    set(ax, 'DataAspectRatioMode','manual');  % keep consistent
+    daspect(ax, [1 1 1]);                     % equal scaling in x,y,z
+    ax.PositionConstraint = 'innerposition';  % keeps inner box consistent
+
     % Apply uniform limits across all valid axes
     validAxes = axHandles(isgraphics(axHandles));
     if ~isempty(validAxes) && isfinite(globalXmin)
-        % add a small margin around the global range
+        % add small margin around the global range
         mx = 0.1 * max(1, globalXmax - globalXmin);
         my = 0.1 * max(1, globalYmax - globalYmin);
         mz = 0.1 * max(1, globalZmax - globalZmin);
@@ -655,6 +678,12 @@ if U.DoTiled || isAllDepths
             ylim(ax, [globalYmin-my, globalYmax+my]);
             zlim(ax, [globalZmin-mz, globalZmax+mz]);
         end
+    end
+
+    % --- standardize axis box geometry across tiles ---
+    for ax = reshape(validAxes,1,[])
+        set(ax, 'PlotBoxAspectRatio', [1 1 1]);
+        ax.PositionConstraint = 'innerposition';
     end
 
     % --- Global legend (dummy handles so all MoveTypes appear) ---
@@ -674,7 +703,7 @@ if U.DoTiled || isAllDepths
     lgd.Title.String = 'MoveType';
 
 
-    % --- Global title as annotation (avoids overlap with dorsal title) ---
+    % --- Global title as annotation ---
     annotation(hTile,'textbox',[0.05 0.96 0.9 0.04], ...
         'String','3-D PCA of ZETA deviation across STN depths', ...
         'HorizontalAlignment','center', ...

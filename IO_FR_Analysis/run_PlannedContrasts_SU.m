@@ -1,6 +1,6 @@
-function C = runIFR_PlannedContrasts_SU(lme, varargin)
+function C = run_PlannedContrasts_SU(lme, varargin)
 
-% runIFR_PlannedContrasts_SU
+% run_PlannedContrasts_SU
 %
 % Planned contrasts for SU LME: DV ~ MoveType*Depth + (1|Subject)
 % Reference: MoveType=REST, Depth=b (ventral)
@@ -16,7 +16,7 @@ p.addParameter('Alpha', 0.05, @(x) isnumeric(x) && isscalar(x) && x>0 && x<1);
 p.addParameter('DoActiveMeanVsRest', true, @islogical);   % mean(active) vs REST within depth
 p.addParameter('DoRestVsEachActive', true, @islogical);   % REST vs each active within depth
 p.addParameter('DoActivePairs', true, @islogical);        % active-active pairwise within depth
-p.addParameter('DoDepthDiffOfDiff', true, @islogical);    % (move-rest) depth modulation vs refernce depth
+p.addParameter('DoDepthDiffOfDiff', true, @islogical);    % (move-rest) depth modulation vs dorsal
 p.addParameter('DoDepthPairs', true, @islogical);         % depth modulation of ActivePairs (A-B) across depths vs b
 p.addParameter('DoSameMoveAcrossDepth', true, @islogical); % mv@t-vs-b and mv@c-vs-b (includes REST optionally)
 
