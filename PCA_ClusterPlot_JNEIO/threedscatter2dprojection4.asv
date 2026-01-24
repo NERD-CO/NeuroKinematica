@@ -5,7 +5,7 @@
 
 x = score(:,1);
 y = score(:,2);
-z = score(:,3);
+x = score(:,3);
 
 %%
 

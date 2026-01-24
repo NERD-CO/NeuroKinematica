@@ -856,7 +856,9 @@ title(tlo, sprintf('ZETA z-scores per Movement Type by STN Depth  (N=%d hemisphe
 
 fnameAll2 = 'ZETA_Scatter_ByDepth_XisMoveType.png';
 print(hT, fullfile(groupOut, fnameAll2), '-dpng', '-r300');
-close(hT);
+% close(hT);
+
+% savefig(ht, fullfile(groupOut, fnameAll2), '.fig');
 
 
 %% Save the Master table for reference

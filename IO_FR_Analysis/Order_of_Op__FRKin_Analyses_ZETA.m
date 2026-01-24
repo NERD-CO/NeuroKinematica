@@ -505,7 +505,7 @@ MasterZETA = aggregate_ZETA_and_plot(FR_Kin_Dir, ...
     'IO_DataDir', IO_DataDir, ...
     'ZetaCsvNamePattern','*_ZETA_Summary.csv', ...
     'SigZ', 2, 'SigP', 0.05, ...
-    'YMax', 6);
+    'YMax', 7);
 
 % in all_sZETA, extract vecLatencies values and add to MasterZETA
         % 1) ZETA_peakLatency, 2) ZETA_invSign_Latency
@@ -588,7 +588,7 @@ end
 % (like in the '...AllCategories_ByDepth_Tiles') plot created by the aggregate_ZETA_and_plot function)
 
 
-%% Spikes - PCA of ZETA_vecD across Subjects - Spikes for each MoveType x STN Depth
+%% SU Spikes - PCA of ZETA_vecD across Subjects (per MoveType x STN Depth)
 % Clustered Spike Fields (C1, C2, ..., Cn)
 
 SavePath = fullfile(FR_Kin_Dir, 'Aggregate Zeta Plots', 'PCA Plots');
@@ -597,14 +597,14 @@ run_PCA_ZETA_byCategory(MasterZETA, 'SavePath', SavePath, ...
     'PeakMode','abs', 'PeakSmooth_N', 11, 'PeakWindow_s',[0.05 1.6]);
 
 
-%% MUA - PCA of ZETA_vecD across Subjects - MUA for each MoveType x STN Depth
+%% MUA - PCA of ZETA_vecD across Subjects (per MoveType x STN Depth)
 % MUA on electrode 1 / C1_MUA
 
 run_PCA_ZETA_MUA_byCategory(MasterZETA_MUA, 'SavePath', SavePath, ...
     'PeakMode','abs', 'PeakSmooth_N', 11, 'PeakWindow_s',[0.05 1.6]);
 
 
-%% Spikes - 3D PCA Plots
+%% SU Spikes - 3D PCA Plots
 
 SavePath = fullfile(FR_Kin_Dir, 'Aggregate Zeta Plots', '3D PCA Plots');
 
@@ -633,6 +633,15 @@ plot_ZETA_PCA_3D_byDepth_MUA(MasterZETA_MUA, 'b', 'SavePath', SavePath, 'DoLines
 plot_ZETA_PCA_3D_byDepth_MUA(MasterZETA_MUA, 'all depths', ...
     'SavePath', SavePath, 'DoLines', true);
 
+
+%% SU - 3D-PCA Convex Hull and Silhouette Plots
+
+PCA_Silhouette_stats = plot_ZETA_3DPCA_ConvexHull_byDepth(MasterZETA, varargin);
+
+
+%% SU - 3D-PCA Convex Hull and Silhouette Plots
+
+PCA_Silhouette_stats_MUA = plot_ZETA_3DPCA_ConvexHull_byDepth(MasterZETA_MUA, varargin);
 
 %% Heat plot
 

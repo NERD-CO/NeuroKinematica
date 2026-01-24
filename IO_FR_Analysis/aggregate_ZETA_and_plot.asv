@@ -852,25 +852,16 @@ lgd = legend(axForLegend, legHandles, legLabels, ...
     'FontSize', 12, ...
     'Box','off');
 
-
-% Make room on the right for the legend
-tlo.Padding = 'compact';
-tlo.TileSpacing = 'compact';
-hT.Position = [90 90 950 900];
-% shrink tiled area by adjusting figure/legend position
-
-% Put legend outside, top-right, vertical
-axLeg = axes('Parent',hT,'Units','normalized','Position',[0 0 1 1], 'Visible','off');
-lgd = legend(axLeg, legHandles, 'Orientation','vertical', 'Box','off');
-lgd.Units = 'normalized';
-lgd.Position = [0.86 0.78 0.13 0.18];  % tweak: [x y w h] (outside tiles)
-
-
 title(tlo, sprintf('ZETA z-scores per Movement Type by STN Depth  (N=%d hemispheres)', numel(uniqSubsAll))); % add (N=%d hemispheres)', numel(uniqSubsAll)
 
 fnameAll2 = 'ZETA_Scatter_ByDepth_XisMoveType.png';
 print(hT, fullfile(groupOut, fnameAll2), '-dpng', '-r300');
 close(hT);
+
+
+fnameAll3 = 'ZETA_Scatter_ByDepth_XisMoveType.fig';
+
+savefig(ht, fullfile(groupOut, fnameAll2), '.fig'));
 
 
 %% Save the Master table for reference

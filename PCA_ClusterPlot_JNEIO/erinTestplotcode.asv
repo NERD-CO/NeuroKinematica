@@ -111,7 +111,6 @@ zlabel(ax,'PC3 score','FontSize',14,'FontWeight','bold');
 % Title
 title(ax, sprintf('3-D PCA of ZETA deviation | %s', depthCodeSingle), ...
     'FontSize',16);
-
 % Legend
 legend(ax, hLegend, mtOrder, 'Location','northeastoutside', 'FontSize', 11);
 % View / scaling

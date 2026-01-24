@@ -737,7 +737,9 @@ title(tlo, sprintf('ZETA z-scores (MUA) per Movement Type by STN Depth  (N=%d he
 
 fname = 'ZETA_Scatter_MUA_ByDepth_XisMoveType.png';
 print(hT, fullfile(groupOut, fname), '-dpng', '-r300');
-close(hT);
+% close(hT);
+
+% savefig(ht, fullfile(groupOut, fname), '.fig');
 
 
 %% 6) Save MasterZETA_MUA
