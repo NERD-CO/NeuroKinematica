@@ -65,15 +65,21 @@ purpleShades = ([ ...
     231-15, 212-15, 232-15] ... % ventral STN (b)
     ./ 255);
 
-greenShades = ([ ...
-    128,128,128;     % REST
-    217-15,240-15,211-15;     % HAND OC
-    127,191,123;     % HAND PS
-    27,120,55] ...   % ARM EF
-    ./ 255);
+% greenShades = ([ ...
+%     128,128,128;     % REST
+%     217-15,240-15,211-15;     % HAND OC
+%     127,191,123;     % HAND PS
+%     27,120,55] ...   % ARM EF
+%     ./ 255);
+JNE_move = ([ ...
+    128,128,128;    % REST  (grey)
+    38,116,183;     % HAND OC  (blue)
+    53,183,121;     % HAND PS  (green/teal)
+    243,120,98] ...   % ARM EF   (coral)
+    ./ 255);  % /255 = standard
 
 depthColorMap = containers.Map({'t','c','b'}, {purpleShades(1,:), purpleShades(2,:), purpleShades(3,:)});
-moveColorMap  = containers.Map({'REST','HAND OC','HAND PS','ARM EF'}, {greenShades(1,:), greenShades(2,:), greenShades(3,:), greenShades(4,:)});
+moveColorMap  = containers.Map({'REST','HAND OC','HAND PS','ARM EF'}, {JNE_move(1,:), JNE_move(2,:), JNE_move(3,:), JNE_move(4,:)});
 fallbackCol   = [0.5 0.5 0.5];
 
 % Define Actve movement list/color map for part 3 and 4
@@ -121,7 +127,7 @@ if ~isAllDepths
 
     % Build time-aligned matrix using helper
     [X, t_use, mtPerUnit, labelsUnit] = build_MUA_ZETA_timeAlignedMatrix(M, ...
-        'DepthCode', depthCodeSingle); %#ok<NASGU>
+        'DepthCode', depthCodeSingle); 
 
     if size(X,2) < 3
         error('Need at least 3 MUA units at this depth to plot PC1–PC3 (found %d).', size(X,2));

@@ -42,11 +42,18 @@ JNE_depth = ([ ...
     ./ 255); % /255 = standard
 
 % Movement-context colors (greens)
+% JNE_move = ([ ...
+%     128,128,128;     % REST  (grey)
+%     217,240,211;     % HAND OC  (light green)
+%     127,191,123;     % HAND PS  (green)
+%     27,120,55] ...   % ARM EF   (dark green)
+%     ./ 255);  % /255 = standard
+
 JNE_move = ([ ...
     128,128,128;     % REST  (grey)
-    217,240,211;     % HAND OC  (light green)
-    127,191,123;     % HAND PS  (green)
-    27,120,55] ...   % ARM EF   (dark green)
+    38,116,183;     % HAND OC  (blue)
+    53,183,121;     % HAND PS  (green/teal)
+    243,120,98] ...   % ARM EF   (coral)
     ./ 255);  % /255 = standard
 
 depthColorMap = containers.Map({'t','c','b'}, {JNE_depth(1,:), JNE_depth(2,:), JNE_depth(3,:)});
@@ -537,7 +544,7 @@ hPS = scatter(nan,nan,dotSz,moveColorMap('HAND PS'),'filled','DisplayName','Hand
 hEF = scatter(nan,nan,dotSz,moveColorMap('ARM EF'), 'filled','DisplayName','Arm EF');
 
 hThr = line(nan,nan,'LineStyle','--','Color',[0.3 0.3 0.3],'LineWidth',1, ...
-    'DisplayName', sprintf('Significance: p<%g & Z\\geq%g', U.SigP, U.SigZ));
+    'DisplayName', sprintf('p<%g & Z\\geq%g', U.SigP, U.SigZ));
 
 legHandles = [hRE hOC hPS hEF hThr];
 
@@ -702,7 +709,7 @@ hThr = line(nan,nan,'LineStyle','--','Color',[0.3 0.3 0.3],'LineWidth',1, ...
 
 legHandles = [hRE hOC hPS hEF hThr];
 legLabels  = {'Rest','Hand OC','Hand PS','Arm EF', ...
-    sprintf('Significance: z-score > %g', U.SigZ)};
+    sprintf('z-score > %g', U.SigZ)};
   % sprintf('Significance: p<%g & Z\\geq%g', U.SigP, U.SigZ)};
 
 % try

@@ -56,16 +56,22 @@ purpleShades = ([ ...
     231-15, 212-15, 232-15] ... % ventral STN (b)
     ./ 255);
 
-greenShades = ([ ...
-    128,128,128;     % REST
-    217,240,211;     % HAND OC
-    127,191,123;     % HAND PS
-    27,120,55] ...   % ARM EF
-    ./ 255);
+% greenShades = ([ ...
+%     128,128,128;     % REST
+%     217,240,211;     % HAND OC
+%     127,191,123;     % HAND PS
+%     27,120,55] ...   % ARM EF
+%     ./ 255);
+JNE_move = ([ ...
+    128,128,128;    % REST  (grey)
+    38,116,183;     % HAND OC  (blue)
+    53,183,121;     % HAND PS  (green/teal)
+    243,120,98] ...   % ARM EF   (coral)
+    ./ 255);  % /255 = standard
 
 depthColorMap = containers.Map({'t','c','b'}, {purpleShades(1,:), purpleShades(2,:), purpleShades(3,:)});
-moveColorMap  = containers.Map({'REST','HAND OC','HAND PS','ARM EF'}, {greenShades(1,:), greenShades(2,:), greenShades(3,:), greenShades(4,:)});
-Active_moveColorMap = containers.Map({'HAND OC','HAND PS','ARM EF'}, {greenShades(2,:), greenShades(3,:), greenShades(4,:)});
+moveColorMap  = containers.Map({'REST','HAND OC','HAND PS','ARM EF'}, {JNE_move(1,:), JNE_move(2,:), JNE_move(3,:), JNE_move(4,:)});
+Active_moveColorMap = containers.Map({'HAND OC','HAND PS','ARM EF'}, {JNE_move(2,:), JNE_move(3,:), JNE_move(4,:)});
 fallbackCol   = [0.5 0.5 0.5];
 
 % Plotting order:

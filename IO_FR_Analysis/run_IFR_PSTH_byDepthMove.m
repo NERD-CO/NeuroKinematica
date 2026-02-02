@@ -72,6 +72,13 @@ greenShades = ([ ...
     27,120,55] ...   % ARM EF   (dark green)
     ./ 255);  % /255 = standard
 
+JNE_move = ([ ...
+    128,128,128;     % REST  (grey)
+    38,116,183;     % HAND OC  (blue)
+    53,183,121;     % HAND PS  (green/teal)
+    243,120,98] ...   % ARM EF   (coral)
+    ./ 255);  % /255 = standard
+
 
 % Maps for easy lookup
 depthColorMap = containers.Map( ...
@@ -80,7 +87,7 @@ depthColorMap = containers.Map( ...
 
 moveColorMap  = containers.Map( ...
     {'REST','HAND OC','HAND PS','ARM EF'}, ...
-    {greenShades(1,:), greenShades(2,:), greenShades(3,:), greenShades(4,:)});
+    {JNE_move(1,:), JNE_move(2,:), JNE_move(3,:), JNE_move(4,:)});
 
 
 %% Initialize Spike fields and MoveTypes

@@ -38,7 +38,6 @@ p.addParameter('DepthOrder', {'t','c','b'}, @(x) iscell(x) && ~isempty(x));
 p.addParameter('ActiveMoveOrder', {'HAND OC','HAND PS','ARM EF'}, @(x) iscell(x) && ~isempty(x));
 
 p.addParameter('SaveDir', '', @(x)ischar(x)||isstring(x));
-p.addParameter('DoSave', false, @islogical);
 p.addParameter('FigPrefix', 'ZETA_PCA3D', @(x)ischar(x)||isstring(x));
 
 % Time alignment
@@ -66,10 +65,10 @@ p.addParameter('MarkerAlpha', 0.75, @(x)isnumeric(x)&&isscalar(x)&&x>=0&&x<=1);
 p.parse(varargin{:});
 U = p.Results;
 
-if U.DoSave && isempty(U.SaveDir)
-    U.SaveDir = fullfile(pwd, 'PCA_Plots');
+if isempty(U.SaveDir)
+    U.SaveDir = fullfile(pwd, '3D PCA Stats');
 end
-if U.DoSave && ~exist(U.SaveDir,'dir')
+if ~exist(U.SaveDir,'dir')
     mkdir(U.SaveDir);
 end
 
@@ -108,15 +107,21 @@ end
 % -----------------------
 % JNE color scheme
 % -----------------------
-greenShades = ([ ...
-    217-20,240-15,211-20;     % HAND OC
-    127-20,191-15,123-20;     % HAND PS
-    27-20, 120-15, 55-20] ... % ARM EF
-    ./ 255);
+% greenShades = ([ ...
+%     217-20,240-15,211-20;     % HAND OC
+%     127-20,191-15,123-20;     % HAND PS
+%     27-20, 120-15, 55-20] ... % ARM EF
+%     ./ 255);
+JNE_move = ([ ...
+    128,128,128;    % REST  (grey)
+    38,116,183;     % HAND OC  (blue)
+    53,183,121;     % HAND PS  (green/teal)
+    243,120,98] ...   % ARM EF   (coral)
+    ./ 255);  % /255 = standard
 
 moveColorMap = containers.Map( ...
     {'HAND OC','HAND PS','ARM EF'}, ...
-    {greenShades(1,:), greenShades(2,:), greenShades(3,:)} );
+    {JNE_move(2,:), JNE_move(3,:), JNE_move(4,:)} );
 
 depthNames = containers.Map({'t','c','b'}, {'dorsal STN','central STN','ventral STN'});
 
@@ -231,26 +236,22 @@ for d = 1:numel(depthOrder)
         % 3D scatter of PC scores
         hLeg(mIdx) = scatter3(ax3, x_smooth, y_smooth, z_smooth, ...
             10, c, 'filled', 'MarkerFaceAlpha',0.3);
-            % U.MarkerSize, c, 'filled', ...
-            % 'MarkerFaceAlpha', U.MarkerAlpha, 'MarkerEdgeColor','none', ...
-            % 'DisplayName', mv);
+        % U.MarkerSize, c, 'filled', ...
+        % 'MarkerFaceAlpha', U.MarkerAlpha, 'MarkerEdgeColor','none', ...
+        % 'DisplayName', mv);
         hold on
         % trajectory lines
-        plot3(ax3, x_smooth, y_smooth, z_smooth, 'Color',c, 'LineWidth', 3)
+        plot3(ax3, x_smooth, y_smooth, z_smooth, 'Color', c, 'LineWidth', 3)
         % -----------------------------------------------------------------
 
-        % Convex hull projections on XY, XZ, YZ planes
-        plotHullProjections(ax3, PC1(idx), PC2(idx), PC3(idx), c, ...
-            wallInfo, U.HullFaceAlpha, U.HullEdgeAlpha, U.HullLineWidth);
+        % % Convex hull projections on XY, XZ, YZ planes
+        % plotHullProjections(ax3, PC1(idx), PC2(idx), PC3(idx), c, ...
+        %     wallInfo, U.HullFaceAlpha, U.HullEdgeAlpha, U.HullLineWidth);
     end
 
     % Axes formatting
     xlabel(ax3,'PC1'); ylabel(ax3,'PC2'); zlabel(ax3,'PC3');
-    if isKey(depthNames, dz)
-        ttl = sprintf('3D PCA + Hull projections | %s', depthNames(dz));
-    else
-        ttl = sprintf('3D PCA + Hull projections | depth %s', dz);
-    end
+    ttl = sprintf('3D PCA | %s', depthNames(dz)); % 3D PCA + Hull projection
     title(ax3, ttl, 'Interpreter','none');
 
     view(ax3, U.View); % azimuth, elevation
@@ -262,12 +263,21 @@ for d = 1:numel(depthOrder)
     % Small padding so labels never touch figure edges
     ax3.LooseInset = max(ax3.TightInset, 0.05);
 
-    % Legend
-    ok = isgraphics(hLeg);
-    if any(ok)
-        legend(ax3, hLeg(ok), mvOrder(ok), 'Location','northeastoutside', 'FontSize', 11);
+    % ----- Legend: use dummy scatters so legend colors are opaque -----
+    mvOrder = string(U.ActiveMoveOrder);
+    hLeg2 = gobjects(numel(mvOrder),1);
+    for mIdx = 1:numel(mvOrder)
+        mv = char(mvOrder(mIdx));
+        c  = moveColorMap(mv);
+        % dummy handle (doesn't plot any points)
+        hLeg2(mIdx) = scatter3(ax3, NaN, NaN, NaN, ...
+            60, c, 'filled', ...
+            'MarkerFaceAlpha', 1.0, ...
+            'MarkerEdgeColor', 'none', ...
+            'DisplayName', mv);
     end
-
+    lgd = legend(ax3, hLeg2, cellstr(mvOrder), 'Location','northeastoutside', 'FontSize', 11);
+    lgd.AutoUpdate = 'off';
 
 
     %% Cluster Eval:
@@ -284,7 +294,7 @@ for d = 1:numel(depthOrder)
 
         if ~okSil
             silVals = nan(size([PC1 PC2 PC3],1),1);
-            return;
+            continue;
         end
         try
             silVals = silhouette([PC1 PC2 PC3], mvPerUnit, U.SilhouetteMethod);
@@ -301,7 +311,7 @@ for d = 1:numel(depthOrder)
             axes(axS);
             cla(axS);
             silhouette([PC1 PC2 PC3], mvPerUnit, U.SilhouetteMethod);
-            title(axS, sprintf('Silhouette | depth %s', dz), 'Interpreter','none');
+            title(axS, sprintf('Silhouette | %s', depthNames(dz)), 'Interpreter','none');
             xlabel(axS, 'Silhouette value'); ylabel(axS, 'Cluster (MoveType)');
 
             % Summaries per MoveType
@@ -309,14 +319,74 @@ for d = 1:numel(depthOrder)
                 mv = mvOrder{mIdx};
                 mm = mvPerUnit == string(mv);
                 if ~any(mm), continue; end
-                silSummaryRows(end+1,:) = {dz, mv, nnz(mm), ...
+                silSummaryRows(end+1,:) = {depthNames(dz), mv, nnz(mm), ...
                     mean(silVals(mm),'omitnan'), ...
                     median(silVals(mm),'omitnan'), ...
                     std(silVals(mm),'omitnan')};
             end
         else
-            title(axS, sprintf('Silhouette not computed (insufficient groups) | depth %s', dz), 'Interpreter','none');
+            title(axS, sprintf('Silhouette not computed (insufficient groups) | depth %s', depthNames(dz)), 'Interpreter','none');
         end
+
+
+        % % --- Combined histogram of silhouette values, colored by MoveType ---
+        % figure('Color','w'); axH1 = axes; hold(axH1,'on'); box(axH1,'on'); grid(axH1,'on');
+        % mvOrder = string(U.ActiveMoveOrder);
+        % mvPerUnit = string(mvPerUnit(:));
+        % silVals = silVals(:);
+        % % Common bin edges for all groups (so bars line up)
+        % nBins = 15;
+        % edges = linspace(-1, 1, nBins+1);
+        % h = gobjects(numel(mvOrder),1);
+        % for mIdx = 1:numel(mvOrder)
+        %     mv = mvOrder(mIdx);
+        %     idx = (mvPerUnit == mv) & isfinite(silVals);
+        %     if ~any(idx), continue; end
+        % 
+        %     c = moveColorMap(char(mv));  % color map (MoveType -> RGB)
+        %     h(mIdx) = histogram(axH1, silVals(idx), ...
+        %         'BinEdges', edges, ...
+        %         'DisplayStyle','bar', ...
+        %         'FaceColor', c, ...
+        %         'FaceAlpha', 0.35, ...
+        %         'EdgeColor', 'none');  % clean overlay
+        % end
+        % xlim(axH1, [-1 1]);
+        % xlabel(axH1, 'Silhouette value');
+        % ylabel(axH1, 'Count');
+        % title(axH1, sprintf('Silhouette distribution by MoveType | %s', depthNames(dz)), 'Interpreter','none');
+        % legend(axH1, cellstr(mvOrder), 'Location','northeast');
+        % % overall median line
+        % xline(axH1, median(silVals(isfinite(silVals))), '-k', 'median', 'LineWidth', 1.25);
+
+
+        % % --- Stacked histogram of silhouette values, colored by MoveType ---
+        % figure('Color','w'); axH2 = axes; hold(axH2,'on'); box(axH2,'on'); grid(axH2,'on');
+        % mvOrder  = string(U.ActiveMoveOrder);
+        % mvPerUnit = string(mvPerUnit(:));
+        % silVals  = silVals(:);
+        % % Common bin edges
+        % nBins = 15;
+        % edges = linspace(-1, 1, nBins+1);
+        % centers = edges(1:end-1) + diff(edges)/2;
+        % counts = zeros(numel(centers), numel(mvOrder));
+        % for mIdx = 1:numel(mvOrder)
+        %     mv = mvOrder(mIdx);
+        %     idx = (mvPerUnit == mv) & isfinite(silVals);
+        %     counts(:,mIdx) = histcounts(silVals(idx), edges).';
+        % end
+        % 
+        % b = bar(axH2, centers, counts, 'stacked');
+        % for mIdx = 1:numel(mvOrder)
+        %     c = moveColorMap(char(mvOrder(mIdx))); % color map (MoveType -> RGB)
+        %     b(mIdx).FaceColor = c;
+        %     b(mIdx).EdgeColor = 'none';
+        % end
+        % xlim(axH2, [-1 1]);
+        % xlabel(axH2, 'Silhouette value');
+        % ylabel(axH2, 'Count');
+        % title(axH2, sprintf('Silhouette (stacked) by MoveType | %s', depthNames(dz)), 'Interpreter','none');
+        % legend(axH2, cellstr(mvOrder), 'Location','northeast');
 
 
         %% Stats:
@@ -345,25 +415,22 @@ for d = 1:numel(depthOrder)
             thisCat = cats{i};
             idx = (factors == thisCat);
 
-            h = histogram(silVals(idx), 15);  % <-- capture handle
+            h = histogram(silVals(idx), 15);  % handle
 
-    % Color by MoveType
-    mvKey = char(string(thisCat));
-    if isKey(moveColorMap, mvKey)
-        h.FaceColor = moveColorMap(mvKey);
-    else
-        h.FaceColor = [0.6 0.6 0.6]; % fallback
-    end
+            % Color by MoveType
+            mvKey = char(string(thisCat));
+            if isKey(moveColorMap, mvKey)
+                h.FaceColor = moveColorMap(mvKey);
+            else
+                h.FaceColor = [0.6 0.6 0.6]; % fallback
+            end
 
-    % Optional aesthetics
-    h.EdgeColor = 'none';
-    h.FaceAlpha = 0.85;
+            % Optional aesthetics
+            h.EdgeColor = 'none';
+            h.FaceAlpha = 0.85;
 
-
-            histogram(silVals(idx), 15);
-            
             xlim([-1 1]);
-            title(thisCat, 'Interpreter','none');
+            title(mvKey, 'Interpreter','none');
             xlabel('Silhouette'); ylabel('Count');
 
             xline(median(silVals(idx), 'omitnan'), '-k', 'median');
@@ -380,7 +447,7 @@ for d = 1:numel(depthOrder)
             'VariableNames', matlab.lang.makeValidName(string(tbl_kw(1,:))));
 
         % Add metadata
-        tblKW.Depth = repmat(string(dz), height(tblKW), 1);
+        tblKW.Depth = repmat(string(depthNames(dz)), height(tblKW), 1);
         tblKW = movevars(tblKW, 'Depth', 'Before', 1);
         tblKW.pValue_overall = repmat(p_kw, height(tblKW), 1);
 
@@ -391,7 +458,7 @@ for d = 1:numel(depthOrder)
         grpNames = categories(factors);
         mcTbl_kw.Group1 = grpNames(mcTbl_kw.Group1);
         mcTbl_kw.Group2 = grpNames(mcTbl_kw.Group2);
-        mcTbl_kw.Depth  = repmat(string(dz), height(mcTbl_kw), 1);
+        mcTbl_kw.Depth  = repmat(string(depthNames(dz)), height(mcTbl_kw), 1);
         mcTbl_kw = movevars(mcTbl_kw, 'Depth', 'Before', 1);
 
         disp(mcTbl_kw);
@@ -406,7 +473,7 @@ for d = 1:numel(depthOrder)
             'VariableNames', matlab.lang.makeValidName(string(tbl_aov(1,:))));
 
         % Add metadata
-        tblAOV.Depth = repmat(string(dz), height(tblAOV), 1);
+        tblAOV.Depth = repmat(string(depthNames(dz)), height(tblAOV), 1);
         tblAOV = movevars(tblAOV, 'Depth', 'Before', 1);
         tblAOV.pValue_overall = repmat(p_aov, height(tblAOV), 1);
 
@@ -417,19 +484,16 @@ for d = 1:numel(depthOrder)
         grpNames = categories(factors);
         mcTbl_aov.Group1 = grpNames(mcTbl_aov.Group1);
         mcTbl_aov.Group2 = grpNames(mcTbl_aov.Group2);
-        mcTbl_aov.Depth  = repmat(string(dz), height(mcTbl_aov), 1);
+        mcTbl_aov.Depth  = repmat(string(depthNames(dz)), height(mcTbl_aov), 1);
         mcTbl_aov = movevars(mcTbl_aov, 'Depth', 'Before', 1);
 
         disp(mcTbl_aov);
     end
 
-
-    %% Save if requested
-    if U.DoSave
-        base = sprintf('%s_%s', char(string(U.FigPrefix)), dz);
-        print(hFig, fullfile(U.SaveDir, [base '.png']), '-dpng', '-r300');
-        savefig(hFig, fullfile(U.SaveDir, [base '.fig']));
-    end
+    %% Save outputs
+    base = sprintf('%s_%s', char(string(U.FigPrefix)), dz);
+    print(hFig, fullfile(U.SaveDir, [base '.png']), '-dpng', '-r300');
+    savefig(hFig, fullfile(U.SaveDir, [base '.fig']));
 
     % Store PCA and Silhouette outputs
     out.PerDepth(end+1).Depth      = dz;
@@ -441,16 +505,15 @@ for d = 1:numel(depthOrder)
     % Append Stat outputs per-depth
     out.PerDepth(end).KW.tbl = tblKW;
     out.PerDepth(end).KW.mc  = mcTbl_kw;
-
     out.PerDepth(end).ANOVA.tbl = tblAOV;
     out.PerDepth(end).ANOVA.mc  = mcTbl_aov;
-
 
     % Aggregated stats
     out.Stats.KW.tbl  = [out.Stats.KW.tbl;  tblKW];
     out.Stats.KW.mc   = [out.Stats.KW.mc;   mcTbl_kw];
     out.Stats.ANOVA.tbl = [out.Stats.ANOVA.tbl; tblAOV];
     out.Stats.ANOVA.mc  = [out.Stats.ANOVA.mc;  mcTbl_aov];
+
 end
 
 % Summary table
@@ -460,6 +523,45 @@ if ~isempty(silSummaryRows)
 else
     out.SilSummaryTbl = table;
 end
+
+
+%% ============================
+% Save Output Structs and Tables
+% =============================
+
+% Ensure SaveDir exists
+if ~exist(U.SaveDir,'dir')
+    mkdir(U.SaveDir);
+end
+
+% Use a stable base name for all exports
+baseOut = sprintf('%s_%s', char(string(U.FigPrefix)));
+
+% ---- Save the full output struct ----
+outMatPath = fullfile(U.SaveDir, [baseOut '_OUT.mat']);
+save(outMatPath, 'out', '-v7.3');  % -v7.3 safe for large structs
+fprintf('[SAVE] out struct: %s\n', outMatPath);
+
+% ---- Save aggregated stats tables (CSV) ----
+
+if istable(out.Stats.KW.tbl) && ~isempty(out.Stats.KW.tbl)
+    writetable(out.Stats.KW.tbl, fullfile(U.SaveDir, [baseOut '_KW_tbl.csv']));
+end
+if istable(out.Stats.KW.mc) && ~isempty(out.Stats.KW.mc)
+    writetable(out.Stats.KW.mc,  fullfile(U.SaveDir, [baseOut '_KW_mc.csv']));
+end
+if istable(out.Stats.ANOVA.tbl) && ~isempty(out.Stats.ANOVA.tbl)
+    writetable(out.Stats.ANOVA.tbl, fullfile(U.SaveDir, [baseOut '_ANOVA_tbl.csv']));
+end
+if istable(out.Stats.ANOVA.mc) && ~isempty(out.Stats.ANOVA.mc)
+    writetable(out.Stats.ANOVA.mc,  fullfile(U.SaveDir, [baseOut '_ANOVA_mc.csv']));
+end
+if istable(out.SilSummaryTbl) && ~isempty(out.SilSummaryTbl)
+    writetable(out.SilSummaryTbl, fullfile(U.SaveDir, [baseOut '_SilSummaryTbl.csv']));
+end
+fprintf('[SAVE] CSV tables written to: %s\n', U.SaveDir);
+
+
 
 end % main function
 
@@ -558,18 +660,18 @@ mz = 0.10 * max(1e-6, zmax-zmin);
 
 % --- Walls ---
 % x_wall = xmin - mx;   % YZ, front-right wall
-x_wall = xmax + (1+mx); % flip --> YZ projection on BACK-right plane
+x_wall = xmax + (0.2+mx); % flip --> YZ projection on BACK-right plane
 % y_wall = ymax + my;   % XZ, back-left wall
-y_wall = ymax + (1+my); % XZ projection on back-left plane
+y_wall = ymax + (0.2+my); % XZ projection on back-left plane
 % z_wall = zmin - mz;   % XY, base/floor wall
-z_wall = zmin - (1+mz); % XY projection on bottom plane
+z_wall = zmin - (0.2+mz); % XY projection on bottom plane
 
 wallInfo = [x_wall, y_wall, z_wall];
 
 % --- Axis limits ---
-x_lim_min = xmin - (1+mx);
-y_lim_min = ymin - (1+my);
-z_lim_max = zmax + (1+mz);
+x_lim_min = xmin - (0.2+mx);
+y_lim_min = ymin - (0.2+my);
+z_lim_max = zmax + (0.2+mz);
 
 limInfo = [...
     x_lim_min, x_wall;   % xlim

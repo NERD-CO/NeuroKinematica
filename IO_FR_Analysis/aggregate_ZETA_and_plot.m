@@ -50,11 +50,18 @@ JNE_depth = ([ ...
     ./ 255); % /255 = standard
 
 % Movement-context colors (greens)
+% JNE_move = ([ ...
+%     128,128,128;     % REST  (grey)
+%     217,240,211;     % HAND OC  (light green)
+%     127,191,123;     % HAND PS  (green)
+%     27,120,55] ...   % ARM EF   (dark green)
+%     ./ 255);  % /255 = standard
+
 JNE_move = ([ ...
     128,128,128;     % REST  (grey)
-    217,240,211;     % HAND OC  (light green)
-    127,191,123;     % HAND PS  (green)
-    27,120,55] ...   % ARM EF   (dark green)
+    38,116,183;     % HAND OC  (blue)
+    53,183,121;     % HAND PS  (green/teal)
+    243,120,98] ...   % ARM EF   (coral)
     ./ 255);  % /255 = standard
 
 depthColorMap = containers.Map({'t','c','b'}, {JNE_depth(1,:), JNE_depth(2,:), JNE_depth(3,:)});
@@ -840,7 +847,7 @@ hThr = line(nan,nan,'LineStyle','--','Color',[0.3 0.3 0.3],'LineWidth', 1, ...
 % Build one combined legend
 legHandles = [hRE hOC hPS hEF hThr];
 legLabels  = {'Rest','Hand OC','Hand PS','Arm EF', ...
-    sprintf('Significance: z-score > %g', U.SigZ)};
+    sprintf('z-score > %g', U.SigZ)};
   % sprintf('Significance: p<%g & Z\\geq%g', U.SigP, U.SigZ)};
 
 % Attach legend to one real axes (e.g., the first tile's axes)
@@ -860,6 +867,177 @@ print(hT, fullfile(groupOut, fnameAll2), '-dpng', '-r300');
 
 % savefig(ht, fullfile(groupOut, fnameAll2), '.fig');
 
+
+%% 6) ZETA_D temporal deviation value scatter by depth (rows) with x = MoveType (REST, HAND OC, HAND PS, ARM EF)
+% Color = MoveType (JNE greens), edge = significance, jitter + median line per MoveType.
+
+mv_order = ["REST","HAND OC","HAND PS","ARM EF"];
+depthKeys  = ["t","c","b"];
+depthNames = ["dorsal STN","central STN","ventral STN"];
+
+y_all  = MasterZETA.ZetaD;
+mv_all = string(strtrim(MasterZETA.MoveType));
+dz_all = string(strtrim(MasterZETA.Depth));
+
+hT = figure('Color','w','Position',[90 90 950 900]);
+tlo = tiledlayout(3,1,'TileSpacing','compact','Padding','compact');
+
+for dd = 1:numel(depthKeys)
+    dzKey = depthKeys(dd);
+    ax = nexttile; hold(ax,'on'); grid(ax,'on');
+
+    dotSz = 55;          % <-- one size for everything
+    jitterW = 0.25;
+
+    for mi = 1:numel(mv_order)
+        mv = mv_order(mi);
+
+        idx = (dz_all==dzKey) & (mv_all==mv) & ~isnan(y_all);
+        if ~any(idx), continue; end
+
+        % MoveType color (JNE)
+        if isKey(moveColorMap, char(mv))
+            fc = moveColorMap(char(mv));
+        else
+            fc = fallbackCol;
+        end
+
+        % One scatter: uniform size, no significance edge styling
+        s = scatter(ax, mi*ones(sum(idx),1), y_all(idx), dotSz, fc, 'filled', ...
+            'MarkerFaceAlpha', 0.9, ...
+            'MarkerEdgeColor', 'none');   % or [0.2 0.2 0.2] if you want a subtle border
+        s.XJitter = "rand";
+        s.XJitterWidth = jitterW;
+
+        % Median line
+        medY = median(y_all(idx), 'omitnan');
+        medW = 0.20;
+        line(ax, [mi-medW mi+medW], [medY medY], 'Color', fc, 'LineWidth', 2);
+    end
+
+    xticks(ax, 1:numel(mv_order));
+    xticklabels(ax, mv_order);
+    xlim(ax, [0.5, numel(mv_order)+0.5]);
+
+    ylim(ax, [-0.5, 0.5]);
+    ylabel(ax, 'ZETA Temporal Deviation Value');
+    title(ax, sprintf('%s', depthNames(dd)));
+end
+
+
+% Legend (MoveType colors)
+hRE = scatter(nan,nan,dotSz,moveColorMap('REST'),   'filled','DisplayName','Rest');
+hOC = scatter(nan,nan,dotSz,moveColorMap('HAND OC'),'filled','DisplayName','Hand OC');
+hPS = scatter(nan,nan,dotSz,moveColorMap('HAND PS'),'filled','DisplayName','Hand PS');
+hEF = scatter(nan,nan,dotSz,moveColorMap('ARM EF'), 'filled','DisplayName','Arm EF');
+
+
+% Build one combined legend
+legHandles = [hRE hOC hPS hEF hThr];
+legLabels  = {'Rest','Hand OC','Hand PS','Arm EF'};
+
+% Attach legend to one real axes (e.g., the first tile's axes)
+axForLegend = nexttile(tlo, 1);   % or store ax handles during loop and use axHandles(1)
+
+lgd = legend(axForLegend, legHandles, legLabels, ...
+    'Orientation','vertical', ...
+    'Location','northeastoutside', ...
+    'FontSize', 12, ...
+    'Box','off');
+
+title(tlo, sprintf('ZETA Temporal Deviation per Movement Type by STN Depth  (N=%d hemispheres)', numel(uniqSubsAll))); % add (N=%d hemispheres)', numel(uniqSubsAll)
+
+fnameAll3 = 'ZETA_temporalDeviation_Scatter_ByDepth_XisMoveType.png';
+print(hT, fullfile(groupOut, fnameAll3), '-dpng', '-r300');
+% close(hT);
+
+% savefig(ht, fullfile(groupOut, fnameAll2), '.fig');
+
+
+%% 7) IFR_peak_Latency scatter by depth (rows) with x = MoveType (REST, HAND OC, HAND PS, ARM EF)
+% Color = MoveType (JNE greens), edge = significance, jitter + median line per MoveType.
+
+mv_order = ["REST","HAND OC","HAND PS","ARM EF"];
+depthKeys  = ["t","c","b"];
+depthNames = ["dorsal STN","central STN","ventral STN"];
+
+y_all  = MasterZETA.IFR_peakLatency;
+mv_all = string(strtrim(MasterZETA.MoveType));
+dz_all = string(strtrim(MasterZETA.Depth));
+
+hT = figure('Color','w','Position',[90 90 950 900]);
+tlo = tiledlayout(3,1,'TileSpacing','compact','Padding','compact');
+
+for dd = 1:numel(depthKeys)
+    dzKey = depthKeys(dd);
+    ax = nexttile; hold(ax,'on'); grid(ax,'on');
+
+    dotSz = 55;          % <-- one size for everything
+    jitterW = 0.25;
+
+    for mi = 1:numel(mv_order)
+        mv = mv_order(mi);
+
+        idx = (dz_all==dzKey) & (mv_all==mv) & ~isnan(y_all);
+        if ~any(idx), continue; end
+
+        % MoveType color (JNE)
+        if isKey(moveColorMap, char(mv))
+            fc = moveColorMap(char(mv));
+        else
+            fc = fallbackCol;
+        end
+
+        % One scatter: uniform size, no significance edge styling
+        s = scatter(ax, mi*ones(sum(idx),1), y_all(idx), dotSz, fc, 'filled', ...
+            'MarkerFaceAlpha', 0.9, ...
+            'MarkerEdgeColor', 'none');   % or [0.2 0.2 0.2] if you want a subtle border
+        s.XJitter = "rand";
+        s.XJitterWidth = jitterW;
+
+        % Median line
+        medY = median(y_all(idx), 'omitnan');
+        medW = 0.20;
+        line(ax, [mi-medW mi+medW], [medY medY], 'Color', fc, 'LineWidth', 2);
+    end
+
+    xticks(ax, 1:numel(mv_order));
+    xticklabels(ax, mv_order);
+    xlim(ax, [0.5, numel(mv_order)+0.5]);
+
+    ylim(ax, [0, 2]);
+    ylabel(ax, 'IFR Peak Latency');
+    title(ax, sprintf('%s', depthNames(dd)));
+end
+
+
+% Legend (MoveType colors)
+hRE = scatter(nan,nan,dotSz,moveColorMap('REST'),   'filled','DisplayName','Rest');
+hOC = scatter(nan,nan,dotSz,moveColorMap('HAND OC'),'filled','DisplayName','Hand OC');
+hPS = scatter(nan,nan,dotSz,moveColorMap('HAND PS'),'filled','DisplayName','Hand PS');
+hEF = scatter(nan,nan,dotSz,moveColorMap('ARM EF'), 'filled','DisplayName','Arm EF');
+
+
+% Build one combined legend
+legHandles = [hRE hOC hPS hEF hThr];
+legLabels  = {'Rest','Hand OC','Hand PS','Arm EF'};
+
+% Attach legend to one real axes (e.g., the first tile's axes)
+axForLegend = nexttile(tlo, 1);   % or store ax handles during loop and use axHandles(1)
+
+lgd = legend(axForLegend, legHandles, legLabels, ...
+    'Orientation','vertical', ...
+    'Location','northeastoutside', ...
+    'FontSize', 12, ...
+    'Box','off');
+
+title(tlo, sprintf('IFR Peak Latency per Movement Type by STN Depth  (N=%d hemispheres)', numel(uniqSubsAll))); % add (N=%d hemispheres)', numel(uniqSubsAll)
+
+fnameAll3 = 'IFR_peakLatency_Scatter_ByDepth_XisMoveType.png';
+print(hT, fullfile(groupOut, fnameAll3), '-dpng', '-r300');
+% close(hT);
+
+% savefig(ht, fullfile(groupOut, fnameAll2), '.fig');
 
 %% Save the Master table for reference
 

@@ -634,14 +634,30 @@ plot_ZETA_PCA_3D_byDepth_MUA(MasterZETA_MUA, 'all depths', ...
     'SavePath', SavePath, 'DoLines', true);
 
 
-%% SU - 3D-PCA Convex Hull and Silhouette Plots
 
-PCA_Silhouette_stats = plot_ZETA_3DPCA_ConvexHull_byDepth(MasterZETA, varargin);
+%% Spikes SU - 3D-PCA Convex Hull and Silhouette Plots
+
+SaveDir = fullfile(FR_Kin_Dir, 'Aggregate Zeta Plots', '3D PCA Stats');
+
+PCA_Silhouette_Stats = plot_ZETA_3DPCA_ConvexHull_byDepth(MasterZETA, ...
+    'SaveDir', SaveDir, 'DoSilhouettePlot', true, 'FigPrefix', 'ZETA_PCA3D_Silhouette');
 
 
-%% SU - 3D-PCA Convex Hull and Silhouette Plots
+%% MUA - 3D-PCA Convex Hull and Silhouette Plots
 
-PCA_Silhouette_out = plot_ZETA_3DPCA_ConvexHull_byDepth(MasterZETA, varargin);
+PCA_Silhouette_Stats_MUA = plot_ZETA_3DPCA_ConvexHull_byDepth_MUA(MasterZETA_MUA, ...
+    'SaveDir', SaveDir, 'DoSilhouettePlot', true, 'FigPrefix', 'MUA_ZETA_PCA3D_Silhouette');
+
+
+%%
+
+SU_PCA_traj = plot_ZETA_TrajectoryAnalysis_SU(MasterZETA, ...
+    'SaveDir', SaveDir, ...
+    'FigPrefix', 'SU_ZETA_TrajFeat', ...
+    'Nboot', 500, ...
+    'DoProcrustes', true, ...
+    'BootMinUnits', 5, ...
+    'UseIntegralFeature', true);
 
 %% Heat plot
 
@@ -929,3 +945,43 @@ writetable(Tsig_ZETA_MUA, fullfile(SavePath_ZETA_Stats, 'Tsig_ZETA_MUA.csv'));
 writetable(Tsig_ZETA_MUA_NoRest, fullfile(SavePath_ZETA_Stats, 'Tsig_ZETA_MUA_NoRest.csv'));
 
 %%
+
+%% Color Mapping by STN Depth and MoveType 
+
+depthNames = containers.Map({'t','c','b'}, ...
+    {'dorsal STN','central STN','ventral STN'});
+
+% Colors by MoveType (o.g.)
+% mtColor = containers.Map( ...
+%     {'HAND OC','HAND PS','ARM EF','REST'}, ...
+%     {[0.95 0.60 0.10], ... % Hand OC = orange
+%     [0.20 0.65 0.30], ... % Hand PS = green
+%     [0.15 0.45 0.85], ... % Arm EF  = blue
+%     [0.60 0.60 0.60]});   % Rest    = gray
+
+
+% -----------------------
+% JNE color scheme 
+% -----------------------
+purpleShades = ([ ...
+    118,42,131;      % dorsal STN (t)
+    175,141,195;     % central STN (c)
+    231-15, 212-15, 232-15] ... % ventral STN (b)
+    ./ 255);
+
+% greenShades = ([ ...
+%     128,128,128;     % REST
+%     217-15,240-15,211-15;     % HAND OC
+%     127,191,123;     % HAND PS
+%     27,120,55] ...   % ARM EF
+%     ./ 255);
+JNE_move = ([ ...
+    128,128,128;    % REST  (grey)
+    38,116,183;     % HAND OC  (blue)
+    53,183,121;     % HAND PS  (green/teal)
+    243,120,98] ...   % ARM EF   (coral)
+    ./ 255);  % /255 = standard
+
+depthColorMap = containers.Map({'t','c','b'}, {purpleShades(1,:), purpleShades(2,:), purpleShades(3,:)});
+moveColorMap  = containers.Map({'REST','HAND OC','HAND PS','ARM EF'}, {JNE_move(1,:), JNE_move(2,:), JNE_move(3,:), JNE_move(4,:)});
+fallbackCol   = [0.5 0.5 0.5];

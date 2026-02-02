@@ -69,14 +69,21 @@ purpleShades = ([ ...
     ./ 255); % /255 = standard
 
 % Movement-context colors (greens)
-greenShades = ([ ...
-    217-20,240-20,211-20;     % HAND OC  (light green)
-    127,191,123;              % HAND PS  (green)
-    27,120,55] ...            % ARM EF   (dark green)
+% greenShades = ([ ...
+%     217-20,240-20,211-20;     % HAND OC  (light green)
+%     127,191,123;              % HAND PS  (green)
+%     27,120,55] ...            % ARM EF   (dark green)
+%     ./ 255);  % /255 = standard
+
+JNE_move = ([ ...
+    128,128,128;     % REST  (grey)
+    38,116,183;     % HAND OC  (blue)
+    53,183,121;     % HAND PS  (green/teal)
+    243,120,98] ...   % ARM EF   (coral)
     ./ 255);  % /255 = standard
 
 depthColor = containers.Map({'t','c','b'}, {purpleShades(1,:), purpleShades(2,:), purpleShades(3,:)});
-moveColor  = containers.Map({'HAND OC','HAND PS','ARM EF'}, {greenShades(1,:), greenShades(2,:), greenShades(3,:)});
+moveColor  = containers.Map({'HAND OC','HAND PS','ARM EF'}, {JNE_move(2,:), JNE_move(3,:), JNE_move(4,:)});
 
 depthName = containers.Map({'t','c','b'}, {'dorsal','central','ventral'});
 
