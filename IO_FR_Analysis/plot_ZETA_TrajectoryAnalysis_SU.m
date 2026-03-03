@@ -91,8 +91,8 @@ MasterZeta_T = MasterZeta_T(ismember(MasterZeta_T.MoveType, mvOrder), :);
 JNE_move = ([ ...
     128,128,128;    % REST (unused here)
     38,116,183;     % HAND OC (blue)
-    53,183,121;     % HAND PS (green/teal)
-    243,120,98] ... % ARM EF (coral/orange)
+    53,183,121;     % HAND PS (green)
+    243,120,98] ... % ARM EF  (orange)
     ./ 255);
 
 moveColorMap = containers.Map( ...
@@ -158,7 +158,6 @@ for d = 1:numel(depthOrder)
             'SmoothMode','arclength', 'SmoothMethod','pchip', 'UpFactor',10, ...
             'UseCSAPS',true,'CSAPS_p',0.30); % Decrease CSAPS_p to smooth more
 
-
         plot3(ax, P(1,1), P(1,2), P(1,3), 'o', 'MarkerSize', sqrt(U.StartMarkerSize), ...
             'MarkerFaceColor', c, 'MarkerEdgeColor', c, 'LineWidth', 0.5);
         plot3(ax, P(end,1), P(end,2), P(end,3), '^', 'MarkerSize', sqrt(U.EndMarkerSize), ...
@@ -175,6 +174,7 @@ for d = 1:numel(depthOrder)
     end
     legend(ax, hLeg, cellstr(mvOrder), 'Location','northeastoutside');
 
+    
     % -----------------------
     % Procrustes distances (bootstrapped)
     % -----------------------
@@ -369,21 +369,6 @@ dProc = d;
 end
 
 
-% function plotTrajectoryGradient3D(ax, P, baseColor, lw, nSeg)
-% % Draw a time-gradient line by plotting short segments with increasing alpha.
-% P = double(P);
-% T = size(P,1);
-% 
-% % Downsample to nSeg points for speed/cleanliness
-% idx = round(linspace(1, T, nSeg));
-% idx = unique(max(1, min(T, idx)));
-% 
-% for i = 1:(numel(idx)-1)
-%     a = i/(numel(idx)-1); % 0->1
-%     col = baseColor*(0.7 + 0.3*a); % brighten with time
-%     plot3(ax, P(idx(i:i+1),1), P(idx(i:i+1),2), P(idx(i:i+1),3), ...
-%         '-', 'Color', col, 'LineWidth', lw, 'HandleVisibility','off');
-% end
 
 function plotTrajectoryGradient3D(ax, P, baseColor, lw, nSeg, varargin)
 % plotTrajectoryGradient3D
